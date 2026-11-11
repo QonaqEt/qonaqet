@@ -2,17 +2,20 @@
 # QONAQET — GitHub bootstrap (label-lar, epic issue-ları, task sub-issue-ları).
 #
 # Yalnız REST işlədir, ona görə həm lokal, həm Actions daxilində işləyir.
-# Project (v2) board-u ayrıca qurulur: scripts/bootstrap-project.sh (GraphQL + PROJECT_TOKEN).
+# Board ayrıca qurulur: scripts/bootstrap-project.sh (GraphQL + PROJECT_TOKEN).
 #
-# İdempotentdir: ikinci dəfə işləyəndə dublikat yaratmır, mövcudları tapıb davam edir.
+# İdempotentdir: mövcud issue-lar başlıq prefiksinə görə tapılır, yenidən yaradılmır.
+# GitHub-ın ikincili limitinə görə yaradılış çağırışları arasında fasilə verilir.
 #
 #   REPO=QonaqE/qonaqet ./scripts/bootstrap-github.sh
-#   DRY_RUN=1 ./scripts/bootstrap-github.sh      # heç nə yaratmadan nə olacağını göstərir
+#   DRY_RUN=1 ./scripts/bootstrap-github.sh
+#   RATE_SLEEP=2 ./scripts/bootstrap-github.sh     # limitə dəyirsə fasiləni artır
 set -euo pipefail
 
 REPO="${REPO:-QonaqE/qonaqet}"
 EPICS_DIR="${EPICS_DIR:-docs/epics}"
 DRY_RUN="${DRY_RUN:-0}"
+RATE_SLEEP="${RATE_SLEEP:-1}"
 REPO_URL="https://github.com/${REPO}"
 
 command -v gh >/dev/null || { echo "gh CLI tapılmadı"; exit 1; }
@@ -20,12 +23,30 @@ command -v python3 >/dev/null || { echo "python3 tapılmadı"; exit 1; }
 
 log()  { printf '%s\n' "$*"; }
 step() { printf '\n\033[1m%s\033[0m\n' "$*"; }
-run()  { if [ "$DRY_RUN" = "1" ]; then log "  [dry-run] $*"; else "$@"; fi; }
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+# GitHub ikincili limitə dəyəndə geri çəkilib yenidən cəhd edir.
+api() {
+  local attempt=1 out rc
+  while :; do
+    if out="$(gh api "$@" 2>&1)"; then printf '%s' "$out"; return 0; fi
+    rc=$?
+    if printf '%s' "$out" | grep -qiE 'secondary rate limit|rate limit exceeded|abuse detection'; then
+      local wait=$(( attempt * 30 ))
+      log "  ⏳ limit — ${wait}s gözlənilir (cəhd $attempt)" >&2
+      sleep "$wait"
+      attempt=$((attempt+1))
+      [ "$attempt" -le 5 ] && continue
+    fi
+    printf '%s' "$out" >&2
+    return "$rc"
+  done
+}
 
 # ---------------------------------------------------------------- label-lar
 step "Label-lar"
-
-# ad|rəng|təsvir
 LABELS=$(cat <<'EOF'
 epic|6F42C1|Böyük iş bloku; task-lar onun sub-issue-larıdır
 task|0E8A16|Bir PR ilə bağlanan konkret iş
@@ -46,195 +67,135 @@ blocked-ui-guidelines|E99695|Angular UI guidelines gələnə qədər başlanmır
 dependency-approved|5319E7|Yeni asılılıq repo sahibi tərəfindən təsdiqlənib
 EOF
 )
-
+LABEL_N=0
 while IFS='|' read -r name color desc; do
   [ -z "${name:-}" ] && continue
-  log "  $name"
-  run gh label create "$name" --repo "$REPO" --color "$color" --description "$desc" --force
+  if [ "$DRY_RUN" = "1" ]; then
+    log "  [dry-run] $name"
+  else
+    gh label create "$name" --repo "$REPO" --color "$color" --description "$desc" --force >/dev/null
+    log "  $name"
+  fi
+  LABEL_N=$((LABEL_N+1))
 done <<< "$LABELS"
 
-# ---------------------------------------------------------------- epic-lər
+# ---------------------------------------------------------------- payload-lar
 step "Epic sənədləri oxunur"
-EPICS_JSON="$(python3 scripts/lib/parse-epics.py "$EPICS_DIR")"
-EPIC_COUNT=$(printf '%s' "$EPICS_JSON" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')
-TASK_COUNT=$(printf '%s' "$EPICS_JSON" | python3 -c 'import json,sys; print(sum(len(e["tasks"]) for e in json.load(sys.stdin)))')
-log "  $EPIC_COUNT epic, $TASK_COUNT task"
+python3 scripts/lib/build-payloads.py "$EPICS_DIR" "$TMP" "$REPO_URL"
 
-# Mövcud issue-ları bir dəfə yükləyirik (başlıq → nömrə, başlıq → id).
+# ---------------------------------------------------------------- mövcudlar
 step "Mövcud issue-lar yüklənir"
-EXISTING="$(gh api --paginate "repos/${REPO}/issues?state=all&per_page=100" \
-  --jq '.[] | select(.pull_request | not) | "\(.number)\t\(.id)\t\(.title)"' || true)"
-log "  $(printf '%s' "$EXISTING" | grep -c . || true) issue tapıldı"
+api --paginate "repos/${REPO}/issues?state=all&per_page=100" \
+  --jq '.[] | select(.pull_request | not) | "\(.title)\t\(.number)\t\(.id)\t\(.state)"' \
+  > "$TMP/existing.tsv" || : > "$TMP/existing.tsv"
+log "  $(grep -c . < "$TMP/existing.tsv" || true) issue"
 
-# find_issue "<başlıq prefiksi>" → "number<TAB>id" və ya boş
+# find_issue "<KEY>" → "number<TAB>id<TAB>state" və ya boş
 find_issue() {
-  printf '%s\n' "$EXISTING" | awk -F'\t' -v p="$1" 'index($3, p) == 1 { print $1 "\t" $2; exit }'
+  awk -F'\t' -v p="[$1]" 'index($1, p) == 1 { print $2 "\t" $3 "\t" $4; exit }' "$TMP/existing.tsv"
 }
 
-remember_issue() {  # number id title
-  EXISTING="$(printf '%s\n%s\t%s\t%s' "$EXISTING" "$1" "$2" "$3")"
-}
+CREATED_E=0; REUSED_E=0; CREATED_T=0; REUSED_T=0; LINKED=0; CLOSED=0
+: > "$TMP/numbers.tsv"   # KEY <TAB> number <TAB> id
+: > "$TMP/summary.md"
 
-CREATED_EPICS=0; REUSED_EPICS=0; CREATED_TASKS=0; REUSED_TASKS=0; LINKED=0; CLOSED=0
-SUMMARY=""
+# ---------------------------------------------------------------- issue-lar
+step "Epic-lər və task-lar"
+while IFS=$'\t' read -r KIND KEY EPIC_ID TITLE DONE; do
+  [ -z "${KIND:-}" ] && continue
+  HIT="$(find_issue "$KEY")"
 
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
-printf '%s' "$EPICS_JSON" > "$TMP/epics.json"
-
-EPIC_IDS=$(python3 -c 'import json,sys; print("\n".join(e["id"] for e in json.load(open(sys.argv[1]))))' "$TMP/epics.json")
-
-for EID in $EPIC_IDS; do
-  python3 - "$TMP/epics.json" "$EID" "$TMP" "$REPO_URL" <<'PY'
-import json, sys, pathlib
-epics, eid, tmp, repo_url = json.load(open(sys.argv[1])), sys.argv[2], pathlib.Path(sys.argv[3]), sys.argv[4]
-e = next(x for x in epics if x["id"] == eid)
-body = f"""## Goal
-
-{e['goal']}
-
-## Scope
-
-{e['scope']}
-
-## Out of scope
-
-{e['out_of_scope']}
-
-## Acceptance criteria
-
-{e['acceptance']}
-
----
-
-Task-lar bu epic-in **sub-issue**-larıdır.
-Mənbə: [`{e['file']}`]({repo_url}/blob/main/{e['file']}) · Qaydalar: [`CLAUDE.md`]({repo_url}/blob/main/CLAUDE.md)
-"""
-(tmp / "epic-body.md").write_text(body, encoding="utf-8")
-(tmp / "epic-title.txt").write_text(f"[{e['id']}] {e['title']}", encoding="utf-8")
-(tmp / "epic-area.txt").write_text(e["area"], encoding="utf-8")
-(tmp / "epic-prio.txt").write_text(e["priority"], encoding="utf-8")
-(tmp / "task-keys.txt").write_text("\n".join(t["key"] for t in e["tasks"]), encoding="utf-8")
-PY
-
-  ETITLE="$(cat "$TMP/epic-title.txt")"
-  EAREA="$(cat "$TMP/epic-area.txt")"
-  EPRIO="$(cat "$TMP/epic-prio.txt")"
-
-  step "$ETITLE"
-
-  HIT="$(find_issue "[${EID}]")"
   if [ -n "$HIT" ]; then
-    ENUM="$(printf '%s' "$HIT" | cut -f1)"
-    log "  epic artıq var → #$ENUM"
-    REUSED_EPICS=$((REUSED_EPICS+1))
+    NUM="$(printf '%s' "$HIT" | cut -f1)"
+    ID="$(printf '%s' "$HIT" | cut -f2)"
+    STATE="$(printf '%s' "$HIT" | cut -f3)"
+    [ "$KIND" = "epic" ] && REUSED_E=$((REUSED_E+1)) || REUSED_T=$((REUSED_T+1))
+    log "  = #${NUM}  ${TITLE}"
   elif [ "$DRY_RUN" = "1" ]; then
-    log "  [dry-run] epic yaradılacaq: $ETITLE"
-    ENUM="DRY"
+    log "  + [dry-run] ${TITLE}"
+    continue
   else
-    ENUM="$(gh issue create --repo "$REPO" \
-      --title "$ETITLE" \
-      --body-file "$TMP/epic-body.md" \
-      --label epic --label "area:${EAREA}" --label "$EPRIO" \
-      | sed 's#.*/##')"
-    log "  epic yaradıldı → #$ENUM"
-    CREATED_EPICS=$((CREATED_EPICS+1))
-    EID_NUM="$(gh api "repos/${REPO}/issues/${ENUM}" --jq .id)"
-    remember_issue "$ENUM" "$EID_NUM" "$ETITLE"
-  fi
-  SUMMARY="${SUMMARY}
-- ${ETITLE} → ${REPO_URL}/issues/${ENUM}"
-
-  # mövcud sub-issue-lar (təkrar bağlamamaq üçün)
-  SUBS=""
-  if [ "$ENUM" != "DRY" ]; then
-    SUBS="$(gh api "repos/${REPO}/issues/${ENUM}/sub_issues?per_page=100" --jq '.[].number' 2>/dev/null || true)"
+    RESP="$(api -X POST "repos/${REPO}/issues" --input "$TMP/payload/${KEY}.json")"
+    NUM="$(printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["number"])')"
+    ID="$(printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+    STATE="open"
+    [ "$KIND" = "epic" ] && CREATED_E=$((CREATED_E+1)) || CREATED_T=$((CREATED_T+1))
+    log "  + #${NUM}  ${TITLE}"
+    sleep "$RATE_SLEEP"
   fi
 
-  while IFS= read -r TKEY; do
-    [ -z "$TKEY" ] && continue
-    python3 - "$TMP/epics.json" "$EID" "$TKEY" "$TMP" "$REPO_URL" "$ENUM" <<'PY'
-import json, sys, pathlib
-epics, eid, tkey, tmp, repo_url, enum = (json.load(open(sys.argv[1])), sys.argv[2], sys.argv[3],
-                                         pathlib.Path(sys.argv[4]), sys.argv[5], sys.argv[6])
-e = next(x for x in epics if x["id"] == eid)
-t = next(x for x in e["tasks"] if x["key"] == tkey)
-body = f"""{t['body']}
+  printf '%s\t%s\t%s\t%s\n' "$KEY" "$NUM" "$ID" "$STATE" >> "$TMP/numbers.tsv"
+  [ "$KIND" = "epic" ] && printf -- '- %s → %s/issues/%s\n' "$TITLE" "$REPO_URL" "$NUM" >> "$TMP/summary.md"
+done < "$TMP/index.tsv"
 
----
+[ "$DRY_RUN" = "1" ] && { step "Dry-run bitdi"; exit 0; }
 
-**Valideyn epic:** #{enum} — {e['title']}
-**Size:** {t['size']}
+# ---------------------------------------------------------------- sub-issue-lar
+step "Sub-issue əlaqələri"
+num_of() { awk -F'\t' -v k="$1" '$1 == k { print $2; exit }' "$TMP/numbers.tsv"; }
+id_of()  { awk -F'\t' -v k="$1" '$1 == k { print $3; exit }' "$TMP/numbers.tsv"; }
 
-Mənbə: [`{e['file']}`]({repo_url}/blob/main/{e['file']}) · Qaydalar: [`CLAUDE.md`]({repo_url}/blob/main/CLAUDE.md)
-"""
-(tmp / "task-body.md").write_text(body, encoding="utf-8")
-(tmp / "task-title.txt").write_text(f"[{t['key']}] {t['title']}", encoding="utf-8")
-labels = ["task", f"area:{t['area']}", t["priority"]] + t["extra_labels"]
-(tmp / "task-labels.txt").write_text("\n".join(labels), encoding="utf-8")
-(tmp / "task-done.txt").write_text("1" if t["done"] else "0", encoding="utf-8")
-PY
+CUR_EPIC=""
+while IFS=$'\t' read -r KIND KEY EPIC_ID TITLE DONE; do
+  [ "$KIND" != "task" ] && continue
+  ENUM="$(num_of "$EPIC_ID")"
+  [ -z "$ENUM" ] && continue
 
-    TTITLE="$(cat "$TMP/task-title.txt")"
-    THIT="$(find_issue "[${TKEY}]")"
+  if [ "$CUR_EPIC" != "$EPIC_ID" ]; then
+    CUR_EPIC="$EPIC_ID"
+    api "repos/${REPO}/issues/${ENUM}/sub_issues?per_page=100" --jq '.[].number' \
+      > "$TMP/subs.txt" 2>/dev/null || : > "$TMP/subs.txt"
+    log "  ${EPIC_ID} (#${ENUM}) — mövcud sub-issue: $(grep -c . < "$TMP/subs.txt" || true)"
+  fi
 
-    if [ -n "$THIT" ]; then
-      TNUM="$(printf '%s' "$THIT" | cut -f1)"
-      TID="$(printf '%s' "$THIT" | cut -f2)"
-      REUSED_TASKS=$((REUSED_TASKS+1))
-    elif [ "$DRY_RUN" = "1" ]; then
-      log "  [dry-run] task: $TTITLE"
-      continue
+  TNUM="$(num_of "$KEY")"; TID="$(id_of "$KEY")"
+  if ! grep -qx "$TNUM" "$TMP/subs.txt" 2>/dev/null; then
+    if api -X POST "repos/${REPO}/issues/${ENUM}/sub_issues" -F sub_issue_id="$TID" >/dev/null 2>&1; then
+      LINKED=$((LINKED+1))
+      sleep "$RATE_SLEEP"
     else
-      LABEL_ARGS=()
-      while IFS= read -r L; do [ -n "$L" ] && LABEL_ARGS+=(--label "$L"); done < "$TMP/task-labels.txt"
-      TNUM="$(gh issue create --repo "$REPO" \
-        --title "$TTITLE" --body-file "$TMP/task-body.md" "${LABEL_ARGS[@]}" | sed 's#.*/##')"
-      TID="$(gh api "repos/${REPO}/issues/${TNUM}" --jq .id)"
-      CREATED_TASKS=$((CREATED_TASKS+1))
-      remember_issue "$TNUM" "$TID" "$TTITLE"
+      log "    ⚠ #${TNUM} bağlanmadı"
     fi
+  fi
+done < "$TMP/index.tsv"
 
-    # sub-issue əlaqəsi
-    if ! printf '%s\n' "$SUBS" | grep -qx "$TNUM"; then
-      if gh api -X POST "repos/${REPO}/issues/${ENUM}/sub_issues" \
-           -F sub_issue_id="$TID" >/dev/null 2>&1; then
-        LINKED=$((LINKED+1))
-      fi
-    fi
+# ---------------------------------------------------------------- bağlananlar
+step "Artıq görülmüş task-lar"
+while IFS=$'\t' read -r KIND KEY EPIC_ID TITLE DONE; do
+  [ "$DONE" != "1" ] && continue
+  TNUM="$(num_of "$KEY")"
+  STATE="$(awk -F'\t' -v k="$KEY" '$1 == k { print $4; exit }' "$TMP/numbers.tsv")"
+  [ "$STATE" != "open" ] && continue
+  gh issue close "$TNUM" --repo "$REPO" \
+    --comment "Bu task artıq yerinə yetirilib (epic sənədində \`done: true\`)." >/dev/null
+  CLOSED=$((CLOSED+1))
+  log "  ✓ #${TNUM} bağlandı — ${TITLE}"
+  sleep "$RATE_SLEEP"
+done < "$TMP/index.tsv"
 
-    # artıq görülmüş iş
-    if [ "$(cat "$TMP/task-done.txt")" = "1" ]; then
-      STATE="$(gh api "repos/${REPO}/issues/${TNUM}" --jq .state)"
-      if [ "$STATE" = "open" ]; then
-        gh issue close "$TNUM" --repo "$REPO" \
-          --comment "Bu task artıq yerinə yetirilib (epic sənədində \`done: true\`)." >/dev/null
-        CLOSED=$((CLOSED+1))
-      fi
-    fi
-
-    log "  #${TNUM}  ${TTITLE}"
-  done < "$TMP/task-keys.txt"
-done
-
+# ---------------------------------------------------------------- nəticə
 step "Nəticə"
-log "  epic:  $CREATED_EPICS yaradıldı, $REUSED_EPICS mövcud idi"
-log "  task:  $CREATED_TASKS yaradıldı, $REUSED_TASKS mövcud idi"
+log "  label: $LABEL_N"
+log "  epic:  $CREATED_E yaradıldı, $REUSED_E mövcud idi"
+log "  task:  $CREATED_T yaradıldı, $REUSED_T mövcud idi"
 log "  sub-issue əlaqəsi: $LINKED"
-log "  artıq görülmüş olduğu üçün bağlanan: $CLOSED"
+log "  bağlanan: $CLOSED"
 log ""
-log "Epic-lər:${SUMMARY}"
+cat "$TMP/summary.md"
 
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
     echo "## QONAQET bootstrap"
     echo ""
-    echo "- epic: **$CREATED_EPICS** yaradıldı, $REUSED_EPICS mövcud idi"
-    echo "- task: **$CREATED_TASKS** yaradıldı, $REUSED_TASKS mövcud idi"
-    echo "- sub-issue əlaqəsi: $LINKED"
-    echo "- bağlanan (artıq görülmüş): $CLOSED"
+    echo "| | |"
+    echo "|---|---|"
+    echo "| label | $LABEL_N |"
+    echo "| epic | **$CREATED_E** yaradıldı, $REUSED_E mövcud |"
+    echo "| task | **$CREATED_T** yaradıldı, $REUSED_T mövcud |"
+    echo "| sub-issue əlaqəsi | $LINKED |"
+    echo "| bağlanan | $CLOSED |"
     echo ""
     echo "### Epic-lər"
-    echo "$SUMMARY"
+    cat "$TMP/summary.md"
   } >> "$GITHUB_STEP_SUMMARY"
 fi
