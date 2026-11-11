@@ -2,11 +2,11 @@
 # Secret oxuya bilən workflow-lar .github/ altındadır — bu qoruma olmadan workflow dəyişən
 # hər kəs PROJECT_TOKEN-i sızdıra bilər.
 #
-# ⚠️ TODO: @QonaqE/owners komandası org-da mövcud olmalıdır, yoxsa CODEOWNERS SƏSSİZCƏ İŞLƏMİR.
+# ⚠️ TODO: @QonaqEt/owners komandası org-da mövcud olmalıdır, yoxsa CODEOWNERS SƏSSİZCƏ İŞLƏMİR.
 #    Ya komandanı yarat (Org → Teams → "owners", repo-ya write icazəsi ilə),
 #    ya da aşağıdakı sahibi öz GitHub istifadəçi adınla əvəz et (məs. @zahid).
 
-/.github/                 @QonaqE/owners
-/docs/dependencies/       @QonaqE/owners
-/CLAUDE.md                @QonaqE/owners
-/scripts/                 @QonaqE/owners
+/.github/                 @QonaqEt/owners
+/docs/dependencies/       @QonaqEt/owners
+/CLAUDE.md                @QonaqEt/owners
+/scripts/                 @QonaqEt/owners

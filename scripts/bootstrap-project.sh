@@ -6,10 +6,10 @@
 #
 # İdempotentdir: mövcud project, sahə və variantlar yenidən yaradılmır.
 #
-#   GH_TOKEN=$PROJECT_TOKEN REPO=QonaqE/qonaqet ./scripts/bootstrap-project.sh
+#   GH_TOKEN=$PROJECT_TOKEN REPO=QonaqEt/qonaqet ./scripts/bootstrap-project.sh
 set -euo pipefail
 
-REPO="${REPO:-QonaqE/qonaqet}"
+REPO="${REPO:-QonaqEt/qonaqet}"
 OWNER="${REPO%%/*}"
 NAME="${REPO##*/}"
 PROJECT_TITLE="${PROJECT_TITLE:-QONAQET}"

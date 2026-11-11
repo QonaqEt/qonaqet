@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Arxitektura qərarı (ADR)
-    url: https://github.com/QonaqE/qonaqet/tree/main/docs/adr
+    url: https://github.com/QonaqEt/qonaqet/tree/main/docs/adr
     about: "CLAUDE.md-dən kənara çıxan qərar issue deyil, ADR tələb edir."
   - name: Təhlükəsizlik zəifliyi
-    url: https://github.com/QonaqE/qonaqet/security/advisories/new
+    url: https://github.com/QonaqEt/qonaqet/security/advisories/new
     about: "Zəifliyi public issue kimi açma — private vulnerability reporting işlət."

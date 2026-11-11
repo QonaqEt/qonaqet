@@ -7,12 +7,12 @@
 # İdempotentdir: mövcud issue-lar başlıq prefiksinə görə tapılır, yenidən yaradılmır.
 # GitHub-ın ikincili limitinə görə yaradılış çağırışları arasında fasilə verilir.
 #
-#   REPO=QonaqE/qonaqet ./scripts/bootstrap-github.sh
+#   REPO=QonaqEt/qonaqet ./scripts/bootstrap-github.sh
 #   DRY_RUN=1 ./scripts/bootstrap-github.sh
 #   RATE_SLEEP=2 ./scripts/bootstrap-github.sh     # limitə dəyirsə fasiləni artır
 set -euo pipefail
 
-REPO="${REPO:-QonaqE/qonaqet}"
+REPO="${REPO:-QonaqEt/qonaqet}"
 EPICS_DIR="${EPICS_DIR:-docs/epics}"
 DRY_RUN="${DRY_RUN:-0}"
 RATE_SLEEP="${RATE_SLEEP:-1}"

@@ -51,7 +51,7 @@ Nə edir:
 Lokal olaraq da işləyir:
 
 ```bash
-DRY_RUN=1 REPO=QonaqE/qonaqet ./scripts/bootstrap-github.sh
+DRY_RUN=1 REPO=QonaqEt/qonaqet ./scripts/bootstrap-github.sh
 ```
 
 ## 4. Project built-in workflow-ları
@@ -64,7 +64,7 @@ Board → **⋯ → Workflows**, bunları aktiv et:
 | Item closed | Status → `Done` |
 | Pull request merged | Status → `Done` |
 | Item reopened | Status → `In Progress` |
-| Auto-add to project | `QonaqE/qonaqet` repo-sundakı yeni issue-lar avtomatik düşür |
+| Auto-add to project | `QonaqEt/qonaqet` repo-sundakı yeni issue-lar avtomatik düşür |
 
 "Auto-add" aktiv olduqda sonradan yaradılan issue-lar board-a özü düşür — `PROJECT_TOKEN` lazım olmur.
 
@@ -92,7 +92,7 @@ branches, ☑ Allow auto-merge.
 
 ## 7. CODEOWNERS
 
-`.github/CODEOWNERS` `@QonaqE/owners` komandasına istinad edir.
+`.github/CODEOWNERS` `@QonaqEt/owners` komandasına istinad edir.
 
 > ⚠️ Komanda mövcud deyilsə **CODEOWNERS səssizcə işləmir** — heç bir xəbərdarlıq verilmir.
 > Ya Org → Teams → `owners` komandasını yarat (repo-ya write icazəsi ilə),
