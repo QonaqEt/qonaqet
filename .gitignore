@@ -1,0 +1,55 @@
+# ---------- .NET ----------
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+coverage*.json
+coverage*.xml
+*.received.*
+
+# ---------- Node / Angular ----------
+node_modules/
+dist/
+.angular/
+*.tsbuildinfo
+npm-debug.log*
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# ---------- Flutter / Dart ----------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.g.dart
+*.freezed.dart
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/local.properties
+**/*.iml
+
+# ---------- design tokens (generated) ----------
+web/projects/design-tokens/src/lib/generated/
+mobile/lib/app/theme/generated/
+
+# ---------- secrets / local env ----------
+.env
+.env.*
+!.env.example
+*.pfx
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+
+# ---------- tooling / OS ----------
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+.tmp/
