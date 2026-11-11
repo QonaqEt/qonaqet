@@ -1,0 +1,53 @@
+name: Bug
+description: Səhv davranış
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Nə baş verdi
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Nə gözlənilirdi
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Təkrarlama addımları
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - backend
+        - integration
+        - mobile
+        - web-landing
+        - web-business
+        - web-admin
+        - infra
+        - design
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Mühit
+      placeholder: "dev / staging / prod — versiya, cihaz, brauzer"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Loglar
+      description: "⚠️ OTP, token, hədiyyə link token-i, FIN və kart məlumatını **yapışdırma**."
+      render: shell

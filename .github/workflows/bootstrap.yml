@@ -1,0 +1,72 @@
+name: bootstrap
+
+# Əl ilə işə salınır. Label-ları, epic issue-larını, task sub-issue-larını və
+# "QONAQET" Project (v2) board-unu qurur. İdempotentdir — təkrar işə salmaq təhlükəsizdir.
+#
+# Board hissəsi üçün PROJECT_TOKEN secret-i lazımdır (`repo` + `read:org` + `project`):
+# GITHUB_TOKEN Projects v2-yə yaza bilmir.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Heç nə yaratmadan nə olacağını göstər"
+        type: boolean
+        default: false
+      skip_project:
+        description: "Yalnız issue-ları qur, board-a toxunma"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Epic sənədlərini yoxla
+        run: python3 scripts/lib/parse-epics.py docs/epics > /dev/null
+
+      - name: Label-lar, epic-lər və task-lar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: ./scripts/bootstrap-github.sh
+
+      - name: PROJECT_TOKEN yoxlanır
+        id: token
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          if [ -n "$PROJECT_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## ⚠️ Board qurulmadı"
+              echo ""
+              echo "\`PROJECT_TOKEN\` secret-i təyin edilməyib, ona görə Project (v2) hissəsi buraxıldı."
+              echo "Issue-lar və label-lar yaradıldı."
+              echo ""
+              echo "Əlavə etmək üçün: **Settings → Secrets and variables → Actions → New repository secret**"
+              echo "— ad \`PROJECT_TOKEN\`, dəyər \`repo\` + \`read:org\` + \`project\` scope-lu PAT."
+              echo "Sonra bu workflow-u yenidən işə sal."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Project board
+        if: ${{ steps.token.outputs.present == 'true' && !inputs.dry_run && !inputs.skip_project }}
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: ./scripts/bootstrap-project.sh

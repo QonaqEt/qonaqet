@@ -1,0 +1,79 @@
+{
+  "$comment": [
+    "CLAUDE.md → 'Dependency policy' bölməsinin maşınla oxunan formasıdır.",
+    "dependency-guard CI job-u bütün lock fayllarını buna qarşı yoxlayır.",
+    "Yeni paket əlavə etmək üçün: ADR + repo sahibindən 'dependency-approved' label-ı.",
+    "Versiyalar burada deyil, lock fayllarında pinlənir."
+  ],
+  "version": 1,
+  "policy": {
+    "forbidden_licenses": ["GPL-2.0", "GPL-3.0", "AGPL-3.0", "SSPL-1.0"],
+    "forbidden_packages": [
+      { "name": "MediatR", "reason": "13+ kommersiyadır" },
+      { "name": "AutoMapper", "reason": "15+ kommersiyadır" },
+      { "name": "FluentAssertions", "reason": "8+ kommersiyadır" },
+      { "name": "MassTransit", "reason": "9+ kommersiyadır" },
+      { "name": "QuestPDF", "reason": "gəlir həddindən sonra kommersiyadır" },
+      { "name": "Hangfire.Pro", "reason": "kommersiyadır" },
+      { "name": "Duende.IdentityServer", "reason": "kommersiyadır" },
+      { "name": "nx", "reason": "2025 tədarük zənciri insidenti" },
+      { "name": "@nrwl/cli", "reason": "2025 tədarük zənciri insidenti" },
+      { "name": "minio", "reason": "Fevral 2026-da arxivləşdirilib" }
+    ]
+  },
+  "nuget": [
+    { "name": "MongoDB.Driver", "publisher": "MongoDB Inc.", "license": "Apache-2.0", "reason": "İşlətdiyimiz məhsulun rəsmi SDK-sı" },
+    { "name": "Npgsql.EntityFrameworkCore.PostgreSQL", "publisher": "Npgsql (.NET Foundation)", "license": "PostgreSQL", "reason": "Microsoft-un işlətdiyi PostgreSQL provayderi" },
+    { "name": "StackExchange.Redis", "publisher": "Stack Exchange", "license": "MIT", "reason": "Microsoft-un öz Redis paketlərinin istifadə etdiyi klient; Valkey-ə qarşı işləyir" },
+    { "name": "RabbitMQ.Client", "publisher": "RabbitMQ team (Broadcom)", "license": "Apache-2.0", "reason": "İşlətdiyimiz broker-in rəsmi klienti" },
+    { "name": "AWSSDK.S3", "publisher": "Amazon", "license": "Apache-2.0", "reason": "S3 API — RustFS ilə vendor-neytral" },
+    { "name": "MailKit", "publisher": "Jeffrey Stedfast", "license": "MIT", "reason": "Microsoft sənədlərinin tövsiyə etdiyi SMTP klienti" },
+    { "name": "FirebaseAdmin", "publisher": "Google", "license": "Apache-2.0", "reason": "FCM push" },
+    { "name": "Microsoft.Playwright", "publisher": "Microsoft", "license": "Apache-2.0", "reason": "HTML → PDF (headless Chromium)" },
+    { "name": "Microsoft.AspNetCore.Authentication.JwtBearer", "publisher": "Microsoft", "license": "MIT", "reason": "Platforma" },
+    { "name": "Microsoft.AspNetCore.OpenApi", "publisher": "Microsoft", "license": "MIT", "reason": "Platforma" },
+    { "name": "Microsoft.Extensions.Http.Resilience", "publisher": "Microsoft", "license": "MIT", "reason": "Platforma" },
+    { "name": "Microsoft.EntityFrameworkCore", "publisher": "Microsoft", "license": "MIT", "reason": "Platforma" },
+    { "name": "Microsoft.Extensions.Diagnostics.HealthChecks", "publisher": "Microsoft", "license": "MIT", "reason": "Platforma" },
+    { "name": "OpenTelemetry.Extensions.Hosting", "publisher": "CNCF", "license": "Apache-2.0", "reason": "Müşahidə" },
+    { "name": "OpenTelemetry.Exporter.OpenTelemetryProtocol", "publisher": "CNCF", "license": "Apache-2.0", "reason": "Müşahidə" },
+    { "name": "xunit.v3", "publisher": ".NET Foundation", "license": "Apache-2.0", "reason": "Test" },
+    { "name": "Microsoft.AspNetCore.Mvc.Testing", "publisher": "Microsoft", "license": "MIT", "reason": "Test" },
+    { "name": "Testcontainers", "publisher": "Docker Inc.", "license": "MIT", "reason": "Integration test" }
+  ],
+  "npm": [
+    { "name": "@angular/*", "publisher": "Google", "license": "MIT", "reason": "Platforma" },
+    { "name": "@angular-devkit/*", "publisher": "Google", "license": "MIT", "reason": "Platforma" },
+    { "name": "@schematics/angular", "publisher": "Google", "license": "MIT", "reason": "Platforma" },
+    { "name": "rxjs", "publisher": "ReactiveX", "license": "Apache-2.0", "reason": "Angular-ın öz asılılığı" },
+    { "name": "typescript", "publisher": "Microsoft", "license": "Apache-2.0", "reason": "Platforma" },
+    { "name": "zone.js", "publisher": "Google", "license": "MIT", "reason": "Angular (zoneless keçidinə qədər)" },
+    { "name": "@playwright/test", "publisher": "Microsoft", "license": "Apache-2.0", "reason": "E2E test" },
+    { "name": "echarts", "publisher": "Apache Software Foundation", "license": "Apache-2.0", "reason": "Qrafiklər" },
+    { "name": "lottie-web", "publisher": "Airbnb", "license": "MIT", "reason": "Landing illüstrasiya animasiyaları" },
+    { "name": "style-dictionary", "publisher": "Amazon", "license": "Apache-2.0", "reason": "Design token pipeline" }
+  ],
+  "pub": [
+    { "name": "go_router", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "Naviqasiya" },
+    { "name": "http", "publisher": "dart.dev", "license": "BSD-3-Clause", "reason": "Şəbəkə" },
+    { "name": "json_annotation", "publisher": "dart.dev", "license": "BSD-3-Clause", "reason": "Model serializasiyası" },
+    { "name": "json_serializable", "publisher": "dart.dev", "license": "BSD-3-Clause", "reason": "Model serializasiyası" },
+    { "name": "build_runner", "publisher": "dart.dev", "license": "BSD-3-Clause", "reason": "Kod generasiyası" },
+    { "name": "shared_preferences", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "Həssas olmayan lokal saxlama" },
+    { "name": "firebase_core", "publisher": "firebase.google.com", "license": "BSD-3-Clause", "reason": "Push" },
+    { "name": "firebase_messaging", "publisher": "firebase.google.com", "license": "BSD-3-Clause", "reason": "Push" },
+    { "name": "google_maps_flutter", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "Xəritə" },
+    { "name": "camera", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "QR skan" },
+    { "name": "webview_flutter", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "Ödəniş səhifəsi" },
+    { "name": "url_launcher", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "Xarici linklər" },
+    { "name": "flutter_localizations", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "i18n" },
+    { "name": "intl", "publisher": "dart.dev", "license": "BSD-3-Clause", "reason": "i18n" },
+    { "name": "flutter_test", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "Test" },
+    { "name": "integration_test", "publisher": "flutter.dev", "license": "BSD-3-Clause", "reason": "Test" }
+  ],
+  "github-actions": [
+    { "name": "actions/*", "publisher": "GitHub", "reason": "Rəsmi; SHA ilə pinlənir" },
+    { "name": "github/*", "publisher": "GitHub", "reason": "Rəsmi; SHA ilə pinlənir" },
+    { "name": "docker/*", "publisher": "Docker Inc.", "reason": "Rəsmi; SHA ilə pinlənir" }
+  ]
+}

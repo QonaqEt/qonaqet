@@ -1,0 +1,69 @@
+name: Epic
+description: Böyük iş bloku; task-lar onun sub-issue-ları olur
+title: "[E__] "
+labels: ["epic"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Epic `docs/epics/E__.md` faylından yaradılır. Bu şablon əl ilə epic əlavə edəndə işlənir.
+  - type: input
+    id: epic-id
+    attributes:
+      label: Epic ID
+      description: "`CLAUDE.md` → Epics cədvəlindəki nömrə"
+      placeholder: E07
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Məqsəd
+      description: Bir-iki cümlə — bu epic nəyi mümkün edir?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Bu epic-ə daxil olan iş
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Qəsdən kənarda saxlanan iş və hansı epic-ə aid olduğu
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Yoxlana bilən nəticələr
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Task-lar
+      description: Sub-issue kimi yaradılacaq task-lar
+      value: |
+        - [ ] 
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - backend
+        - integration
+        - mobile
+        - web-landing
+        - web-business
+        - web-admin
+        - infra
+        - design
+    validations:
+      required: true
