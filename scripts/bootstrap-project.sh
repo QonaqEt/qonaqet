@@ -212,8 +212,18 @@ while IFS=$'\t' read -r NUM NODE_ID TITLE; do
 
   UPDATED=$((UPDATED+1))
   log "  #${NUM}  ${TITLE}"
-done < <(gh api --paginate "repos/${REPO}/issues?state=all&per_page=100" \
-           --jq '.[] | select(.pull_request | not) | "\(.number)\t\(.node_id)\t\(.title)"')
+done < <(
+  page=1
+  while :; do
+    chunk="$(gh api "repos/${REPO}/issues?state=all&per_page=100&page=${page}")" || break
+    n="$(printf '%s' "$chunk" | jq 'length')"
+    [ "$n" -eq 0 ] && break
+    printf '%s' "$chunk" | jq -r '.[] | select(.pull_request | not)
+      | [.number, .node_id, .title] | @tsv'
+    page=$((page+1))
+    [ "$page" -gt 50 ] && break
+  done
+)
 
 step "Nəticə"
 log "  board: $PROJECT_URL"

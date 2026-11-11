@@ -85,9 +85,22 @@ python3 scripts/lib/build-payloads.py "$EPICS_DIR" "$TMP" "$REPO_URL"
 
 # ---------------------------------------------------------------- mövcudlar
 step "Mövcud issue-lar yüklənir"
-api --paginate "repos/${REPO}/issues?state=all&per_page=100" \
-  --jq '.[] | select(.pull_request | not) | "\(.title)\t\(.number)\t\(.id)\t\(.state)"' \
-  > "$TMP/existing.tsv" || : > "$TMP/existing.tsv"
+: > "$TMP/existing.tsv"
+PAGE=1
+while :; do
+  CHUNK="$(api "repos/${REPO}/issues?state=all&per_page=100&page=${PAGE}")" || break
+  COUNT="$(printf '%s' "$CHUNK" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')"
+  [ "$COUNT" -eq 0 ] && break
+  printf '%s' "$CHUNK" | python3 -c '
+import json, sys
+for i in json.load(sys.stdin):
+    if "pull_request" in i:
+        continue
+    print("\t".join([i["title"], str(i["number"]), str(i["id"]), i["state"]]))
+' >> "$TMP/existing.tsv"
+  PAGE=$((PAGE+1))
+  [ "$PAGE" -gt 50 ] && break
+done
 log "  $(grep -c . < "$TMP/existing.tsv" || true) issue"
 
 # find_issue "<KEY>" → "number<TAB>id<TAB>state" və ya boş
@@ -166,8 +179,10 @@ while IFS=$'\t' read -r KIND KEY EPIC_ID TITLE DONE; do
   TNUM="$(num_of "$KEY")"
   STATE="$(awk -F'\t' -v k="$KEY" '$1 == k { print $4; exit }' "$TMP/numbers.tsv")"
   [ "$STATE" != "open" ] && continue
-  gh issue close "$TNUM" --repo "$REPO" \
-    --comment "Bu task artıq yerinə yetirilib (epic sənədində \`done: true\`)." >/dev/null
+  api -X POST "repos/${REPO}/issues/${TNUM}/comments" \
+    -f body="Bu task artıq yerinə yetirilib (epic sənədində \`done: true\`)." >/dev/null
+  api -X PATCH "repos/${REPO}/issues/${TNUM}" \
+    -f state=closed -f state_reason=completed >/dev/null
   CLOSED=$((CLOSED+1))
   log "  ✓ #${TNUM} bağlandı — ${TITLE}"
   sleep "$RATE_SLEEP"
