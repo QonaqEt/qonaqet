@@ -1,0 +1,41 @@
+name: epic-progress
+
+# E00-T11: task bağlananda epic-in bütün sub-issue-ları bağlıdırsa — xülasə şərhi, epic-in bağlanması
+# (built-in "Item closed" onu Done-a keçirir) və `epic-Exx-done` tag-ı. Hər addım idempotentdir.
+# GITHUB_TOKEN kifayətdir: Projects v2-yə yazmır.
+
+on:
+  issues:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "Bağlanmış task-ın nömrəsi (yarımçıq qalmış qaçışı təkrarlamaq üçün)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  # Eyni epic-in iki task-ı eyni anda bağlansa, ikinci qaçış birincini gözləyir.
+  group: epic-progress
+  cancel-in-progress: false
+
+jobs:
+  epic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write   # epic-Exx-done tag-ı
+      issues: write     # şərh və epic-in bağlanması
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Epic tamamlanıbmı?
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number || inputs.issue }}
+        run: python3 scripts/ci/epic-progress.py "$ISSUE"
