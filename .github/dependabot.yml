@@ -1,0 +1,82 @@
+# Dependabot (E00-T13): yalnız TƏKLİF edir. Allowlist-i dependency-guard tətbiq edir —
+# allowlist-də olmayan yeni paket gətirən PR guard-da qırılır.
+#
+# - həftəlik, ekosistem üzrə bir qrup PR
+# - başlıq prefiksi `build(deps)` → pr-checks-in Conventional Commit qaydasına uyğun
+# - infrastruktur image-lərində CLAUDE.md-dəki major xətlər saxlanılır (Mongo 8, Valkey 8,
+#   RabbitMQ 4, RustFS 1.0.x GA — ADR 0002); major/minor sıçrayışı ADR ilə əl ilə edilir
+
+version: 2
+
+updates:
+  - package-ecosystem: nuget
+    directory: /backend
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)", include: scope }
+    labels: [area:backend]
+    groups:
+      nuget:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)", include: scope }
+    labels: [area:web-landing, area:web-business, area:web-admin]
+    groups:
+      npm:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /design-tokens
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)", include: scope }
+    labels: [area:design]
+    groups:
+      npm-design-tokens:
+        patterns: ["*"]
+
+  - package-ecosystem: pub
+    directory: /mobile
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)", include: scope }
+    labels: [area:mobile]
+    groups:
+      pub:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)", include: scope }
+    labels: [area:infra]
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /deploy/dockerfiles
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)", include: scope }
+    labels: [area:infra]
+    groups:
+      docker:
+        patterns: ["*"]
+
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)", include: scope }
+    labels: [area:infra]
+    groups:
+      docker-compose:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "rustfs/rustfs"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "mongo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "valkey/valkey"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "rabbitmq"
+        update-types: ["version-update:semver-major"]

@@ -1,6 +1,6 @@
 name: ci-infra
 
-# Dev docker-compose stack-inin yoxlanması (E00-T02).
+# Dev docker-compose stack-inin yoxlanması (E00-T02) və repo skriptlərinin/konfiqurasiyasının testləri.
 #
 # Workflow hər PR-da işə düşür, amma ağır job yalnız `deploy/**` dəyişəndə işləyir.
 # Path filtri trigger səviyyəsində (`on.pull_request.paths`) DEYİL, job səviyyəsindədir:
@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       deploy: ${{ steps.filter.outputs.deploy }}
+      scripts: ${{ steps.filter.outputs.scripts }}
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -38,6 +39,7 @@ jobs:
         run: |
           if [ "$EVENT" != "pull_request" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "scripts=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           changed="$(git diff --name-only "$BASE_SHA"...HEAD)"
@@ -46,6 +48,11 @@ jobs:
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
             echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+          if printf '%s\n' "$changed" | grep -qE '^(scripts/|\.github/|docs/epics/)'; then
+            echo "scripts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "scripts=false" >> "$GITHUB_OUTPUT"
           fi
 
   compose:
@@ -62,3 +69,18 @@ jobs:
 
       - name: Smoke — stack qalxır, tranzaksiya və bucket versioning-i işləyir
         run: deploy/tests/smoke.sh
+
+  scripts:
+    needs: changes
+    if: needs.changes.outputs.scripts == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Epic sənədləri parse olunur
+        run: python3 scripts/lib/parse-epics.py docs/epics > /dev/null
+
+      - name: Skript və repo konfiqurasiyası testləri
+        run: python3 -m unittest discover -s scripts/tests -v
