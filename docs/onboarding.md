@@ -158,7 +158,117 @@ Həssas kateqoriyalar staff-a göstərilmir.
 **Dil.** UI Azərbaycancadır (`en`/`ru` üçün struktur hazırdır). Kod identifikatorları ingiliscədir.
 Pul qəpikdir, vaxt UTC-də saxlanılır, iş günü **Asia/Baku** üzrədir.
 
-## 10. Haradan soruşmaq
+## 10. PROJECT_TOKEN yaratmaq
+
+> **Yalnız admin / owner icazəsi olanlar üçün.** Adi töhfəçiyə lazım deyil.
+
+### Niyə lazımdır
+
+GitHub Projects (v2) **yalnız GraphQL** ilə idarə olunur və Actions-ın avtomatik verdiyi
+`GITHUB_TOKEN` ona **yaza bilmir**. Ona görə board-a toxunan hər workflow ayrıca token tələb edir:
+`bootstrap.yml`, `project-sync.yml`, `epic-progress.yml`.
+
+### Addımlar
+
+1. https://github.com/settings/tokens → **Generate new token (classic)**
+2. **Note:** `QONAQET project automation` · **Expiration:** 90 gün
+3. Scope-ları işarələ — **üçü də**:
+
+   | Scope | Siyahıda harada | Nə üçün |
+   |---|---|---|
+   | `repo` | ən yuxarıda, birinci | issue, label, sub-issue |
+   | `read:org` | `admin:org`-un altında | org və project oxumaq |
+   | `project` | aşağıda, ayrıca blok | **board yaratmaq və yazmaq** |
+
+   > ⚠️ `project` ilə `read:project` **ayrı sətirlərdir**. Yalnız alt sətri (`read:project`)
+   > işarələsən, board oxunur, amma yaradılmır — workflow belə qırılır:
+   > `The 'createProjectV2' field requires one of the following scopes: ['project']`.
+   > **Üst sətri işarələ**, alt sətir özü gəlir.
+
+4. **Generate token** → dəyəri kopyala (bir dəfə göstərilir)
+5. Repo → **Settings → Secrets and variables → Actions → New repository secret**
+   - Name: `PROJECT_TOKEN`
+   - Secret: kopyaladığın dəyər
+
+### Yoxlama
+
+**Actions → bootstrap → Run workflow.** "Project board" addımı yaşıldırsa, token işləyir.
+Token yoxdursa, workflow qırılmır — həmin addımı ötürür və job summary-də bunu yazır.
+
+### Rotasiya
+
+- **Scope dəyişmək** (məs. `project` əlavə etmək): token-i **Edit** et → scope-u işarələ → Update.
+  **Dəyər dəyişmir**, secret-i yenidən əlavə etməyə ehtiyac yoxdur.
+- **Regenerate** etsən, dəyər dəyişir — `PROJECT_TOKEN` secret-ini mütləq yenilə.
+- Müddəti bitməzdən əvvəl GitHub email göndərir. Bitəndə board avtomatikası səssizcə dayanır,
+  ona görə xəbərdarlığı gözdən qaçırma.
+
+### Təhlükəsizlik
+
+- **Repo secret-ini o repodakı hər workflow oxuya bilər.** Ona görə `.github/**` üzərində
+  `CODEOWNERS` qoruması **məcburidir** — onsuz workflow dəyişən hər kəs token-i sızdıra bilər.
+  `@QonaqEt/owners` komandası mövcud olmalıdır, yoxsa `CODEOWNERS` səssizcə işləmir.
+- Token-i **heç vaxt** chat-a, issue-ya, PR-a və ya kod bazasına yazma.
+  Secret scanning + push protection aktivdir və commit-i bloklayacaq.
+- Workflow-da `echo`/`set -x` ilə token-i loglama.
+- Workflow permissions repo səviyyəsində **read-only** qalır; hər workflow öz `permissions:`
+  blokunu açıq yazır.
+- **Uzunmüddətli daha təmiz variant:** org-da ayrıca GitHub App
+  (`organization_projects: write` + `issues: write`) və `actions/create-github-app-token`.
+  Şəxsi token olmur, avtomatik rotasiya olunur, müddəti bitmir.
+
+## 11. Claude Code ilə işləmək
+
+Komandada hər kəs öz Claude Code sessiyası ilə işləyir. `CLAUDE.md` repo kökündə olduğu üçün
+**avtomatik yüklənir** — onu hər dəfə yapışdırmağa ehtiyac yoxdur.
+
+### Sessiyanı başlatmaq
+
+- **Bulud:** claude.ai/code → yeni sessiya → mənbə repo kimi `QonaqEt/qonaqet` seç
+- **Lokal:** repo kökündə `claude` əmrini işlət
+
+Hər iki halda Claude `CLAUDE.md`-ni, `docs/epics/` və `docs/adr/` qovluqlarını oxuya bilir.
+
+### İlk mesaj
+
+Nə üzərində işlədiyini və hansı task-ı götürdüyünü de. Məsələn:
+
+```
+E01-T04 task-ı üzərində işləyirik (#21): öz CQRS dispatcher-imiz.
+docs/epics/E01.md-dəki acceptance criteria-ya bax.
+Branch aç, testlərlə yaz, Closes #21 olan PR hazırla.
+```
+
+Scope-u açıq saxlama — Claude boş yerə genişləndirməsin deyə task nömrəsini həmişə göstər.
+
+### Bu mühitdə bilinən məhdudiyyətlər
+
+Bulud sessiyalarında vaxt itirməmək üçün:
+
+| Məhdudiyyət | Nə etmək |
+|---|---|
+| **GitHub GraphQL bloklanıb** | REST işlət. `gh issue close` GraphQL-dir — əvəzinə `gh api -X PATCH .../issues/N -f state=closed` |
+| **Projects v2 yalnız GraphQL-dir** | Board əməliyyatları yalnız Actions runner-ində (`PROJECT_TOKEN` ilə) mümkündür |
+| **`gh api --paginate` qırılır** | Link başlığı `repositories/{id}` yolunu verir. Açıq `page=N` dövrü ilə səhifələ — nümunə: `scripts/bootstrap-github.sh` |
+| **Action-lar SHA ilə pinlənməlidir** | SHA tapmaq: `git ls-remote https://github.com/actions/checkout refs/tags/v5.0.0` |
+| **Workflow permissions read-only-dir** | Hər workflow öz `permissions:` blokunu açıq yazır |
+| **GitHub ikincili yaratma limiti** | Toplu issue əməliyyatlarında fasilə ver — `RATE_SLEEP` nümunəsinə bax |
+| **Org adı dəyişsə, REST qırılır** | Köhnə ad `repositories/{id}`-yə yönləndirilir və bloklanır. Yeni adla yeni sessiya lazımdır |
+
+### Nəyə icazə vermə
+
+- **Allowlist-dən kənar paket quraşdırmaq.** `docs/dependencies/allowlist.json` yoxlanılmalıdır;
+  CI onsuz da qıracaq, amma vaxt itirirsən.
+- **`CLAUDE.md`-dən kənara çıxmaq** — ADR olmadan. Qaydanı dəyişmək istəyirsə, əvvəlcə ADR.
+- **Scope genişləndirmək.** Yeni iş çıxırsa, yeni task açılır.
+- **Angular komponent kitabxanası seçmək** — UI guidelines gələnə qədər qadağandır.
+
+### PR-larını adi PR kimi yoxla
+
+Claude-un açdığı PR də eyni qaydalara tabedir: CI yaşıl, testlər var, `Closes #n` yazılıb,
+şablonun yoxlama siyahısı doldurulub. İnsan PR-ından fərqi yoxdur — eyni gözlə bax.
+
+## 12. Haradan soruşmaq
 
 - Qayda ilə bağlı sual → əvvəlcə `CLAUDE.md`, sonra repo sahibi
 - Task-ın scope-u aydın deyilsə → həmin issue-da şərh yaz
