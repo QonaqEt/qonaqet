@@ -166,7 +166,7 @@ README.md
    - Nx (a supply-chain incident in 2025)
    - MinIO (archived in Feb 2026)
 4. **Allowlist file:** `docs/dependencies/allowlist.json` lists every package with its publisher, license and reason.
-   - The CI job `dependency-guard` fails when a lock file (`packages.lock.json`, `package-lock.json`, `pubspec.lock`) contains a package that is not on the list.
+   - The CI job `dependency-guard` fails when a lock file (`packages.lock.json`, `package-lock.json`, `pubspec.lock`) contains a **direct** dependency that is not on the list, or a forbidden package anywhere in the tree. Transitive dependencies are covered by `dependency-review-action` (CVEs, GPL/AGPL/SSPL) — ADR 0003.
    - Adding a package requires an ADR plus the `dependency-approved` label from the repo owner.
 5. Versions are pinned via lock files. Dependabot proposes updates. GitHub Actions are pinned by **commit SHA**.
 
