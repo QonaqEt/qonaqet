@@ -1,0 +1,146 @@
+name: ci-backend
+
+# Backend CI (E00-T04): locked restore → build (warnings as errors) → unit, integration
+# (Testcontainers), architecture testləri → coverage xülasəsi.
+#
+# Workflow hər PR-da işə düşür, amma `backend` job-u yalnız `backend/**` dəyişəndə işləyir.
+# Path filtri trigger səviyyəsində (`on.pull_request.paths`) DEYİL, job səviyyəsindədir:
+# trigger səviyyəsində süzülən workflow heç bir status vermir və ruleset-də "required check"
+# kimi PR-ı əbədi gözlədir; `if` ilə buraxılan job isə "skipped" = uğurlu sayılır.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  SOLUTION: backend/Qonaqet.sln
+  RESULTS: backend/TestResults
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Dəyişən yollar
+        id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$BASE_SHA"...HEAD)"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -qE '^(backend/|scripts/ci/coverage-summary\.py$|scripts/tests/test_coverage_summary\.py$|\.github/workflows/ci-backend\.yml$)'; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: CI skriptlərinin testləri
+        run: python3 -m unittest discover -s scripts/tests -p 'test_coverage_summary.py' -v
+
+      # Solution E01-T01 ilə gəlir. O vaxta qədər job yaşıl keçir, amma bunu açıq deyir —
+      # səssizcə "hər şey yaxşıdır" göstərmir.
+      - name: Solution var?
+        id: sln
+        run: |
+          if [ -f "$SOLUTION" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=ci-backend::$SOLUTION hələ yoxdur (E01-T01) — build və testlər buraxıldı."
+            {
+              echo "## ⚠️ Backend yığılmadı"
+              echo ""
+              echo "\`$SOLUTION\` hələ mövcud deyil (E01-T01). Restore, build və testlər **buraxıldı**."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Lock faylları commit olunub?
+        if: steps.sln.outputs.present == 'true'
+        run: |
+          missing=0
+          while IFS= read -r project; do
+            if [ ! -f "$(dirname "$project")/packages.lock.json" ]; then
+              echo "::error file=$project::packages.lock.json yoxdur — RestorePackagesWithLockFile aktiv olmalı və fayl commit olunmalıdır"
+              missing=1
+            fi
+          done < <(find backend -name '*.csproj' -not -path '*/bin/*' -not -path '*/obj/*')
+          exit "$missing"
+
+      - name: .NET SDK
+        if: steps.sln.outputs.present == 'true'
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          # backend/global.json varsa SDK versiyası oradan pinlənir; yoxdursa .NET 10 (LTS).
+          global-json-file: ${{ hashFiles('backend/global.json') != '' && 'backend/global.json' || '' }}
+          dotnet-version: ${{ hashFiles('backend/global.json') == '' && '10.0.x' || '' }}
+          cache: true
+          cache-dependency-path: backend/**/packages.lock.json
+
+      - name: Restore (locked mode)
+        if: steps.sln.outputs.present == 'true'
+        run: dotnet restore "$SOLUTION" --locked-mode
+
+      - name: Build (warnings as errors)
+        if: steps.sln.outputs.present == 'true'
+        run: dotnet build "$SOLUTION" --configuration Release --no-restore -warnaserror
+
+      - name: Unit testlər
+        if: steps.sln.outputs.present == 'true'
+        run: |
+          for project in backend/tests/Qonaqet.Domain.Tests backend/tests/Qonaqet.Application.Tests; do
+            dotnet test "$project" --configuration Release --no-build \
+              --collect "Code Coverage;Format=cobertura" --results-directory "$RESULTS/unit"
+          done
+
+      - name: Arxitektura testləri
+        if: steps.sln.outputs.present == 'true'
+        run: dotnet test backend/tests/Qonaqet.ArchitectureTests --configuration Release --no-build
+
+      - name: Integration testlər (Testcontainers)
+        if: steps.sln.outputs.present == 'true'
+        run: |
+          dotnet test backend/tests/Qonaqet.IntegrationTests --configuration Release --no-build \
+            --collect "Code Coverage;Format=cobertura" --results-directory "$RESULTS/integration"
+
+      - name: Coverage xülasəsi
+        if: ${{ !cancelled() && steps.sln.outputs.present == 'true' }}
+        run: python3 scripts/ci/coverage-summary.py "$RESULTS" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Test nəticələri (artefakt)
+        if: ${{ failure() && steps.sln.outputs.present == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-test-results
+          path: ${{ env.RESULTS }}
+          if-no-files-found: ignore
+          retention-days: 7
