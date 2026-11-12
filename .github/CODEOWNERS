@@ -2,11 +2,15 @@
 # Secret oxuya bilən workflow-lar .github/ altındadır — bu qoruma olmadan workflow dəyişən
 # hər kəs PROJECT_TOKEN-i sızdıra bilər.
 #
-# ⚠️ TODO: @QonaqEt/owners komandası org-da mövcud olmalıdır, yoxsa CODEOWNERS SƏSSİZCƏ İŞLƏMİR.
-#    Ya komandanı yarat (Org → Teams → "owners", repo-ya write icazəsi ilə),
-#    ya da aşağıdakı sahibi öz GitHub istifadəçi adınla əvəz et (məs. @zahid).
+# @QonaqEt/owners komandası mövcuddur və repo-ya write icazəsi var. Komanda silinsə və ya
+# icazəsi götürülsə CODEOWNERS SƏSSİZCƏ işləməz — `scripts/tests/test_repo_config.py` faylı yoxlayır,
+# GitHub tərəfi: `gh api repos/QonaqEt/qonaqet/codeowners/errors` boş qaytarmalıdır.
+#
+# Qeyd: Free plan + private repoda CODEOWNERS rəyi MƏCBURİ deyil, yalnız rəyçi təklif edir
+# (docs/github-setup.md → "Plan tələbi").
 
 /.github/                 @QonaqEt/owners
 /docs/dependencies/       @QonaqEt/owners
 /CLAUDE.md                @QonaqEt/owners
 /scripts/                 @QonaqEt/owners
+/docs/adr/                @QonaqEt/owners
