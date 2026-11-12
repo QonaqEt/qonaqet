@@ -1094,20 +1094,27 @@ All three apps:
   - **bug**
 
 ### How Claude Code works
-1. Work **epic by epic, in the order below**. Do not start a new epic while tasks of the current one are open, unless a task is explicitly marked as parallel.
-2. Inside an epic, take the top `Ready` task:
-   - move it to `In Progress`
+Two developers work on the project, each with their own Claude Code session. **One developer = one epic at a time; never two developers in the same epic.** The claim is the epic issue's **assignee**, managed by `scripts/epic.py` and enforced by `pr-checks`.
+
+0. At the start of every session:
+   - `scripts/epic.py status`: who holds which epic, what is blocked
+   - if you already hold an open epic, continue it; otherwise `scripts/epic.py next`, then `scripts/epic.py claim Exx`
+   - if the claim fails (taken, blocked by `depends:`, or lost a simultaneous claim), pick another; never work on an epic assigned to someone else
+1. Work **epic by epic**. An epic can be claimed only when every epic in its `depends:` (front matter of `docs/epics/Exx.md`) is closed; among claimable epics, take the lowest number. Do not start a new epic while tasks of yours are open. Tasks labelled `parallel-ok` may be taken by the developer who does not hold the epic.
+2. Inside your epic, take the top `Ready` task:
+   - assign it to yourself and move it to `In Progress` (creating the branch does this automatically)
    - branch `feat/<issue#>-<slug>` (or `fix/`, `chore/`)
 3. Implement it with tests. Then:
    - Conventional Commits that reference the issue (`feat(gifts): partial voucher redemption (#123)`)
    - open a PR with `Closes #123` (template: summary, tests, screenshots for UI)
    - move the task to `In Review`
-4. CI must be green: build, tests, lint, architecture tests. Merge with squash. The task moves to `Done` automatically.
+4. CI must be green: build, tests, lint, architecture tests. **The other developer approves the PR** (the `main` ruleset requires 1 approval and code-owner review). Merge with squash. The task moves to `Done` automatically.
 5. When all sub-issues of an epic are done:
    - verify the epic's acceptance criteria
    - update `README.md` / `docs/`
-   - close the epic
-   - tag `epic-Exx-done`
+   - close the epic and tag `epic-Exx-done` (the `epic-progress` workflow does both when the last task closes)
+   - the epic is then free: claim the next one with `scripts/epic.py next` / `claim`
+   - giving up an epic before it is done: `scripts/epic.py release Exx`
 6. If something new comes up, create a new task under the right epic. Never expand scope silently.
 7. Architectural decisions that deviate from this file go into `docs/adr/` and need a PR.
 
@@ -1141,7 +1148,7 @@ All three apps:
 | E19 | Landing website (web) | web-landing | SSR skeleton + tokens (now), then — **after the UI guidelines** — hero + animations, counters, sections, gift page, reytinq, campaigns, developers, forms, Lighthouse ≥ 90 |
 | E20 | Production readiness | infra | Security review (OWASP ASVS L2 checklist), load test (k6) on the redeem + payment paths, backups + restore drills (Mongo, Postgres, RustFS), RustFS version re-evaluation, monitoring/alerts, staging/prod deploy, privacy policy + terms pages |
 
-Epics E14–E16 may run in parallel with E09–E13 once E02 is done. Mark such tasks `parallel-ok`.
+Epic dependencies live in the `depends:` front matter of `docs/epics/Exx.md` (e.g. E14–E16 can run in parallel with E09–E13 once E02 is done). Change them only by PR.
 
 ## Coding rules
 

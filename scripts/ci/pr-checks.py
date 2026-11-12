@@ -8,6 +8,8 @@ Qaydalar:
   1. Başlıq Conventional Commit formatındadır: `type(scope)!: təsvir`
   2. Body-də eyni repodakı issue-ya `Closes #n` (close/fix/resolve formaları) var
   3. Hər bağlanan issue açıqdır, `task` label-lidir və valideyni `epic` label-li issue-dur
+  4. Valideyn epic PR müəllifinə claim olunub (epic-in assignee-si; `scripts/epic.py claim Exx`).
+     `parallel-ok` label-li task-lar istisnadır — onları epic-i saxlamayan developer də götürə bilər.
 Dependabot PR-ları 2–3-cü qaydalardan azaddır (onlar task-dan yox, avtomatik yaranır).
 """
 from __future__ import annotations
@@ -94,6 +96,15 @@ def check(title: str, body: str, author: str, fetch: Fetch) -> list[str]:
             errors.append(f"#{number} heç bir epic-in sub-issue-su deyil.")
         elif "epic" not in {label["name"] for label in parent.get("labels", [])}:
             errors.append(f"#{number}-in valideyni #{parent.get('number')} `epic` label-li deyil.")
+        elif "parallel-ok" not in labels:
+            owners = [a["login"] for a in parent.get("assignees") or []]
+            key = (re.match(r"^\[(E\d{2})\]", parent.get("title", "")) or [None, "epic"])[1]
+            if not owners:
+                errors.append(f"{key} (#{parent.get('number')}) heç kimə claim olunmayıb — "
+                              f"`scripts/epic.py claim {key}` ilə götür.")
+            elif author not in owners:
+                errors.append(f"{key} (#{parent.get('number')}) @{owners[0]} tərəfindən işlənir — "
+                              f"bu epic-in task-ını götürmə (`scripts/epic.py status`).")
     return errors
 
 

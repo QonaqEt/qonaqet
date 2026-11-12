@@ -122,6 +122,30 @@ def parse_tasks(body, epic_id, path):
     return tasks
 
 
+def check_depends(epics):
+    """depends yalnız mövcud epic-lərə istinad edir və dövr yoxdur."""
+    ids = {e["id"] for e in epics}
+    graph = {e["id"]: e["depends"] for e in epics}
+    for epic, deps in graph.items():
+        for dep in deps:
+            if dep not in ids:
+                fail(f"{epic}: depends-də mövcud olmayan epic {dep}")
+    state = {}
+
+    def visit(node, trail):
+        if state.get(node) == "done":
+            return
+        if state.get(node) == "active":
+            fail("depends-də dövr: " + " → ".join(trail + [node]))
+        state[node] = "active"
+        for dep in graph[node]:
+            visit(dep, trail + [node])
+        state[node] = "done"
+
+    for epic in graph:
+        visit(epic, [])
+
+
 def main():
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "docs/epics")
     out = []
@@ -136,6 +160,12 @@ def main():
             fail(f"{path}: naməlum area {meta.get('area')!r}")
         if meta.get("priority") not in PRIORITIES:
             fail(f"{path}: naməlum priority {meta.get('priority')!r}")
+        depends = [d.strip() for d in meta.get("depends", "").split(",") if d.strip()]
+        for dep in depends:
+            if not re.fullmatch(r"E\d{2}", dep):
+                fail(f"{path}: depends-də səhv epic açarı {dep!r}")
+            if dep == epic_id:
+                fail(f"{path}: epic özündən asılı ola bilməz")
         tasks = parse_tasks(body, epic_id, path)
         for t in tasks:
             if t["key"] in seen_keys:
@@ -146,6 +176,7 @@ def main():
             "title": meta["title"],
             "area": meta["area"],
             "priority": meta["priority"],
+            "depends": depends,
             "file": str(path),
             "goal": section(body, "Goal"),
             "scope": section(body, "Scope"),
@@ -155,6 +186,7 @@ def main():
         })
     if not out:
         fail(f"{root}: epic faylı tapılmadı")
+    check_depends(out)
     json.dump(out, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
 
