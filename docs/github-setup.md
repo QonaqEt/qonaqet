@@ -127,7 +127,7 @@ vermir, ona görə sahibin **öz hesabından açılan** PR-ları ikinci rəyçi 
 (PR yenə məcburidir, yalnız approval tələbi sahib üçün götürülür) — bu, `CLAUDE.md`-dən kənarlaşmadır
 və ADR tələb edir.
 
-## 7. CODEOWNERS
+## 6. CODEOWNERS
 
 `.github/CODEOWNERS` `@QonaqEt/owners` komandasına istinad edir.
 
@@ -135,7 +135,7 @@ və ADR tələb edir.
 > Ya Org → Teams → `owners` komandasını yarat (repo-ya write icazəsi ilə),
 > ya da fayldakı sahibi öz GitHub istifadəçi adınla əvəz et.
 
-## 8. Növbəti addım
+## 7. Növbəti addım
 
 Board hazır olandan sonra iş `CLAUDE.md` → "How Claude Code works" qaydası ilə gedir:
 epic-bə-epic, `E00`-dan başlayaraq; hər task üçün branch, hər PR bir task bağlayır.
