@@ -1,0 +1,59 @@
+name: project-sync
+
+# E00-T10. Built-in Project workflow-larının ETMƏDİYİ hissə (auto-add, PR → In Review, closed → Done
+# onlardadır — docs/github-setup.md bölmə 4):
+#   - issue branch-ı yaradılanda (`feat|fix|chore/<n>-<slug>`) task → In Progress (yalnız irəli)
+#   - issue açılanda / label-ları dəyişəndə Epic, Area, Priority, Size sahələri
+#   - əl ilə: bir issue və ya bütün issue-lar üçün backfill
+#
+# Projects v2 yalnız GraphQL-dir və GITHUB_TOKEN ona yaza bilmir → PROJECT_TOKEN.
+# Token yoxdursa job aydın xəta ilə dayanır (səssiz uğursuzluq yoxdur).
+
+on:
+  create:
+  issues:
+    types: [opened, reopened, edited, labeled, unlabeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "Issue nömrəsi (boş = bütün issue-lar üçün backfill)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-sync-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # Dependabot-un işə saldığı workflow-lar secret görmür; onun branch-ları onsuz da task deyil.
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name != 'create' || github.event.ref_type == 'branch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Board sinxronu
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.event.ref }}
+          ISSUE: ${{ github.event.issue.number || inputs.issue }}
+        run: |
+          case "$EVENT" in
+            create) python3 scripts/ci/project-sync.py branch "$REF" ;;
+            issues) python3 scripts/ci/project-sync.py issue "$ISSUE" ;;
+            workflow_dispatch)
+              if [ -n "$ISSUE" ]; then
+                python3 scripts/ci/project-sync.py issue "$ISSUE"
+              else
+                python3 scripts/ci/project-sync.py backfill
+              fi ;;
+          esac

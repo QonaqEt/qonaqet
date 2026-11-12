@@ -68,6 +68,14 @@ Board → **⋯ → Workflows**, bunları aktiv et:
 
 "Auto-add" aktiv olduqda sonradan yaradılan issue-lar board-a özü düşür — `PROJECT_TOKEN` lazım olmur.
 
+Built-in workflow-ların etmədiyini `project-sync.yml` edir (`PROJECT_TOKEN` ilə):
+
+| Hadisə | Nəticə |
+|---|---|
+| `feat\|fix\|chore/<issue#>-<slug>` branch-ı yaradılır | task → `In Progress` (yalnız `Backlog`/`Ready`-dən; geri çəkilmir) |
+| issue açılır, label/body dəyişir | `Epic` (valideyn epic-dən), `Area`/`Priority` (label-lardan), `Size` (body-dən) |
+| **Actions → project-sync → Run workflow** | bir issue və ya (boş saxlasan) bütün issue-lar üçün backfill |
+
 ## 5. Repo parametrləri və main ruleset
 
 Bütün parametrlər kodda saxlanılır və bir skriptlə tətbiq olunur (yalnız REST, idempotent):
