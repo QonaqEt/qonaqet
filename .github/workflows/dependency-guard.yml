@@ -7,7 +7,7 @@ name: dependency-guard
 #                        (keçid asılılıqları daxil).
 #
 # ⚠️ dependency-review private repoda GitHub Advanced Security (Code Security) tələb edir. Repo private
-# və plan Free olduqca job açıq xəbərdarlıqla buraxılır (docs/github-setup.md → "Plan tələbi").
+# və plan Free olduqca job açıq xəbərdarlıqla buraxılır (docs/github-setup.md → "Plan").
 
 on:
   pull_request:

@@ -6,8 +6,8 @@
 # icazəsi götürülsə CODEOWNERS SƏSSİZCƏ işləməz — `scripts/tests/test_repo_config.py` faylı yoxlayır,
 # GitHub tərəfi: `gh api repos/QonaqEt/qonaqet/codeowners/errors` boş qaytarmalıdır.
 #
-# Qeyd: Free plan + private repoda CODEOWNERS rəyi MƏCBURİ deyil, yalnız rəyçi təklif edir
-# (docs/github-setup.md → "Plan tələbi").
+# Ruleset code owner rəyini məcburi edir: təsdiqləyən bu komandanın üzvü olmalıdır
+# (docs/github-setup.md → "Rəy qaydası").
 
 /.github/                 @QonaqEt/owners
 /docs/dependencies/       @QonaqEt/owners
