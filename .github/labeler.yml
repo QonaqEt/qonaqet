@@ -1,0 +1,47 @@
+# actions/labeler (v5+ formatı): dəyişən yollara görə `area:*` label-ları. pr-checks.yml işlədir.
+# Label adları bootstrap-github.sh-dakı ilə eynidir.
+
+area:backend:
+  - changed-files:
+      - any-glob-to-any-file: ["backend/**"]
+
+area:integration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "backend/src/Qonaqet.Integration.Api/**"
+          - "backend/src/Qonaqet.Application/Features/Integration/**"
+          - "backend/src/Qonaqet.Domain/Integration/**"
+          - "backend/src/Qonaqet.Contracts/Webhooks/**"
+          - "docs/integration-guide.md"
+
+area:mobile:
+  - changed-files:
+      - any-glob-to-any-file: ["mobile/**"]
+
+area:web-landing:
+  - changed-files:
+      - any-glob-to-any-file: ["web/projects/landing/**"]
+
+area:web-business:
+  - changed-files:
+      - any-glob-to-any-file: ["web/projects/business-portal/**"]
+
+area:web-admin:
+  - changed-files:
+      - any-glob-to-any-file: ["web/projects/admin/**"]
+
+area:infra:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "deploy/**"
+          - "scripts/**"
+          - "docs/dependencies/**"
+          - "docs/github-setup.md"
+
+area:design:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "design-tokens/**"
+          - "web/projects/design-tokens/**"
+          - "mobile/lib/app/theme/**"
