@@ -15,6 +15,7 @@ id: E00
 title: Epic-in adı
 area: infra
 priority: p0
+depends: E01, E02            # bu epic-dən əvvəl bağlanmalı olan epic-lər (boş ola bilər)
 ---
 
 ## Goal
@@ -48,6 +49,7 @@ Acceptance:
 ## Qaydalar
 
 - `id` fayl adı ilə üst-üstə düşməlidir (`E07.md` → `id: E07`).
+- `depends` yalnız mövcud epic-lərə istinad edir, dövr ola bilməz (parser yoxlayır). `scripts/epic.py` epic-in götürülə bilib-bilmədiyini buna görə müəyyən edir.
 - Task başlığı həmişə `### <EPIC>-T<NN> · <ad>` şəklindədir.
 - `area` yalnız bunlardan biri: `backend`, `integration`, `mobile`, `web-landing`, `web-business`, `web-admin`, `infra`, `design`.
 - `size`: `XS` | `S` | `M` | `L`.

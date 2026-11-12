@@ -17,8 +17,9 @@ sys.modules["pr_checks"] = pc
 spec.loader.exec_module(pc)
 
 
-def issue(number, labels, state="open", pr=False):
-    data = {"number": number, "state": state, "labels": [{"name": n} for n in labels]}
+def issue(number, labels, state="open", pr=False, title="", assignees=("u",)):
+    data = {"number": number, "state": state, "labels": [{"name": n} for n in labels], "title": title,
+            "assignees": [{"login": a} for a in assignees]}
     if pr:
         data["pull_request"] = {"url": "x"}
     return data
@@ -36,6 +37,13 @@ ISSUES = {
     "issues/7": issue(7, ["task"]),
     "issues/7/parent": issue(3, ["task"]),
     "issues/187": issue(187, [], pr=True),
+    # E05 başqasındadır, E06 heç kimə claim olunmayıb
+    "issues/8": issue(8, ["task"]),
+    "issues/8/parent": issue(55, ["epic"], title="[E05] Categories", assignees=("other",)),
+    "issues/9": issue(9, ["task", "parallel-ok"]),
+    "issues/9/parent": issue(55, ["epic"], title="[E05] Categories", assignees=("other",)),
+    "issues/10": issue(10, ["task"]),
+    "issues/10/parent": issue(63, ["epic"], title="[E06] Social", assignees=()),
 }
 
 
@@ -101,6 +109,19 @@ class LinkedIssueTests(unittest.TestCase):
     def test_every_closed_issue_is_checked(self) -> None:
         errors = self.errors("Closes #3\nCloses #6")
         self.assertEqual(errors, ["#6 heç bir epic-in sub-issue-su deyil."])
+
+    def test_epic_claimed_by_someone_else_blocks_the_pr(self) -> None:
+        errors = self.errors("Closes #8")
+        self.assertEqual(len(errors), 1)
+        self.assertIn("E05 (#55) @other tərəfindən işlənir", errors[0])
+
+    def test_parallel_ok_task_may_be_taken_from_someone_elses_epic(self) -> None:
+        self.assertEqual(self.errors("Closes #9"), [])
+
+    def test_unclaimed_epic_must_be_claimed_first(self) -> None:
+        errors = self.errors("Closes #10")
+        self.assertEqual(len(errors), 1)
+        self.assertIn("scripts/epic.py claim E06", errors[0])
 
     def test_dependabot_is_exempt_from_issue_rules_but_not_title(self) -> None:
         self.assertEqual(pc.check("build(deps): bump x", "", "dependabot[bot]", fetch), [])
