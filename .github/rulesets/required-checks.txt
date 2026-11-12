@@ -1,0 +1,14 @@
+# `main` ruleset-inin tələb etdiyi status check-lər — hər sətirdə bir job adı.
+# scripts/repo-settings.py bu siyahıdan `required_status_checks` qaydasını qurur;
+# siyahı boşdursa qayda əlavə olunmur.
+#
+# Check-i YALNIZ onun workflow-u main-də olandan və hər PR-da status verəndən sonra aç.
+# Heç vaxt status verməyən tələb olunan check bütün PR-ları bloklayır. Ona görə CI workflow-ları
+# path filtrini job səviyyəsində saxlayır (buraxılan job "skipped" = uğurlu sayılır).
+#
+# compose            # ci-infra.yml          (E00-T02)
+# backend            # ci-backend.yml        (E00-T04)
+# web                # ci-web.yml            (E00-T05)
+# mobile             # ci-mobile.yml         (E00-T06)
+# dependency-guard   # dependency-guard.yml  (E00-T07)
+# pr-checks          # pr-checks.yml         (E00-T09)
