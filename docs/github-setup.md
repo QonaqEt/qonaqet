@@ -68,29 +68,66 @@ Board → **⋯ → Workflows**, bunları aktiv et:
 
 "Auto-add" aktiv olduqda sonradan yaradılan issue-lar board-a özü düşür — `PROJECT_TOKEN` lazım olmur.
 
-## 5. main ruleset
+## 5. Repo parametrləri və main ruleset
 
-**Settings → Rules → Rulesets → New branch ruleset**, hədəf `main`:
+Bütün parametrlər kodda saxlanılır və bir skriptlə tətbiq olunur (yalnız REST, idempotent):
 
-- ☑ Require a pull request before merging — 1 approval (owner)
-- ☑ Require status checks to pass — CI-lar yaşıl olandan sonra əlavə et
-- ☑ Require linear history (yalnız squash merge)
-- ☑ Require signed commits
-- ☑ Block force pushes
-- ☐ Restrict deletions — açıq saxla
+| Fayl | Nədir |
+|---|---|
+| `.github/rulesets/main.json` | `main` ruleset-inin tərifi |
+| `.github/rulesets/required-checks.txt` | tələb olunan status check-lər (hər sətirdə bir job adı) |
+| `scripts/repo-settings.py` | `--check` (yalnız oxuyur, fərq varsa 1 ilə çıxır) və `--apply` |
 
-**Settings → General → Pull Requests**: ☑ Allow squash merging (yalnız), ☑ Automatically delete head
-branches, ☑ Allow auto-merge.
+```bash
+scripts/repo-settings.py --check     # cari vəziyyət cədvəli
+scripts/repo-settings.py --apply     # repo admin token-i tələb edir
+```
 
-## 6. Təhlükəsizlik
+və ya **Actions → bootstrap → Run workflow → `repo_settings: check | apply`** (`PROJECT_TOKEN` ilə işləyir).
 
-**Settings → Code security**
+Nə qurulur:
 
-- ☑ Secret scanning + ☑ Push protection
-- ☑ Dependabot alerts
-- ☑ Private vulnerability reporting
+- **Ruleset `main`**: PR məcburidir, 1 approval + code owner rəyi, açıq rəy thread-ləri bağlanmalıdır,
+  linear history, yalnız squash, signed commits, force push və budağın silinməsi qadağandır,
+  bypass edən yoxdur
+- **Merge**: yalnız squash; head budaqları avtomatik silinir; auto-merge açıqdır
+- **Təhlükəsizlik**: secret scanning + push protection, Dependabot alerts, private vulnerability reporting
+- **Actions**: action-ların tam commit SHA ilə pinlənməsi tələbi
 
-## 7. CODEOWNERS
+### ⚠️ Plan tələbi
+
+Repo **private**-dir və təşkilat **Free** plandadır. Bu kombinasiyada GitHub aşağıdakıları **vermir**
+(API `403 Upgrade to GitHub Pro or make this repository public` qaytarır):
+
+| Xüsusiyyət | Free + private | Team + private | Public |
+|---|---|---|---|
+| Ruleset / branch protection | ✗ | ✓ | ✓ |
+| CODEOWNERS-in məcburi rəyi | ✗ | ✓ | ✓ |
+| Auto-merge | ✗ | ✓ | ✓ |
+| Secret scanning + push protection | ✗ | ödənişli əlavə (Secret Protection) | ✓ |
+| CodeQL (code scanning), dependency review | ✗ | ödənişli əlavə (Code Security) | ✓ |
+
+Yəni hazırda `main`-ə birbaşa push mümkündür və `CODEOWNERS` yalnız rəyçi təklif edir, heç nəyi
+bloklamır — `PROJECT_TOKEN`-i qoruyan şərt (bax bölmə 2) faktiki işləmir. Skript bu parametrləri
+"plan icazə vermir" kimi göstərir və 1 ilə çıxır; plan dəyişəndən sonra `--apply` qalanını qurur.
+
+### Tələb olunan check-lər
+
+`required-checks.txt`-ə check yalnız onun workflow-u `main`-də olandan sonra əlavə olunur: heç vaxt
+status verməyən tələb olunan check bütün PR-ları bloklayır. Ona görə CI workflow-ları path filtrini
+trigger səviyyəsində (`on.pull_request.paths`) yox, **job səviyyəsində** saxlayır — buraxılan job
+"skipped" kimi uğurlu sayılır.
+
+### Tək sahibli təşkilat üçün qeyd
+
+Ruleset 1 approval tələb edir və bypass yoxdur. GitHub müəllifin öz PR-ını təsdiqləməsinə icazə
+vermir, ona görə sahibin **öz hesabından açılan** PR-ları ikinci rəyçi olmadan birləşdirmək olmaz.
+İkinci rəyçi yoxdursa, `main.json`-dakı `bypass_actors`-a
+`{"actor_id": 1, "actor_type": "OrganizationAdmin", "bypass_mode": "pull_request"}` əlavə et
+(PR yenə məcburidir, yalnız approval tələbi sahib üçün götürülür) — bu, `CLAUDE.md`-dən kənarlaşmadır
+və ADR tələb edir.
+
+## 6. CODEOWNERS
 
 `.github/CODEOWNERS` `@QonaqEt/owners` komandasına istinad edir.
 
@@ -98,7 +135,7 @@ branches, ☑ Allow auto-merge.
 > Ya Org → Teams → `owners` komandasını yarat (repo-ya write icazəsi ilə),
 > ya da fayldakı sahibi öz GitHub istifadəçi adınla əvəz et.
 
-## 8. Növbəti addım
+## 7. Növbəti addım
 
 Board hazır olandan sonra iş `CLAUDE.md` → "How Claude Code works" qaydası ilə gedir:
 epic-bə-epic, `E00`-dan başlayaraq; hər task üçün branch, hər PR bir task bağlayır.

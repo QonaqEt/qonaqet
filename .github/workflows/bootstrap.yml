@@ -17,6 +17,11 @@ on:
         description: "Yalnız issue-ları qur, board-a toxunma"
         type: boolean
         default: false
+      repo_settings:
+        description: "Repo parametrləri + main ruleset-i (scripts/repo-settings.py)"
+        type: choice
+        options: [skip, check, apply]
+        default: skip
 
 permissions:
   contents: read
@@ -63,6 +68,18 @@ jobs:
               echo "Sonra bu workflow-u yenidən işə sal."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      # Admin əməliyyatıdır: GITHUB_TOKEN repo parametrlərini dəyişə bilmir, ona görə PROJECT_TOKEN
+      # (admin istifadəçinin `repo` scope-lu token-i) işlədilir. `check` heç nə dəyişmir.
+      - name: Repo parametrləri və main ruleset-i
+        if: ${{ steps.token.outputs.present == 'true' && inputs.repo_settings != 'skip' && !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          REPO: ${{ github.repository }}
+          MODE: ${{ inputs.repo_settings }}
+        run: |
+          python3 -m unittest discover -s scripts/tests
+          python3 scripts/repo-settings.py "--$MODE"
 
       - name: Project board
         if: ${{ steps.token.outputs.present == 'true' && !inputs.dry_run && !inputs.skip_project }}
