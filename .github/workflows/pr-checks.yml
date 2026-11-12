@@ -1,0 +1,59 @@
+name: pr-checks
+
+# E00-T09: PR iş prosesinə uyğundurmu (CLAUDE.md → "How Claude Code works")?
+#   pr-checks — Conventional Commit başlığı, `Closes #n`, bağlanan issue `task`-dır və epic-in sub-issue-sudur
+#   labeler   — dəyişən yollara görə `area:*` label-ları (.github/labeler.yml)
+#
+# `pull_request` (pull_request_target YOX): repo private-dir, fork PR-ları gözlənilmir; bu halda
+# GITHUB_TOKEN label yaza bilir və yoxlama skriptinin PR-dakı versiyası işləyir. Skript və workflow
+# CODEOWNERS ilə qorunur. `edited` — başlıq/body dəyişəndə yenidən yoxlanılır.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Skriptin öz testləri
+        run: python3 -m unittest discover -s scripts/tests -p 'test_pr_checks.py' -v
+
+      # Başlıq və body yalnız env ilə ötürülür — `${{ }}` ilə skriptə yerləşdirilmir (injection).
+      - name: Başlıq, Closes #n, task → epic
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci/pr-checks.py
+
+  labeler:
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: area:* label-ları
+        uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d # v6.2.0
+        with:
+          configuration-path: .github/labeler.yml
+          sync-labels: false
