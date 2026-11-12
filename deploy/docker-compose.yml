@@ -1,0 +1,261 @@
+# QONAQET — dev mühiti (CLAUDE.md → "Infrastructure").
+#
+#   docker compose -f deploy/docker-compose.yml up -d --wait                  # yalnız infrastruktur
+#   docker compose -f deploy/docker-compose.yml --profile apps up -d --build  # + backend host-ları və veb app-lar
+#
+# Bütün dəyişənlərin dev default-u var, ona görə .env faylı olmadan da qalxır.
+# Dəyişmək üçün: cp deploy/env/.env.example deploy/env/.env və `--env-file deploy/env/.env` əlavə et.
+#
+# Qaydalar (deploy/tests/test_compose.py yoxlayır):
+#   - hər image konkret versiya ilə pinlənir; `latest`, preview və rc tag-ları qadağandır
+#   - host portları yalnız 127.0.0.1-ə bağlanır
+#   - hər infrastruktur servisinin healthcheck-i var
+#   - burada istifadə olunan hər dəyişən deploy/env/.env.example-da sənədləşir
+
+name: qonaqet
+
+x-backend-env: &backend-env
+  ASPNETCORE_ENVIRONMENT: Development
+  DOTNET_ENVIRONMENT: Development
+  App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-http://localhost:4200}
+  Mongo__ConnectionString: mongodb://mongo:27017/?replicaSet=rs0
+  Mongo__Database: ${MONGO_DATABASE:-qonaqet}
+  ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-qonaqet};Username=${POSTGRES_USER:-qonaqet};Password=${POSTGRES_PASSWORD:-qonaqet-dev-only}
+  Valkey__ConnectionString: valkey:6379
+  RabbitMq__Uri: amqp://${RABBITMQ_USER:-qonaqet}:${RABBITMQ_PASSWORD:-qonaqet-dev-only}@rabbitmq:5672/
+  Storage__ServiceUrl: http://rustfs:9000
+  Storage__AccessKey: ${RUSTFS_ACCESS_KEY:-qonaqet}
+  Storage__SecretKey: ${RUSTFS_SECRET_KEY:-qonaqet-dev-only}
+  Storage__Bucket: ${STORAGE_BUCKET:-qonaqet-files}
+  Storage__ForcePathStyle: "true"
+  Smtp__Host: mailpit
+  Smtp__Port: "1025"
+  # Boş AppKey → Fake ödəniş gateway-i (Development).
+  Payriff__AppKey: ${PAYRIFF_APP_KEY:-}
+  Jwt__SigningKey: ${JWT_SIGNING_KEY:-qonaqet-dev-only-signing-key-change-me-0123456789}
+  Security__FinHashSecret: ${FIN_HASH_SECRET:-qonaqet-dev-only-fin-secret}
+  Security__QrSigningSecret: ${QR_SIGNING_SECRET:-qonaqet-dev-only-qr-secret}
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+  OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+
+x-backend-depends: &backend-depends
+  mongo:
+    condition: service_healthy
+  postgres:
+    condition: service_healthy
+  valkey:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+  rustfs-init:
+    condition: service_completed_successfully
+  mailpit:
+    condition: service_healthy
+
+services:
+  # ------------------------------------------------------------ infrastruktur
+  mongo:
+    image: mongo:8.0.38-noble
+    # Tranzaksiyalar replica set tələb edir; tək node-lu rs0 healthcheck-in içində initialize olunur.
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - |
+          try { rs.status(); } catch (e) { rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] }); }
+          if (!db.hello().isWritablePrimary) { quit(1); }
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-qonaqet}
+      POSTGRES_USER: ${POSTGRES_USER:-qonaqet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-qonaqet-dev-only}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  valkey:
+    image: valkey/valkey:8.1.11-alpine
+    # Valkey heç vaxt həqiqət mənbəyi deyil — disk yoxdur, restart-da boşalır.
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:${VALKEY_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:4.3.7-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-qonaqet}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-qonaqet-dev-only}
+    ports:
+      - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
+
+  rustfs:
+    # ADR 0002: yalnız GA 1.0.x; `latest`, preview və rc tag-ları işlədilmir.
+    image: rustfs/rustfs:1.0.5
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-qonaqet}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-qonaqet-dev-only}
+      RUSTFS_OBS_ENVIRONMENT: development
+    ports:
+      - "127.0.0.1:${RUSTFS_PORT:-9000}:9000"
+      - "127.0.0.1:${RUSTFS_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  rustfs-init:
+    # Bucket-i yaradır və versioning-i açır. İdempotentdir; heç nə silmir.
+    # MinIO `mc` əvəzinə Amazon-un rəsmi CLI-ı (asılılıq siyasəti).
+    image: amazon/aws-cli:2.40.1
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY:-qonaqet}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:-qonaqet-dev-only}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://rustfs:9000
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-qonaqet-files}
+    volumes:
+      - ./rustfs/init-buckets.sh:/init-buckets.sh:ro
+    entrypoint: ["sh", "/init-buckets.sh"]
+    restart: "no"
+
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.5
+    environment:
+      # Yalnız dev: dashboard və OTLP girişi autentifikasiyasızdır, portlar yalnız localhost-dadır.
+      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "127.0.0.1:${ASPIRE_UI_PORT:-18888}:18888"
+      - "127.0.0.1:${ASPIRE_OTLP_PORT:-4317}:18889"
+
+  # ------------------------------------------------------------ tətbiqlər (profile: apps)
+  # Dockerfile-lar müvafiq skeleton task-ları ilə gəlir (backend: E01-T01, veb: E17/E18/E19).
+  # O vaxta qədər `--profile apps` build mərhələsində dayanır; infrastruktur bundan asılı deyil.
+  api:
+    profiles: ["apps"]
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/backend.Dockerfile
+      args:
+        PROJECT: Qonaqet.Api
+    environment: *backend-env
+    depends_on: *backend-depends
+    ports:
+      - "127.0.0.1:${API_PORT:-5080}:8080"
+
+  integration-api:
+    profiles: ["apps"]
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/backend.Dockerfile
+      args:
+        PROJECT: Qonaqet.Integration.Api
+    environment: *backend-env
+    depends_on: *backend-depends
+    ports:
+      - "127.0.0.1:${INTEGRATION_API_PORT:-5081}:8080"
+
+  worker:
+    profiles: ["apps"]
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/backend.Dockerfile
+      args:
+        PROJECT: Qonaqet.Worker
+    environment: *backend-env
+    depends_on: *backend-depends
+
+  landing:
+    profiles: ["apps"]
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/web.Dockerfile
+      args:
+        APP: landing
+    environment:
+      API_BASE_URL: http://api:8080
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${LANDING_PORT:-4200}:4000"
+
+  business-portal:
+    profiles: ["apps"]
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/web.Dockerfile
+      args:
+        APP: business-portal
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${BUSINESS_PORTAL_PORT:-4201}:8080"
+
+  admin:
+    profiles: ["apps"]
+    build:
+      context: ..
+      dockerfile: deploy/dockerfiles/web.Dockerfile
+      args:
+        APP: admin
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${ADMIN_PORT:-4202}:8080"
+
+volumes:
+  mongo-data:
+  mongo-config:
+  postgres-data:
+  rabbitmq-data:
+  rustfs-data:
