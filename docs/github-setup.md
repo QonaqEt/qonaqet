@@ -102,22 +102,12 @@ Nə qurulur:
 - **Təhlükəsizlik**: secret scanning + push protection, Dependabot alerts, private vulnerability reporting
 - **Actions**: action-ların tam commit SHA ilə pinlənməsi tələbi
 
-### ⚠️ Plan tələbi
+### Plan
 
-Repo **private**-dir və təşkilat **Free** plandadır. Bu kombinasiyada GitHub aşağıdakıları **vermir**
-(API `403 Upgrade to GitHub Pro or make this repository public` qaytarır):
-
-| Xüsusiyyət | Free + private | Team + private | Public |
-|---|---|---|---|
-| Ruleset / branch protection | ✗ | ✓ | ✓ |
-| CODEOWNERS-in məcburi rəyi | ✗ | ✓ | ✓ |
-| Auto-merge | ✗ | ✓ | ✓ |
-| Secret scanning + push protection | ✗ | ödənişli əlavə (Secret Protection) | ✓ |
-| CodeQL (code scanning), dependency review | ✗ | ödənişli əlavə (Code Security) | ✓ |
-
-Yəni hazırda `main`-ə birbaşa push mümkündür və `CODEOWNERS` yalnız rəyçi təklif edir, heç nəyi
-bloklamır — `PROJECT_TOKEN`-i qoruyan şərt (bax bölmə 2) faktiki işləmir. Skript bu parametrləri
-"plan icazə vermir" kimi göstərir və 1 ilə çıxır; plan dəyişəndən sonra `--apply` qalanını qurur.
+Repo **public**-dir — ruleset, CODEOWNERS məcburiyyəti, auto-merge, secret scanning, CodeQL və
+dependency review pulsuz mövcuddur. Repo yenidən private edilsə, bunlar Free planda itir (ruleset və
+CODEOWNERS üçün ən azı Team, secret scanning/CodeQL üçün əlavə olaraq Code Security lazımdır);
+`--check` bunları "plan icazə vermir" kimi göstərəcək.
 
 ### Tələb olunan check-lər
 
@@ -126,14 +116,13 @@ status verməyən tələb olunan check bütün PR-ları bloklayır. Ona görə C
 trigger səviyyəsində (`on.pull_request.paths`) yox, **job səviyyəsində** saxlayır — buraxılan job
 "skipped" kimi uğurlu sayılır.
 
-### Tək sahibli təşkilat üçün qeyd
+### Rəy qaydası (iki developer)
 
-Ruleset 1 approval tələb edir və bypass yoxdur. GitHub müəllifin öz PR-ını təsdiqləməsinə icazə
-vermir, ona görə sahibin **öz hesabından açılan** PR-ları ikinci rəyçi olmadan birləşdirmək olmaz.
-İkinci rəyçi yoxdursa, `main.json`-dakı `bypass_actors`-a
-`{"actor_id": 1, "actor_type": "OrganizationAdmin", "bypass_mode": "pull_request"}` əlavə et
-(PR yenə məcburidir, yalnız approval tələbi sahib üçün götürülür) — bu, `CLAUDE.md`-dən kənarlaşmadır
-və ADR tələb edir.
+Ruleset-də bypass yoxdur: hər PR-ı **digər** developer təsdiqləyir (GitHub müəllifin öz PR-ını
+təsdiqləməsinə icazə vermir). `.github/**`, `scripts/**`, `docs/dependencies/**`, `docs/adr/**` və
+`CLAUDE.md` dəyişikliklərində təsdiqləyən `@QonaqEt/owners` komandasının üzvü olmalıdır — ona görə hər
+iki developer komandada olmalıdır. Claude Code PR-ı yalnız required check-lər yaşıl və PR təsdiqlənmiş
+olanda birləşdirir.
 
 ## 6. CODEOWNERS
 
