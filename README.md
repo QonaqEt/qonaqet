@@ -43,6 +43,31 @@ olmadan çiçək, kitab və xidmətlərə qədər genişlənə bilər.
 /.github                workflow-lar (path filter ilə), issue/PR şablonları
 ```
 
+## Dev mühiti
+
+Bütün infrastruktur (MongoDB replica set, PostgreSQL, Valkey, RabbitMQ, RustFS + versioning-li bucket,
+Mailpit, Aspire Dashboard) bir əmrlə qalxır — `.env` faylı tələb olunmur:
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d --wait
+```
+
+| Servis | Ünvan |
+|---|---|
+| MongoDB (`rs0`) | `mongodb://localhost:27017/?replicaSet=rs0&directConnection=true` |
+| PostgreSQL | `localhost:5432` (`qonaqet` / `qonaqet-dev-only`) |
+| Valkey | `localhost:6379` |
+| RabbitMQ | `localhost:5672`, panel http://localhost:15672 |
+| RustFS (S3 API) | http://localhost:9000, konsol http://localhost:9001 |
+| Mailpit | SMTP `localhost:1025`, məktublar http://localhost:8025 |
+| Aspire Dashboard | http://localhost:18888, OTLP gRPC `localhost:4317` |
+
+- Portları və dev parollarını dəyişmək üçün: `cp deploy/env/.env.example deploy/env/.env`, sonra
+  `--env-file deploy/env/.env` əlavə et. Real sirlər repo-ya yazılmır.
+- Backend host-ları və veb app-lar `apps` profilindədir (`--profile apps up -d --build`); onların
+  Dockerfile-ları müvafiq skeleton task-ları ilə gəlir.
+- Yoxlama: `python3 -m unittest discover -s deploy/tests` (statik) və `deploy/tests/smoke.sh` (real stack).
+
 ## Vəziyyət
 
 Repozitoriya **skeleton** mərhələsindədir: qovluq quruluşu qurulub, kod hələ yazılmayıb.

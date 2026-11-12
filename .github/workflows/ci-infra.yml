@@ -1,0 +1,64 @@
+name: ci-infra
+
+# Dev docker-compose stack-inin yoxlanması (E00-T02).
+#
+# Workflow hər PR-da işə düşür, amma ağır job yalnız `deploy/**` dəyişəndə işləyir.
+# Path filtri trigger səviyyəsində (`on.pull_request.paths`) DEYİL, job səviyyəsindədir:
+# trigger səviyyəsində süzülən workflow heç bir status vermir və ruleset-də "required check"
+# kimi PR-ı əbədi gözlədir; `if` ilə buraxılan job isə "skipped" = uğurlu sayılır.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-infra-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.filter.outputs.deploy }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Dəyişən yollar
+        id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$BASE_SHA"...HEAD)"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -qE '^(deploy/|\.github/workflows/ci-infra\.yml$)'; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  compose:
+    needs: changes
+    if: needs.changes.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Statik yoxlamalar (pin, healthcheck, portlar, .env.example)
+        run: python3 -m unittest discover -s deploy/tests -v
+
+      - name: Smoke — stack qalxır, tranzaksiya və bucket versioning-i işləyir
+        run: deploy/tests/smoke.sh
