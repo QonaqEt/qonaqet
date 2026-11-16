@@ -1,6 +1,7 @@
 name: ci-infra
 
-# Dev docker-compose stack-inin yoxlanması (E00-T02) və repo skriptlərinin/konfiqurasiyasının testləri.
+# Dev docker-compose stack-inin yoxlanması (E00-T02), repo skriptlərinin/konfiqurasiyasının testləri
+# və design-token pipeline-ı (E00-T15).
 #
 # Workflow hər PR-da işə düşür, amma ağır job yalnız `deploy/**` dəyişəndə işləyir.
 # Path filtri trigger səviyyəsində (`on.pull_request.paths`) DEYİL, job səviyyəsindədir:
@@ -25,6 +26,7 @@ jobs:
     outputs:
       deploy: ${{ steps.filter.outputs.deploy }}
       scripts: ${{ steps.filter.outputs.scripts }}
+      tokens: ${{ steps.filter.outputs.tokens }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,6 +42,7 @@ jobs:
           if [ "$EVENT" != "pull_request" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
             echo "scripts=true" >> "$GITHUB_OUTPUT"
+            echo "tokens=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           changed="$(git diff --name-only "$BASE_SHA"...HEAD)"
@@ -53,6 +56,11 @@ jobs:
             echo "scripts=true" >> "$GITHUB_OUTPUT"
           else
             echo "scripts=false" >> "$GITHUB_OUTPUT"
+          fi
+          if printf '%s\n' "$changed" | grep -qE '^(design-tokens/|\.github/workflows/ci-infra\.yml$)'; then
+            echo "tokens=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tokens=false" >> "$GITHUB_OUTPUT"
           fi
 
   compose:
@@ -87,3 +95,38 @@ jobs:
 
       - name: Skript və repo konfiqurasiyası testləri
         run: python3 -m unittest discover -s scripts/tests -v
+
+  tokens:
+    # Design-token pipeline (E00-T15): tokens.json → CSS (web) + Dart (mobile), WCAG kontrastı.
+    needs: changes
+    if: needs.changes.outputs.tokens == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: design-tokens
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: design-tokens/package-lock.json
+
+      - name: Asılılıqlar (lock fayldan)
+        run: npm ci --no-audit --no-fund
+
+      - name: Testlər
+        run: npm test
+
+      - name: WCAG kontrastı
+        run: npm run contrast
+
+      - name: Build — CSS və Dart yaradılır
+        run: |
+          npm run build
+          test -s ../web/projects/design-tokens/src/lib/generated/tokens.css
+          test -s ../mobile/lib/app/theme/generated/qonaqet_tokens.dart

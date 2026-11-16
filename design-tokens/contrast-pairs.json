@@ -1,0 +1,11 @@
+{
+  "$description": "WCAG kontrast yoxlaması (CLAUDE.md: AA məcburidir). level: AA = 4.5:1 (adi mətn), AA-large = 3:1 (≥24px və ya ≥18.66px qalın). contrast.mjs yoxlayır.",
+  "pairs": [
+    { "fg": "color.text.default",   "bg": "color.brand.cream",   "level": "AA" },
+    { "fg": "color.text.default",   "bg": "color.brand.blush",   "level": "AA" },
+    { "fg": "color.text.onSaffron", "bg": "color.brand.saffron", "level": "AA" },
+    { "fg": "color.text.onPlum",    "bg": "color.brand.plum",    "level": "AA" },
+    { "fg": "color.text.default",   "bg": "color.brand.mint",    "level": "AA" },
+    { "fg": "color.text.onNar",     "bg": "color.brand.nar",     "level": "AA-large" }
+  ]
+}
