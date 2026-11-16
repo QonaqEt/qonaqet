@@ -1,0 +1,116 @@
+name: ci-mobile
+
+# Mobil CI (E00-T06): Flutter SDK rəsmi flutter/flutter tag-ından skriptlə (üçüncü tərəf action yox)
+# → design token-lər → pub get (lock faylla) → analyze → testlər → Android debug build.
+#
+# Path filtri job səviyyəsindədir — buraxılan job "skipped" = uğurlu, required check ola bilər.
+# Flutter layihəsi E14-T01 ilə gəlir; o vaxta qədər job açıq xəbərdarlıqla yaşıl keçir.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Dəyişən yollar
+        id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "mobile=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$BASE_SHA"...HEAD)"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -qE '^(mobile/|design-tokens/|scripts/ci/install-flutter\.sh$|\.github/workflows/ci-mobile\.yml$)'; then
+            echo "mobile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mobile=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  mobile:
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Flutter layihəsi var?
+        id: app
+        working-directory: .
+        run: |
+          if [ -f mobile/pubspec.yaml ] && [ -f mobile/pubspec.lock ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=ci-mobile::mobile/pubspec.yaml hələ yoxdur (E14-T01) — analyze, test və build buraxıldı."
+            {
+              echo "## ⚠️ Mobil yığılmadı"
+              echo ""
+              echo "Flutter layihəsi hələ mövcud deyil (E14-T01). Analyze, testlər və Android build **buraxıldı**."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Flutter SDK (pin olunmuş tag + SHA)
+        working-directory: .
+        run: scripts/ci/install-flutter.sh "$RUNNER_TEMP/flutter"
+
+      - name: Java (Android build)
+        if: steps.app.outputs.present == 'true'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Node (design token-lər)
+        if: steps.app.outputs.present == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: design-tokens/package-lock.json
+
+      - name: Design token-lər (Dart theme)
+        if: steps.app.outputs.present == 'true'
+        working-directory: design-tokens
+        run: npm ci --no-audit --no-fund && npm run build
+
+      - name: pub get (lock faylla)
+        if: steps.app.outputs.present == 'true'
+        run: flutter pub get --enforce-lockfile
+
+      - name: flutter analyze
+        if: steps.app.outputs.present == 'true'
+        run: flutter analyze --fatal-infos
+
+      - name: Testlər
+        if: steps.app.outputs.present == 'true'
+        run: flutter test
+
+      - name: Android debug build (dev flavor)
+        if: steps.app.outputs.present == 'true'
+        run: flutter build apk --debug --flavor dev -t lib/main_dev.dart

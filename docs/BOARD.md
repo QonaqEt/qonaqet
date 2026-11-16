@@ -7,7 +7,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 
 | Epic | Ad | Status | İşləyən | Task-lar | Gözlədiyi |
 |---|---|---|---|---|---|
-| [E00](epics/E00.md) | Repo, GitHub automation & dev environment | 🔄 in-progress | @zahid2000 | 15/18 | — |
+| [E00](epics/E00.md) | Repo, GitHub automation & dev environment | 🔄 in-progress | @zahid2000 | 16/18 | — |
 | [E01](epics/E01.md) | Backend foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/17 | — |
 | [E02](epics/E02.md) | Identity & users | ⬜ todo | — | 0/7 | E01 |
 | [E03](epics/E03.md) | Files, email & notifications | ⬜ todo | — | 0/5 | E01 |
@@ -35,7 +35,7 @@ Yoxdur.
 
 ## E00 — Repo, GitHub automation & dev environment
 
-🔄 in-progress · @zahid2000 · 15/18 task
+🔄 in-progress · @zahid2000 · 16/18 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -44,7 +44,7 @@ Yoxdur.
 | ✅ | E00-T03 | main ruleset və repo təhlükəsizlik parametrləri | infra | p0 | S |
 | ✅ | E00-T04 | ci-backend.yml | infra | p0 | M |
 | ✅ | E00-T05 | ci-web.yml | infra | p1 | S |
-| ⬜ | E00-T06 | ci-mobile.yml | infra | p1 | M |
+| ✅ | E00-T06 | ci-mobile.yml | infra | p1 | M |
 | ✅ | E00-T07 | dependency-guard.yml + allowlist | infra | p0 | M |
 | ✅ | E00-T08 | codeql.yml | infra | p1 | XS |
 | ✅ | E00-T09 | pr-checks.yml | infra | p1 | M |

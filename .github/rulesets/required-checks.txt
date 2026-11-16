@@ -16,4 +16,4 @@ pr-checks                         # pr-checks.yml         (E00-T09)
 analyze (csharp)                  # codeql.yml            (E00-T08)
 analyze (javascript-typescript)   # codeql.yml            (E00-T08)
 web                               # ci-web.yml            (E00-T05)
-# mobile                          # ci-mobile.yml         (E00-T06) — workflow gələndə aç
+mobile                            # ci-mobile.yml         (E00-T06)
