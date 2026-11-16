@@ -7,7 +7,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 
 | Epic | Ad | Status | İşləyən | Task-lar | Gözlədiyi |
 |---|---|---|---|---|---|
-| [E00](epics/E00.md) | Repo, GitHub automation & dev environment | 🔄 in-progress | @zahid2000 | 18/18 | — |
+| [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 18/18 | — |
 | [E01](epics/E01.md) | Backend foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/17 | — |
 | [E02](epics/E02.md) | Identity & users | ⬜ todo | — | 0/7 | E01 |
 | [E03](epics/E03.md) | Files, email & notifications | ⬜ todo | — | 0/5 | E01 |
@@ -26,8 +26,8 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E16](epics/E16.md) | Mobile business mode | ⬜ todo | — | 0/5 | E14 |
 | [E17](epics/E17.md) | Business portal (web) | ⬜ todo | — | 0/9 | E02 |
 | [E18](epics/E18.md) | Admin & corporate portal (web) | ⬜ todo | — | 0/6 | E02 |
-| [E19](epics/E19.md) | Landing website (web) | ⬜ todo | — | 0/10 | E00 |
-| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E00, E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
+| [E19](epics/E19.md) | Landing website (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
+| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
 
 ## Hazırda işlənən task-lar
 
@@ -35,7 +35,7 @@ Yoxdur.
 
 ## E00 — Repo, GitHub automation & dev environment
 
-🔄 in-progress · @zahid2000 · 18/18 task
+✅ done · @zahid2000 · 18/18 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
