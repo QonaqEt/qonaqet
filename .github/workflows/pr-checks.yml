@@ -1,12 +1,13 @@
 name: pr-checks
 
-# E00-T09: PR iş prosesinə uyğundurmu (CLAUDE.md → "How Claude Code works")?
-#   pr-checks — Conventional Commit başlığı, `Closes #n`, bağlanan issue `task`-dır və epic-in sub-issue-sudur
+# PR iş prosesinə uyğundurmu (CLAUDE.md → "How Claude Code works", ADR 0004)?
+#   pr-checks — Conventional Commit başlığı, body-də `Task: Exx-Tnn`, task docs/epics-də mövcuddur,
+#               epic PR müəllifinindir və main-də başqasına məxsus deyil
 #   labeler   — dəyişən yollara görə `area:*` label-ları (.github/labeler.yml)
 #
-# `pull_request` (pull_request_target YOX): repo private-dir, fork PR-ları gözlənilmir; bu halda
-# GITHUB_TOKEN label yaza bilir və yoxlama skriptinin PR-dakı versiyası işləyir. Skript və workflow
-# CODEOWNERS ilə qorunur. `edited` — başlıq/body dəyişəndə yenidən yoxlanılır.
+# GitHub issue/Project API-si işlədilmir: task-lar və sahiblik docs/epics/*.md-dədir.
+# Başlıq və body skriptə yalnız env ilə ötürülür (injection yoxdur). `edited` — başlıq/body dəyişəndə
+# yenidən yoxlanılır.
 
 on:
   pull_request:
@@ -23,25 +24,21 @@ jobs:
   pr-checks:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: read
-      issues: read
-      pull-requests: read
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0   # base commit-dəki epic sahibliyini oxumaq üçün
 
       - name: Skriptin öz testləri
         run: python3 -m unittest discover -s scripts/tests -p 'test_pr_checks.py' -v
 
-      # Başlıq və body yalnız env ilə ötürülür — `${{ }}` ilə skriptə yerləşdirilmir (injection).
-      - name: Başlıq, Closes #n, task → epic
+      - name: Başlıq, Task:, epic sahibliyi
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          REPO: ${{ github.repository }}
-          GITHUB_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 scripts/ci/pr-checks.py
 
   labeler:

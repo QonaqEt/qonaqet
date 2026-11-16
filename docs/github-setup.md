@@ -1,7 +1,7 @@
 # GitHub quraşdırması
 
-`CLAUDE.md` → "GitHub automation" bölməsinin icra təlimatı. Bir dəfə qurulur, sonra `bootstrap`
-workflow-u qalanını edir.
+`CLAUDE.md` → "GitHub automation" bölməsinin icra təlimatı. Bir dəfə qurulur, sonra `repo-settings`
+workflow-u parametrləri saxlayır.
 
 ## 1. Actions
 
@@ -20,61 +20,24 @@ workflow-u qalanını edir.
 
 ## 2. PROJECT_TOKEN
 
-Projects (v2) yalnız GraphQL ilə idarə olunur və `GITHUB_TOKEN` ona yaza bilmir. Ona görə ayrıca token lazımdır.
+Repo parametrlərini və ruleset-i yalnız admin dəyişə bilər; `GITHUB_TOKEN` kifayət deyil. Ona görə
+`repo-settings.yml` admin istifadəçinin token-ini işlədir (adı tarixi səbəbdən `PROJECT_TOKEN`-dir).
 
-1. https://github.com/settings/tokens → **Generate new token (classic)**
-   - Scope-lar: **`repo`**, **`read:org`**, **`project`**
-   - Expiration: 90 gün
-2. **Settings → Secrets and variables → Actions → New repository secret**
-   - Ad: `PROJECT_TOKEN`
+1. https://github.com/settings/tokens → **Generate new token (classic)** — scope: **`repo`**, müddət 90 gün
+2. **Settings → Secrets and variables → Actions → New repository secret** — ad `PROJECT_TOKEN`
 
-> ⚠️ Repo secret-ini həmin repodakı **hər** workflow oxuya bilər. Ona görə `.github/**` üzərində
-> `CODEOWNERS` qoruması olmadan bu token-i əlavə etmə. Uzunmüddətli daha təmiz variant: org-da
-> ayrıca GitHub App (`organization_projects: write`) + `actions/create-github-app-token`.
+> ⚠️ Repo secret-ini həmin repodakı **hər** workflow oxuya bilər. `.github/**` `CODEOWNERS` ilə qorunur.
 
-## 3. Bootstrap
+## 3. İş izləmə
 
-**Actions → bootstrap → Run workflow**
+GitHub Project (kanban) və issue-lar planlaşdırma üçün **işlədilmir** (ADR 0004). Epic və task-lar
+`docs/epics/*.md`-dədir, ümumi görünüş `docs/BOARD.md`-dir. Köhnə issue-lar və "QONAQET" board-u
+tarixçə kimi qalır. İş prosesi: `CLAUDE.md` → "How Claude Code works".
 
-Nə edir:
+## 4. Label-lar
 
-- 17 label yaradır (`epic`, `task`, `bug`, `area:*`, `p0`–`p2`, `parallel-ok`, `blocked-ui-guidelines`, `dependency-approved`)
-- `docs/epics/E00.md … E20.md` fayllarından **21 epic** issue-su yaradır
-- hər epic-in task-larını **sub-issue** kimi yaradır və bağlayır (**165 task**)
-- `done: true` işarəli task-ları yaradıb dərhal bağlayır
-- "QONAQET" Project (v2) board-unu yaradır: `Backlog → Ready → In Progress → In Review → Done`
-  və `Epic`, `Area`, `Priority`, `Size` sahələri
-- bütün issue-ları board-a `Backlog` statusu ilə əlavə edir
-
-İdempotentdir — təkrar işə salmaq dublikat yaratmır. `dry_run` ilə əvvəlcədən yoxlaya bilərsən.
-
-Lokal olaraq da işləyir:
-
-```bash
-DRY_RUN=1 REPO=QonaqEt/qonaqet ./scripts/bootstrap-github.sh
-```
-
-## 4. Project built-in workflow-ları
-
-Board → **⋯ → Workflows**, bunları aktiv et:
-
-| Workflow | Nəticə |
-|---|---|
-| Item added to project | Status → `Backlog` |
-| Item closed | Status → `Done` |
-| Pull request merged | Status → `Done` |
-| Item reopened | Status → `In Progress` |
-| Auto-add to project | `QonaqEt/qonaqet` repo-sundakı yeni issue-lar avtomatik düşür |
-
-"Auto-add" aktiv olduqda sonradan yaradılan issue-lar board-a özü düşür — `PROJECT_TOKEN` lazım olmur.
-
-Built-in workflow-ların etmədiyini `project-sync.yml` edir (`PROJECT_TOKEN` ilə):
-
-| Hadisə | Nəticə |
-|---|---|
-| `feat\|fix\|chore/<issue#>-<slug>` branch-ı yaradılır | task → `In Progress` (yalnız `Backlog`/`Ready`-dən; geri çəkilmir) |
-| issue açılır, label/body dəyişir | `Epic` (valideyn epic-dən), `Area`/`Priority` (label-lardan), `Size` (body-dən) |
-| **Actions → project-sync → Run workflow** | bir issue və ya (boş saxlasan) bütün issue-lar üçün backfill |
+`area:*` label-larını `actions/labeler` PR-lara qoyur (`.github/labeler.yml`); Dependabot da onları
+işlədir. Label-lar repo-da artıq mövcuddur.
 
 ## 5. Repo parametrləri və main ruleset
 
@@ -91,7 +54,7 @@ scripts/repo-settings.py --check     # cari vəziyyət cədvəli
 scripts/repo-settings.py --apply     # repo admin token-i tələb edir
 ```
 
-və ya **Actions → bootstrap → Run workflow → `repo_settings: check | apply`** (`PROJECT_TOKEN` ilə işləyir).
+və ya **Actions → repo-settings → Run workflow → `check | apply`** (`PROJECT_TOKEN` ilə işləyir).
 
 Nə qurulur:
 

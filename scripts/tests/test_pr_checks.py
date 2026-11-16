@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""scripts/ci/pr-checks.py testləri — saxta GitHub API ilə.
+"""scripts/ci/pr-checks.py testləri — saxta epic məlumatı ilə (şəbəkə yoxdur).
 
     python3 -m unittest discover -s scripts/tests -v
 """
 from __future__ import annotations
 
 import importlib.util
+import re
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -17,128 +19,111 @@ sys.modules["pr_checks"] = pc
 spec.loader.exec_module(pc)
 
 
-def issue(number, labels, state="open", pr=False, title="", assignees=("u",)):
-    data = {"number": number, "state": state, "labels": [{"name": n} for n in labels], "title": title,
-            "assignees": [{"login": a} for a in assignees]}
-    if pr:
-        data["pull_request"] = {"url": "x"}
-    return data
+def task(key, status="todo", labels=()):
+    return {"key": key, "status": status, "extra_labels": list(labels)}
 
 
-ISSUES = {
-    "issues/1": issue(1, ["epic", "area:infra"]),
-    "issues/3": issue(3, ["task", "area:infra", "p0"]),
-    "issues/3/parent": issue(1, ["epic"]),
-    "issues/4": issue(4, ["task"], state="closed"),
-    "issues/4/parent": issue(1, ["epic"]),
-    "issues/5": issue(5, ["bug"]),
-    "issues/5/parent": issue(1, ["epic"]),
-    "issues/6": issue(6, ["task"]),  # valideyni yoxdur
-    "issues/7": issue(7, ["task"]),
-    "issues/7/parent": issue(3, ["task"]),
-    "issues/187": issue(187, [], pr=True),
-    # E05 başqasındadır, E06 heç kimə claim olunmayıb
-    "issues/8": issue(8, ["task"]),
-    "issues/8/parent": issue(55, ["epic"], title="[E05] Categories", assignees=("other",)),
-    "issues/9": issue(9, ["task", "parallel-ok"]),
-    "issues/9/parent": issue(55, ["epic"], title="[E05] Categories", assignees=("other",)),
-    "issues/10": issue(10, ["task"]),
-    "issues/10/parent": issue(63, ["epic"], title="[E06] Social", assignees=()),
+def epic(eid, owner="", tasks=()):
+    return {"id": eid, "owner": owner, "tasks": list(tasks)}
+
+
+HEAD = {
+    "E00": epic("E00", "u", [task("E00-T05"), task("E00-T10", "dropped")]),
+    "E01": epic("E01", "other", [task("E01-T01"), task("E01-T02", labels=["parallel-ok"])]),
+    "E02": epic("E02", "", [task("E02-T01")]),
 }
+BASE = {"E00": epic("E00", "u"), "E01": epic("E01", "other"), "E02": epic("E02", "")}
+
+GOOD_BODY = "## Xülasə\n\nNəsə.\n\nTask: E00-T05\n"
 
 
-def fetch(path):
-    return ISSUES.get(path)
-
-
-GOOD_BODY = "## Xülasə\n\nNəsə.\n\nCloses #3\n"
+def run(title="feat: x", body=GOOD_BODY, author="u", head=HEAD, base=BASE):
+    return pc.check(title, body, author, head, base)
 
 
 class TitleTests(unittest.TestCase):
     def test_valid_titles(self) -> None:
         for title in ("feat(gifts): partial voucher redemption", "fix: typo", "chore(infra)!: drop x",
                       "ci(backend): add workflow", "docs(adr): 0003 something"):
-            self.assertEqual(pc.check(title, GOOD_BODY, "u", fetch), [], title)
+            self.assertEqual(run(title=title), [], title)
 
     def test_invalid_titles(self) -> None:
         for title in ("Add docker compose", "feat:missing space", "Feat(x): capital", "feature(x): unknown type",
-                      "feat(): empty scope", "feat(x):  "):
-            errors = pc.check(title, GOOD_BODY, "u", fetch)
+                      "feat(): empty scope", "feat(x):  ", "build(deps)(deps): bump"):
+            errors = run(title=title)
             self.assertEqual(len(errors), 1, title)
             self.assertIn("Conventional Commit", errors[0])
 
 
-class ClosesTests(unittest.TestCase):
-    def test_keyword_forms(self) -> None:
-        self.assertEqual(pc.closing_issues("closes #3, Fixes #4\nRESOLVED: #5 and resolves #3"), [3, 4, 5])
+class TaskReferenceTests(unittest.TestCase):
+    def test_task_line_forms(self) -> None:
+        self.assertEqual(pc.task_keys("Task: E00-T05\nTasks: E01-T01, E01-T02\ntask:E00-T05"),
+                         ["E00-T05", "E01-T01", "E01-T02"])
 
     def test_template_placeholder_and_comments_do_not_count(self) -> None:
-        body = "<!-- Closes #3 nümunədir -->\nCloses #\n"
-        self.assertEqual(pc.closing_issues(body), [])
-        errors = pc.check("feat: x", body, "u", fetch)
+        body = "<!-- Task: E00-T05 nümunədir -->\nTask: Exx-Tnn\n"
+        self.assertEqual(pc.task_keys(body), [])
+        errors = run(body=body)
         self.assertEqual(len(errors), 1)
-        self.assertIn("Closes #", errors[0])
+        self.assertIn("Task: Exx-Tnn", errors[0])
 
-    def test_mentions_without_keyword_do_not_count(self) -> None:
-        self.assertEqual(pc.closing_issues("see #3, related to #4"), [])
+    def test_mentions_without_task_prefix_do_not_count(self) -> None:
+        self.assertEqual(pc.task_keys("E00-T05-ə bax"), [])
+
+    def test_unknown_and_dropped_tasks(self) -> None:
+        self.assertEqual(run(body="Task: E00-T99"), ["E00-T99 docs/epics-də tapılmadı."])
+        self.assertEqual(run(body="Task: E00-T10"), ["E00-T10 ləğv olunub (`status: dropped`)."])
 
 
-class LinkedIssueTests(unittest.TestCase):
-    def errors(self, body):
-        return pc.check("feat: x", body, "u", fetch)
+class OwnershipTests(unittest.TestCase):
+    def test_own_epic_passes(self) -> None:
+        self.assertEqual(run(), [])
 
-    def test_open_task_under_epic_passes(self) -> None:
-        self.assertEqual(self.errors("Closes #3"), [])
+    def test_someone_elses_epic_fails(self) -> None:
+        errors = run(body="Task: E01-T01")
+        self.assertTrue(any("E01 @other tərəfindən işlənir" in e for e in errors), errors)
 
-    def test_not_a_task(self) -> None:
-        self.assertTrue(any("`task` label-li deyil" in e for e in self.errors("Closes #5")))
+    def test_parallel_ok_task_may_be_taken(self) -> None:
+        self.assertEqual(run(body="Task: E01-T02"), [])
 
-    def test_closed_task(self) -> None:
-        self.assertEqual(self.errors("Closes #4"), ["#4 artıq bağlıdır."])
-
-    def test_task_without_parent(self) -> None:
-        self.assertEqual(self.errors("Closes #6"), ["#6 heç bir epic-in sub-issue-su deyil."])
-
-    def test_parent_is_not_an_epic(self) -> None:
-        self.assertEqual(self.errors("Closes #7"), ["#7-in valideyni #3 `epic` label-li deyil."])
-
-    def test_missing_issue_and_pull_request(self) -> None:
-        self.assertEqual(self.errors("Closes #999"), ["#999 bu repoda tapılmadı."])
-        self.assertEqual(self.errors("Closes #187"), ["#187 issue deyil, PR-dır."])
-
-    def test_every_closed_issue_is_checked(self) -> None:
-        errors = self.errors("Closes #3\nCloses #6")
-        self.assertEqual(errors, ["#6 heç bir epic-in sub-issue-su deyil."])
-
-    def test_epic_claimed_by_someone_else_blocks_the_pr(self) -> None:
-        errors = self.errors("Closes #8")
+    def test_unclaimed_epic_must_be_claimed_in_the_pr(self) -> None:
+        errors = run(body="Task: E02-T01")
         self.assertEqual(len(errors), 1)
-        self.assertIn("E05 (#55) @other tərəfindən işlənir", errors[0])
+        self.assertIn("scripts/epic.py claim E02", errors[0])
+        claimed = dict(HEAD, E02=epic("E02", "u", [task("E02-T01")]))
+        self.assertEqual(run(body="Task: E02-T01", head=claimed), [])
 
-    def test_parallel_ok_task_may_be_taken_from_someone_elses_epic(self) -> None:
-        self.assertEqual(self.errors("Closes #9"), [])
+    def test_taking_over_an_epic_owned_on_main_fails(self) -> None:
+        stolen = dict(HEAD, E01=epic("E01", "u", [task("E01-T01")]))
+        errors = run(body="Task: E01-T01", head=stolen)
+        self.assertEqual(errors, ["main-də E01 @other-ə məxsusdur — onu bu PR-da dəyişmək olmaz."])
 
-    def test_unclaimed_epic_must_be_claimed_first(self) -> None:
-        errors = self.errors("Closes #10")
-        self.assertEqual(len(errors), 1)
-        self.assertIn("scripts/epic.py claim E06", errors[0])
+    def test_dependabot_is_exempt_from_task_rules_but_not_title(self) -> None:
+        self.assertEqual(run(title="build(deps): bump x", body="", author="dependabot[bot]"), [])
+        self.assertEqual(len(run(title="Bump x from 1 to 2", body="", author="dependabot[bot]")), 1)
 
-    def test_dependabot_is_exempt_from_issue_rules_but_not_title(self) -> None:
-        self.assertEqual(pc.check("build(deps): bump x", "", "dependabot[bot]", fetch), [])
-        self.assertEqual(len(pc.check("Bump x from 1 to 2", "", "dependabot[bot]", fetch)), 1)
+    def test_base_is_read_lazily(self) -> None:
+        calls = []
+        pc.check("feat: x", GOOD_BODY, "u", HEAD, lambda: calls.append(1) or BASE)
+        pc.check("feat: x", "", "dependabot[bot]", HEAD, lambda: calls.append(1) or BASE)
+        self.assertEqual(calls, [1])
 
 
+class RepoTests(unittest.TestCase):
+    def test_base_epics_reads_a_real_commit(self) -> None:
+        sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+        epics = pc.base_epics(sha)
+        self.assertIn("E00", epics)
+        self.assertTrue(epics["E00"]["tasks"])
 
-class LabelerConfigTests(unittest.TestCase):
-    def test_every_area_label_exists_and_is_covered(self) -> None:
-        import re
+    def test_pr_template_carries_the_task_line(self) -> None:
+        template = (ROOT / ".github/pull_request_template.md").read_text(encoding="utf-8")
+        self.assertRegex(template, r"(?m)^Task: Exx-Tnn$")
 
+    def test_every_area_label_is_covered_by_labeler(self) -> None:
         configured = re.findall(r"^(area:[a-z-]+):", (ROOT / ".github/labeler.yml").read_text(encoding="utf-8"), re.M)
         areas = ("backend", "integration", "mobile", "web-landing", "web-business", "web-admin", "infra", "design")
         self.assertEqual(sorted(configured), sorted(f"area:{a}" for a in areas))
-        bootstrap = (ROOT / "scripts/bootstrap-github.sh").read_text(encoding="utf-8")
-        for label in configured:
-            self.assertIn(label, bootstrap, f"{label} bootstrap-da yaradılmır")
 
 
 if __name__ == "__main__":

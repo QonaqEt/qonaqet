@@ -2,7 +2,8 @@
 
 <!-- Nə dəyişdi və niyə. Bir-iki cümlə. -->
 
-Closes #
+<!-- docs/epics-dəki task açarı; bir neçə ola bilər: Task: E01-T03, E01-T04 -->
+Task: Exx-Tnn
 
 ## Testlər
 
@@ -18,7 +19,7 @@ Closes #
 
 ## Yoxlama siyahısı
 
-- [ ] Bağladığı issue `task` label-lidir və valideyn epic-i var
+- [ ] Task-ın epic-i məndədir (`scripts/epic.py status`); task statusu md-də yeniləndi və `docs/BOARD.md` yenidən yaradıldı
 - [ ] Başlıq Conventional Commit formatındadır
 - [ ] Hard delete yoxdur (Mongo, Postgres, obyekt saxlama)
 - [ ] Yeni indekslər partial-dır və index runner-ə / EF migrasiyasına qeyd olunub

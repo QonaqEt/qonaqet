@@ -17,9 +17,11 @@ AREAS = {
 PRIORITIES = {"p0", "p1", "p2"}
 SIZES = {"XS", "S", "M", "L"}
 KNOWN_LABELS = {"parallel-ok", "blocked-ui-guidelines"}
+STATUSES = {"todo", "in-progress", "done", "dropped"}
+EPIC_STATUSES = {"todo", "in-progress", "done"}
 
 TASK_RE = re.compile(r"^###\s+(?P<key>E\d{2}-T\d{2})\s+·\s+(?P<title>.+?)\s*$")
-META_RE = re.compile(r"^-\s+(?P<key>area|priority|size|labels|done):\s*(?P<val>.+?)\s*(?:#.*)?$")
+META_RE = re.compile(r"^-\s+(?P<key>area|priority|size|labels|status|done):\s*(?P<val>.+?)\s*(?:#.*)?$")
 
 
 def fail(msg):
@@ -101,6 +103,10 @@ def parse_tasks(body, epic_id, path):
         if size not in SIZES:
             fail(f"{path}: {key} — naməlum size {size!r}")
 
+        status = meta.get("status") or ("done" if meta.get("done", "").lower() == "true" else "todo")
+        if status not in STATUSES:
+            fail(f"{path}: {key} — naməlum status {status!r} (tanınanlar: {', '.join(sorted(STATUSES))})")
+
         extra = [s.strip() for s in meta.get("labels", "").split(",") if s.strip()]
         for lbl in extra:
             if lbl not in KNOWN_LABELS:
@@ -114,7 +120,8 @@ def parse_tasks(body, epic_id, path):
             "priority": priority,
             "size": size,
             "extra_labels": extra,
-            "done": meta.get("done", "").lower() == "true",
+            "status": status,
+            "done": status == "done",
             "body": "\n".join(rest).strip(),
         })
     if not tasks:
@@ -166,6 +173,12 @@ def main():
                 fail(f"{path}: depends-də səhv epic açarı {dep!r}")
             if dep == epic_id:
                 fail(f"{path}: epic özündən asılı ola bilməz")
+        status = meta.get("status", "todo") or "todo"
+        if status not in EPIC_STATUSES:
+            fail(f"{path}: naməlum epic status {status!r}")
+        owner = meta.get("owner", "").lstrip("@")
+        if status == "in-progress" and not owner:
+            fail(f"{path}: status in-progress-dir, amma owner yoxdur")
         tasks = parse_tasks(body, epic_id, path)
         for t in tasks:
             if t["key"] in seen_keys:
@@ -177,6 +190,8 @@ def main():
             "area": meta["area"],
             "priority": meta["priority"],
             "depends": depends,
+            "status": status,
+            "owner": owner,
             "file": str(path),
             "goal": section(body, "Goal"),
             "scope": section(body, "Scope"),

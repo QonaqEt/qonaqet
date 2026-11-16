@@ -1,5 +1,5 @@
 # actions/labeler (v5+ formatı): dəyişən yollara görə `area:*` label-ları. pr-checks.yml işlədir.
-# Label adları bootstrap-github.sh-dakı ilə eynidir.
+# Label adları repo-da mövcuddur; Dependabot da eyni label-ları işlədir.
 
 area:backend:
   - changed-files:

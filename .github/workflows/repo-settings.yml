@@ -1,0 +1,48 @@
+name: repo-settings
+
+# Repo parametrləri və `main` ruleset-i (E00-T03): scripts/repo-settings.py --check | --apply.
+# Əl ilə işə salınır. Admin əməliyyatıdır — GITHUB_TOKEN repo parametrlərini dəyişə bilmir, ona görə
+# PROJECT_TOKEN secret-i (admin istifadəçinin `repo` scope-lu token-i) işlədilir. `check` heç nə dəyişmir.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check — yalnız yoxla, apply — tətbiq et"
+        type: choice
+        options: [check, apply]
+        default: check
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repo-settings
+  cancel-in-progress: false
+
+jobs:
+  settings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Token var?
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error title=repo-settings::PROJECT_TOKEN secret-i yoxdur (admin istifadəçinin \`repo\` scope-lu PAT-ı lazımdır)."
+            exit 1
+          fi
+
+      - name: Skriptin testləri
+        run: python3 -m unittest discover -s scripts/tests -p 'test_repo_settings.py'
+
+      - name: Repo parametrləri və main ruleset-i
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          REPO: ${{ github.repository }}
+          MODE: ${{ inputs.mode }}
+        run: python3 scripts/repo-settings.py "--$MODE"
