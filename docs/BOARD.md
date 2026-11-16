@@ -7,7 +7,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 
 | Epic | Ad | Status | İşləyən | Task-lar | Gözlədiyi |
 |---|---|---|---|---|---|
-| [E00](epics/E00.md) | Repo, GitHub automation & dev environment | 🔄 in-progress | @zahid2000 | 13/17 | — |
+| [E00](epics/E00.md) | Repo, GitHub automation & dev environment | 🔄 in-progress | @zahid2000 | 14/18 | — |
 | [E01](epics/E01.md) | Backend foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/17 | — |
 | [E02](epics/E02.md) | Identity & users | ⬜ todo | — | 0/7 | E01 |
 | [E03](epics/E03.md) | Files, email & notifications | ⬜ todo | — | 0/5 | E01 |
@@ -35,7 +35,7 @@ Yoxdur.
 
 ## E00 — Repo, GitHub automation & dev environment
 
-🔄 in-progress · @zahid2000 · 13/17 task
+🔄 in-progress · @zahid2000 · 14/18 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -57,6 +57,7 @@ Yoxdur.
 | ✅ | E00-T16 | Paralel iş: epic claim və asılılıqlar | infra | p0 | M |
 | ✅ | E00-T17 | ADR 0003: allowlist-in əhatəsi (birbaşa vs keçid asılılıqlar) | infra | p1 | XS |
 | ✅ | E00-T18 | İş izləmə lokal markdown-a keçir | infra | p0 | M |
+| ✅ | E00-T19 | Dev compose: Postgres 18 volume yolu | infra | p0 | XS |
 
 ## E01 — Backend foundation
 

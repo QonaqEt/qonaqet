@@ -97,6 +97,17 @@ class ComposeTests(unittest.TestCase):
             self.assertEqual(depends["mongo"]["condition"], "service_healthy")
             self.assertEqual(depends["postgres"]["condition"], "service_healthy")
 
+    def test_postgres_volume_matches_the_image_major(self) -> None:
+        pg = self.default["postgres"]
+        major = int(pg["image"].split(":")[1].split(".")[0])
+        targets = [v["target"] for v in pg.get("volumes", [])]
+        if major >= 18:
+            # 18+: data /var/lib/postgresql/<major>/docker-dədir; .../data-ya bağlamaq konteyneri dayandırır
+            self.assertEqual(targets, ["/var/lib/postgresql"])
+            self.assertTrue(pg["volumes"][0]["source"].endswith(f"-{major}"), "volume adı major versiyanı daşımalıdır")
+        else:
+            self.assertEqual(targets, ["/var/lib/postgresql/data"])
+
     def test_bucket_init_script_never_deletes(self) -> None:
         script = (DEPLOY / "rustfs" / "init-buckets.sh").read_text(encoding="utf-8")
         for forbidden in ("delete-object", "delete-bucket", " rb ", " rm ", "Suspended"):
