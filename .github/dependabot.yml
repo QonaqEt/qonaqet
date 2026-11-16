@@ -74,8 +74,9 @@ updates:
     ignore:
       - dependency-name: "rustfs/rustfs"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Mongo 8.0 LTS-də qalır; 8.1+ rapid release-dir (8.3.x kernel 6.19+ üzərində başlamır)
       - dependency-name: "mongo"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "valkey/valkey"
         update-types: ["version-update:semver-major"]
       - dependency-name: "rabbitmq"

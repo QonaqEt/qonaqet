@@ -57,7 +57,7 @@ Yoxdur.
 | ✅ | E00-T16 | Paralel iş: epic claim və asılılıqlar | infra | p0 | M |
 | ✅ | E00-T17 | ADR 0003: allowlist-in əhatəsi (birbaşa vs keçid asılılıqlar) | infra | p1 | XS |
 | ✅ | E00-T18 | İş izləmə lokal markdown-a keçir | infra | p0 | M |
-| ✅ | E00-T19 | Dev compose: Postgres 18 volume yolu | infra | p0 | XS |
+| ✅ | E00-T19 | Dev compose: Postgres 18 volume yolu və Mongo 8.0 LTS | infra | p0 | XS |
 
 ## E01 — Backend foundation
 

@@ -97,6 +97,10 @@ class ComposeTests(unittest.TestCase):
             self.assertEqual(depends["mongo"]["condition"], "service_healthy")
             self.assertEqual(depends["postgres"]["condition"], "service_healthy")
 
+    def test_mongo_stays_on_the_8_0_lts_line(self) -> None:
+        # 8.1+ rapid release-dir; 8.3.x CI runner-inin kernel-i (6.19+) üzərində başlamır.
+        self.assertRegex(self.default["mongo"]["image"], r"^mongo:8\.0\.\d+-noble$")
+
     def test_postgres_volume_matches_the_image_major(self) -> None:
         pg = self.default["postgres"]
         major = int(pg["image"].split(":")[1].split(".")[0])

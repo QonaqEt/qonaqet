@@ -54,7 +54,8 @@ class DependabotTests(unittest.TestCase):
         compose = next(b for b in updates() if field(b, "package-ecosystem") == "docker-compose")
         for image in ("rustfs/rustfs", "mongo", "valkey/valkey", "rabbitmq"):
             self.assertRegex(compose, rf'dependency-name: "{re.escape(image)}"\n\s+update-types: \["version-update:semver-major"')
-        self.assertRegex(compose, r'"rustfs/rustfs"\n\s+update-types: \[[^\]]*semver-minor')
+        for image in ("rustfs/rustfs", "mongo"):  # RustFS 1.0.x GA, Mongo 8.0 LTS
+            self.assertRegex(compose, rf'"{re.escape(image)}"\n\s+update-types: \[[^\]]*semver-minor')
 
 
 class CodeownersTests(unittest.TestCase):

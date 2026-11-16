@@ -55,7 +55,8 @@ x-backend-depends: &backend-depends
 services:
   # ------------------------------------------------------------ infrastruktur
   mongo:
-    image: mongo:8.3.13-noble
+    # MongoDB 8.0 LTS xətti. 8.1+ "rapid release"-dir (qısaömürlü); 8.3.x kernel 6.19+ üzərində başlamır.
+    image: mongo:8.0.38-noble
     # Tranzaksiyalar replica set tələb edir; tək node-lu rs0 healthcheck-in içində initialize olunur.
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
