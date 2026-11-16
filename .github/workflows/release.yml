@@ -1,0 +1,32 @@
+name: release
+
+# E00-T12: `v*` tag-ında GitHub-native release notes (birləşmiş PR-lardan).
+# Kateqoriyalar .github/release.yml-dədir (area:* label-ları üzrə).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # release yaratmaq
+    steps:
+      - name: Release (generated notes)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "release $TAG artıq var — toxunulmur"
+            exit 0
+          fi
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$TAG" --repo "$REPO" --verify-tag --generate-notes --title "$TAG" $prerelease

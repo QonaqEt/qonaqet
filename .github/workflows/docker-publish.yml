@@ -1,0 +1,104 @@
+name: docker-publish
+
+# E00-T12: main-ə push-da image-lər GHCR-ə — SBOM + provenance attestation ilə.
+#   ghcr.io/<owner>/qonaqet-<image>:<sha> və :main
+# Dockerfile-lar E01-T17 (backend) və E19-T10 (web) ilə gəlir; Dockerfile-ı olmayan image açıq
+# xəbərdarlıqla buraxılır.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-publish
+  cancel-in-progress: false
+
+jobs:
+  image:
+    name: image (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write        # GHCR-ə push
+      id-token: write        # provenance imzası (Sigstore)
+      attestations: write    # attestation-ı GitHub-a yazmaq
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: api,             dockerfile: deploy/dockerfiles/backend.Dockerfile, arg: "PROJECT=Qonaqet.Api" }
+          - { image: integration-api, dockerfile: deploy/dockerfiles/backend.Dockerfile, arg: "PROJECT=Qonaqet.Integration.Api" }
+          - { image: worker,          dockerfile: deploy/dockerfiles/backend.Dockerfile, arg: "PROJECT=Qonaqet.Worker" }
+          - { image: landing,         dockerfile: deploy/dockerfiles/web.Dockerfile,     arg: "APP=landing" }
+          - { image: business-portal, dockerfile: deploy/dockerfiles/web.Dockerfile,     arg: "APP=business-portal" }
+          - { image: admin,           dockerfile: deploy/dockerfiles/web.Dockerfile,     arg: "APP=admin" }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Dockerfile var?
+        id: df
+        env:
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          IMAGE: ${{ matrix.image }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          echo "name=ghcr.io/${OWNER,,}/qonaqet-${IMAGE}" >> "$GITHUB_OUTPUT"
+          if [ -f "$DOCKERFILE" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=docker-publish ($IMAGE)::$DOCKERFILE hələ yoxdur — image buraxıldı."
+            echo "## ⚠️ $IMAGE buraxıldı — \`$DOCKERFILE\` yoxdur" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Metadata (tag-lar, label-lar)
+        if: steps.df.outputs.present == 'true'
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ steps.df.outputs.name }}
+          tags: |
+            type=sha,format=long,prefix=
+            type=ref,event=branch
+
+      - name: Buildx
+        if: steps.df.outputs.present == 'true'
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: GHCR login
+        if: steps.df.outputs.present == 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build və push (SBOM + provenance)
+        if: steps.df.outputs.present == 'true'
+        id: push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          build-args: ${{ matrix.arg }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      - name: Build provenance attestation
+        if: steps.df.outputs.present == 'true'
+        uses: actions/attest-build-provenance@62fc1d596301d0ab9914e1fec14dc5c8d93f65cd # v3.2.0
+        with:
+          subject-name: ${{ steps.df.outputs.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

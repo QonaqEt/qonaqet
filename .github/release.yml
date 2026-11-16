@@ -1,0 +1,19 @@
+# GitHub-native release notes-un kateqoriyaları (release.yml workflow-u və UI işlədir).
+changelog:
+  exclude:
+    authors: [dependabot]
+  categories:
+    - title: Backend
+      labels: [area:backend]
+    - title: Partner API
+      labels: [area:integration]
+    - title: Mobil
+      labels: [area:mobile]
+    - title: Veb
+      labels: [area:web-landing, area:web-business, area:web-admin]
+    - title: Dizayn
+      labels: [area:design]
+    - title: İnfrastruktur
+      labels: [area:infra]
+    - title: Digər
+      labels: ["*"]
