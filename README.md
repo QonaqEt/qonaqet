@@ -39,7 +39,7 @@ olmadan çiçək, kitab və xidmətlərə qədər genişlənə bilər.
 /design-tokens          tokens.json → Style Dictionary → CSS vars (web) + Dart theme (mobile)
 /docs                   ADR-lər (docs/adr/NNNN-title.md), epic-lər, inteqrasiya təlimatı, diaqramlar
 /deploy                 docker-compose (dev), Dockerfile-lar, env şablonları
-/scripts                bootstrap-github.sh və digər əməliyyat skriptləri
+/scripts                epic.py (claim/status), board.py, repo-settings.py, CI skriptləri
 /.github                workflow-lar (path filter ilə), issue/PR şablonları
 ```
 
@@ -71,7 +71,8 @@ docker compose -f deploy/docker-compose.yml up -d --wait
 ## Vəziyyət
 
 Repozitoriya **skeleton** mərhələsindədir: qovluq quruluşu qurulub, kod hələ yazılmayıb.
-İş `CLAUDE.md`-dəki epic sırası ilə gedir (E00 → E20); hər PR bir task-ı bağlayır, hər task bir epic-ə aiddir.
+İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
+hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 
 ## Toxunulmaz qaydalar (qısa)
 

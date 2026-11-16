@@ -1,71 +1,71 @@
 #!/usr/bin/env python3
-"""QONAQET pr-checks — PR-ın iş prosesinə uyğunluğu (E00-T09, CLAUDE.md → "How Claude Code works").
+"""QONAQET pr-checks — PR-ın iş prosesinə uyğunluğu (CLAUDE.md → "How Claude Code works", ADR 0004).
 
-Giriş (mühit dəyişənləri): PR_TITLE, PR_BODY, PR_AUTHOR, REPO, GITHUB_TOKEN.
-Yalnız REST və Python stdlib. Pozuntu varsa 1 ilə çıxır və hər birini annotation kimi yazır.
+Giriş (mühit dəyişənləri): PR_TITLE, PR_BODY, PR_AUTHOR, BASE_SHA. İş qovluğu PR-ın checkout-udur.
+GitHub API işlədilmir — task-lar `docs/epics/*.md`-dədir. Yalnız Python stdlib.
 
 Qaydalar:
   1. Başlıq Conventional Commit formatındadır: `type(scope)!: təsvir`
-  2. Body-də eyni repodakı issue-ya `Closes #n` (close/fix/resolve formaları) var
-  3. Hər bağlanan issue açıqdır, `task` label-lidir və valideyni `epic` label-li issue-dur
-  4. Valideyn epic PR müəllifinə claim olunub (epic-in assignee-si; `scripts/epic.py claim Exx`).
-     `parallel-ok` label-li task-lar istisnadır — onları epic-i saxlamayan developer də götürə bilər.
-Dependabot PR-ları 2–3-cü qaydalardan azaddır (onlar task-dan yox, avtomatik yaranır).
+  2. Body-də ən azı bir `Task: Exx-Tnn` sətri var
+  3. Hər task PR-ın versiyasında mövcuddur və `dropped` deyil
+  4. Task-ın epic-i PR müəllifinindir (`owner`) — `parallel-ok` task-lar istisnadır
+  5. Base-də (main) epic başqasına məxsus deyil — başqasının epic-ini "ələ keçirmək" olmaz
+Dependabot PR-ları 2–5-ci qaydalardan azaddır.
 """
 from __future__ import annotations
 
 import json
 import os
 import re
+import subprocess
 import sys
-import urllib.error
-import urllib.request
+import tempfile
+from pathlib import Path
 from typing import Callable
 
+ROOT = Path(__file__).resolve().parents[2]
+PARSER = ROOT / "scripts" / "lib" / "parse-epics.py"
 TYPES = ("feat", "fix", "chore", "docs", "ci", "build", "refactor", "perf", "test", "style", "revert")
 TITLE = re.compile(rf"^(?:{'|'.join(TYPES)})(?:\([a-z0-9][a-z0-9._/-]*\))?!?: \S.*$")
-CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(\d+)\b", re.IGNORECASE)
+TASK = re.compile(r"^\s*Tasks?:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
+KEY = re.compile(r"\bE\d{2}-T\d{2}\b")
 EXEMPT_AUTHORS = {"dependabot[bot]"}
 
-# path → JSON | None (404). Testlərdə saxta ilə əvəz olunur.
-Fetch = Callable[[str], "dict | None"]
+Epics = dict[str, dict]  # epic id → parse-epics çıxışı
 
 
-def github_fetch(repo: str, token: str) -> Fetch:
-    def fetch(path: str) -> dict | None:
-        request = urllib.request.Request(
-            f"https://api.github.com/repos/{repo}/{path}",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=20) as response:
-                return json.load(response)
-        except urllib.error.HTTPError as error:
-            if error.code == 404:
-                return None
-            raise
+def parse_dir(directory: Path) -> Epics:
+    out = subprocess.run([sys.executable, str(PARSER), str(directory)], check=True, capture_output=True, text=True).stdout
+    return {e["id"]: e for e in json.loads(out)}
 
-    return fetch
+
+def base_epics(base_sha: str, repo: Path = ROOT) -> Epics:
+    """Base commit-dəki epic faylları (main-də kimin nəyə sahib olduğu)."""
+    names = subprocess.run(["git", "ls-tree", "--name-only", base_sha, "docs/epics/"], cwd=repo,
+                           check=True, capture_output=True, text=True).stdout.split()
+    with tempfile.TemporaryDirectory() as tmp:
+        for name in names:
+            if re.fullmatch(r"docs/epics/E\d{2}\.md", name):
+                text = subprocess.run(["git", "show", f"{base_sha}:{name}"], cwd=repo, check=True,
+                                      capture_output=True, text=True).stdout
+                Path(tmp, Path(name).name).write_text(text, encoding="utf-8")
+        return parse_dir(Path(tmp)) if any(Path(tmp).iterdir()) else {}
 
 
 def strip_comments(body: str) -> str:
-    """Şablondakı `<!-- ... -->` şərhləri və boş `Closes #` sayılmasın."""
     return re.sub(r"<!--.*?-->", "", body or "", flags=re.DOTALL)
 
 
-def closing_issues(body: str) -> list[int]:
-    seen: list[int] = []
-    for number in (int(n) for n in CLOSES.findall(strip_comments(body))):
-        if number not in seen:
-            seen.append(number)
-    return seen
+def task_keys(body: str) -> list[str]:
+    keys: list[str] = []
+    for line in TASK.findall(strip_comments(body)):
+        for key in KEY.findall(line):
+            if key not in keys:
+                keys.append(key)
+    return keys
 
 
-def check(title: str, body: str, author: str, fetch: Fetch) -> list[str]:
+def check(title: str, body: str, author: str, head: Epics, base: Epics | Callable[[], Epics]) -> list[str]:
     errors: list[str] = []
     if not TITLE.match(title.strip()):
         errors.append(
@@ -75,36 +75,30 @@ def check(title: str, body: str, author: str, fetch: Fetch) -> list[str]:
     if author in EXEMPT_AUTHORS:
         return errors
 
-    issues = closing_issues(body)
-    if not issues:
-        errors.append("Body-də `Closes #<issue>` yoxdur — hər PR bir task bağlamalıdır.")
-    for number in issues:
-        issue = fetch(f"issues/{number}")
-        if issue is None:
-            errors.append(f"#{number} bu repoda tapılmadı.")
+    keys = task_keys(body)
+    if not keys:
+        errors.append("Body-də `Task: Exx-Tnn` sətri yoxdur — hər PR docs/epics-dəki bir task-a aiddir.")
+        return errors
+    base_data = base() if callable(base) else base
+    for key in keys:
+        epic = head.get(key.split("-")[0])
+        task = next((t for t in (epic or {}).get("tasks", []) if t["key"] == key), None)
+        if task is None:
+            errors.append(f"{key} docs/epics-də tapılmadı.")
             continue
-        if issue.get("pull_request"):
-            errors.append(f"#{number} issue deyil, PR-dır.")
+        if task["status"] == "dropped":
+            errors.append(f"{key} ləğv olunub (`status: dropped`).")
             continue
-        labels = {label["name"] for label in issue.get("labels", [])}
-        if "task" not in labels:
-            errors.append(f"#{number} `task` label-li deyil (label-lar: {', '.join(sorted(labels)) or 'yoxdur'}).")
-        if issue.get("state") != "open":
-            errors.append(f"#{number} artıq bağlıdır.")
-        parent = fetch(f"issues/{number}/parent")
-        if parent is None:
-            errors.append(f"#{number} heç bir epic-in sub-issue-su deyil.")
-        elif "epic" not in {label["name"] for label in parent.get("labels", [])}:
-            errors.append(f"#{number}-in valideyni #{parent.get('number')} `epic` label-li deyil.")
-        elif "parallel-ok" not in labels:
-            owners = [a["login"] for a in parent.get("assignees") or []]
-            key = (re.match(r"^\[(E\d{2})\]", parent.get("title", "")) or [None, "epic"])[1]
-            if not owners:
-                errors.append(f"{key} (#{parent.get('number')}) heç kimə claim olunmayıb — "
-                              f"`scripts/epic.py claim {key}` ilə götür.")
-            elif author not in owners:
-                errors.append(f"{key} (#{parent.get('number')}) @{owners[0]} tərəfindən işlənir — "
-                              f"bu epic-in task-ını götürmə (`scripts/epic.py status`).")
+        if "parallel-ok" in task["extra_labels"]:
+            continue
+        owner = epic["owner"]
+        if not owner:
+            errors.append(f"{epic['id']} heç kimə məxsus deyil — `scripts/epic.py claim {epic['id']}` ilə götür və PR-a daxil et.")
+        elif owner != author:
+            errors.append(f"{epic['id']} @{owner} tərəfindən işlənir — bu epic-in task-ını götürmə (`scripts/epic.py status`).")
+        base_owner = (base_data.get(epic["id"]) or {}).get("owner", "")
+        if base_owner and base_owner != author:
+            errors.append(f"main-də {epic['id']} @{base_owner}-ə məxsusdur — onu bu PR-da dəyişmək olmaz.")
     return errors
 
 
@@ -112,8 +106,9 @@ def main() -> int:
     title = os.environ.get("PR_TITLE", "")
     body = os.environ.get("PR_BODY", "")
     author = os.environ.get("PR_AUTHOR", "")
-    fetch = github_fetch(os.environ["REPO"], os.environ["GITHUB_TOKEN"])
-    errors = check(title, body, author, fetch)
+    base_sha = os.environ.get("BASE_SHA", "")
+    errors = check(title, body, author, parse_dir(ROOT / "docs" / "epics"),
+                   (lambda: base_epics(base_sha)) if base_sha else {})
 
     lines = ["## pr-checks", ""]
     if errors:
@@ -121,7 +116,7 @@ def main() -> int:
         for e in errors:
             print(f"::error title=pr-checks::{e}")
     else:
-        lines.append("✅ Başlıq, `Closes #n` və task → epic əlaqəsi qaydasındadır.")
+        lines.append("✅ Başlıq, `Task:` və epic sahibliyi qaydasındadır.")
     text = "\n".join(lines) + "\n"
     print(text)
     summary = os.environ.get("GITHUB_STEP_SUMMARY")

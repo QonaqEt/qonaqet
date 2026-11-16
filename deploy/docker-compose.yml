@@ -55,7 +55,8 @@ x-backend-depends: &backend-depends
 services:
   # ------------------------------------------------------------ infrastruktur
   mongo:
-    image: mongo:8.3.13-noble
+    # MongoDB 8.0 LTS xətti. 8.1+ "rapid release"-dir (qısaömürlü); 8.3.x kernel 6.19+ üzərində başlamır.
+    image: mongo:8.0.38-noble
     # Tranzaksiyalar replica set tələb edir; tək node-lu rs0 healthcheck-in içində initialize olunur.
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
@@ -86,7 +87,9 @@ services:
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # Postgres 18+ image-i datanı /var/lib/postgresql/<major>/docker-də saxlayır — volume valideyn qovluğa bağlanır.
+      # Major versiya dəyişəndə volume adı da dəyişir (köhnə data silinmir; pg_upgrade lazımdırsa ondan oxunur).
+      - postgres-data-18:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
@@ -256,6 +259,6 @@ services:
 volumes:
   mongo-data:
   mongo-config:
-  postgres-data:
+  postgres-data-18:
   rabbitmq-data:
   rustfs-data:

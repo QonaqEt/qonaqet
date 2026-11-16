@@ -144,7 +144,7 @@ It has three pillars that share one backend:
 /design-tokens          tokens.json (single source) → Style Dictionary → CSS vars (web) + Dart theme (mobile)
 /docs                   ADRs (docs/adr/NNNN-title.md), integration guide, diagrams
 /deploy                 docker-compose (dev), Dockerfiles, env templates
-/.github                workflows (CI per area with path filters), issue templates (epic, task, bug), PR template
+/.github                workflows (CI per area with path filters), bug issue template, PR template
 CLAUDE.md
 README.md
 ```
@@ -253,9 +253,9 @@ README.md
 
 Use **only** official actions (`actions/*`, `github/*`, `docker/*`) pinned by SHA, plus the `gh` CLI (GitHub) in scripts.
 
-### Repository settings (created by the bootstrap, documented in `docs/github-setup.md`)
+### Repository settings (applied by `repo-settings.yml` / `scripts/repo-settings.py`, documented in `docs/github-setup.md`)
 - Ruleset on `main`:
-  - PR required, 1 approval (owner)
+  - PR required, 1 approval by the other developer + code-owner review
   - required checks green, linear history (squash only)
   - signed commits, no force push
 - Secret scanning + push protection, Dependabot alerts, private vulnerability reporting.
@@ -269,14 +269,13 @@ Use **only** official actions (`actions/*`, `github/*`, `docker/*`) pinned by SH
 | `ci-mobile.yml` | paths `mobile/**` | installs Flutter from the official `flutter/flutter` git tag (script, no third-party action), `flutter analyze`, tests, Android debug build |
 | `dependency-guard.yml` | every PR | checks all lock files against `docs/dependencies/allowlist.json`; `actions/dependency-review-action` (blocks known CVEs and GPL/AGPL/SSPL licenses) |
 | `codeql.yml` | PR + weekly | `github/codeql-action` for C#, JavaScript/TypeScript |
-| `pr-checks.yml` | PR opened/edited | Conventional Commit title, `Closes #n` present, linked issue is a `task` with a parent epic; `actions/labeler` adds `area:*` labels from the paths |
-| `project-sync.yml` | issues/PRs events | `actions/add-to-project` adds new issues/PRs to the "QONAQET" project. A `gh` script sets `Status` (PR opened → `In Review`; branch pushed for an issue → `In Progress`) and copies `Epic`/`Area` fields from the parent issue. |
-| `epic-progress.yml` | sub-issue closed | `gh api graphql`: when all sub-issues of an epic are closed, comment a summary on the epic, move it to `Done`, close it and create the tag `epic-Exx-done` |
+| `pr-checks.yml` | PR opened/edited | Conventional Commit title; body has `Task: Exx-Tnn`; the task exists in `docs/epics` and its epic is owned by the PR author (and not by someone else on `main`); `actions/labeler` adds `area:*` labels from the paths |
+| `epic-progress.yml` | push to `main` touching `docs/epics/**` | creates the tag `epic-Exx-done` for every epic whose front matter says `status: done` (idempotent) |
 | `docker-publish.yml` | push to `main` | builds and pushes images to GHCR (`docker/build-push-action`), with SBOM + provenance attestations (`actions/attest-build-provenance`) |
 | `release.yml` | tag `v*` | generates release notes from merged PRs (GitHub-native) |
-| `bootstrap.yml` | manual (`workflow_dispatch`) | runs `scripts/bootstrap-github.sh`: labels, project fields/columns, issue templates, epics E00–E20 and their task sub-issues from `docs/epics/*.md` |
+| `repo-settings.yml` | manual (`workflow_dispatch`) | `scripts/repo-settings.py --check | --apply`: merge settings, security features, Actions SHA pinning and the `main` ruleset from `.github/rulesets/` |
 
-- Built-in **Project workflows** are enabled too: item closed → `Done`; PR merged → `Done`; item reopened → `In Progress`.
+- Work is tracked in the repository, not in GitHub Projects or issues (ADR 0004): see "Work management".
 - **Dependabot** (`.github/dependabot.yml`): `nuget`, `npm`, `pub`, `github-actions`, `docker`, weekly, grouped by ecosystem.
   - It only proposes. `dependency-guard` still enforces the allowlist.
 - `CODEOWNERS`: the owner is required for `docs/dependencies/**`, `.github/**` and `CLAUDE.md`.
@@ -1079,19 +1078,15 @@ All three apps:
 
 ---
 
-## Work management — GitHub organization, Kanban, epics
+## Work management — epics and tasks in the repository
 
-### Board and issues
-- **One GitHub organization** with the monorepo and **one GitHub Project (v2)**, "QONAQET".
-- Kanban columns: `Backlog → Ready → In Progress → In Review → Done`.
-- **Epic** = an issue labelled `epic`. **Tasks** are its **sub-issues** (GitHub sub-issues), each with:
-  - the label `task` and one `area:*` label (`area:backend`, `area:integration`, `area:mobile`, `area:web-landing`, `area:web-business`, `area:web-admin`, `area:infra`, `area:design`)
-  - a priority label `p0`/`p1`/`p2`
-- Project fields: `Epic`, `Area`, `Priority`, `Size` (XS/S/M/L), `Status`.
-- Issue templates (`.github/ISSUE_TEMPLATE`):
-  - **epic**: goal, scope, out of scope, acceptance criteria, task list
-  - **task**: context, acceptance criteria, test notes, parent epic
-  - **bug**
+### Board and tasks (local markdown — ADR 0004)
+- Work is tracked **in the repository**. GitHub Projects (kanban) and GitHub issues are **not** used for planning; the old issues and board are kept read-only as history.
+- **Epic** = `docs/epics/Exx.md`. Front matter: `id`, `title`, `area`, `priority`, `depends` (epics that must be `done` first), `owner` (GitHub login of the developer working on it, empty when free), `status` (`todo` | `in-progress` | `done`).
+- **Task** = a `### Exx-Tnn · title` section in its epic file, with `area`, `priority`, `size` (XS/S/M/L), optional `labels` (`parallel-ok`, `blocked-ui-guidelines`) and `status` (`todo` | `in-progress` | `done` | `dropped`), then context and acceptance criteria. Format: `docs/epics/README.md`.
+- **Board** = `docs/BOARD.md`, generated by `scripts/board.py` from the epic files. Never edit it by hand; CI fails when it is stale.
+- Status changes go through `scripts/epic.py` (`claim`, `release`, `task <key> <status>`) and are committed **in the PR they belong to**, so `main` always shows the true state.
+- GitHub issues are used only for **bugs** reported from outside (`.github/ISSUE_TEMPLATE/bug.yml`); fixing one still needs a task in `docs/epics`.
 
 ### How Claude Code works
 Two developers work on the project, each with their own Claude Code session. **One developer = one epic at a time; never two developers in the same epic.** The claim is the epic issue's **assignee**, managed by `scripts/epic.py` and enforced by `pr-checks`.
@@ -1102,25 +1097,23 @@ Two developers work on the project, each with their own Claude Code session. **O
    - if the claim fails (taken, blocked by `depends:`, or lost a simultaneous claim), pick another; never work on an epic assigned to someone else
 1. Work **epic by epic**. An epic can be claimed only when every epic in its `depends:` (front matter of `docs/epics/Exx.md`) is closed; among claimable epics, take the lowest number. Do not start a new epic while tasks of yours are open. Tasks labelled `parallel-ok` may be taken by the developer who does not hold the epic.
 2. Inside your epic, take the top `Ready` task:
-   - assign it to yourself and move it to `In Progress` (creating the branch does this automatically)
-   - branch `feat/<issue#>-<slug>` (or `fix/`, `chore/`)
+   - `scripts/epic.py task Exx-Tnn in-progress`
+   - branch `feat/Exx-Tnn-<slug>` (or `fix/`, `chore/`)
 3. Implement it with tests. Then:
-   - Conventional Commits that reference the issue (`feat(gifts): partial voucher redemption (#123)`)
-   - open a PR with `Closes #123` (template: summary, tests, screenshots for UI)
-   - move the task to `In Review`
-4. CI must be green: build, tests, lint, architecture tests. **The other developer approves the PR** (the `main` ruleset requires 1 approval and code-owner review). Merge with squash. The task moves to `Done` automatically.
+   - Conventional Commits that reference the task (`feat(gifts): partial voucher redemption (E09-T07)`)
+   - `scripts/epic.py task Exx-Tnn done` and `scripts/board.py` in the same PR
+   - open a PR whose body has `Task: Exx-Tnn` (template: summary, tests, screenshots for UI)
+4. CI must be green: build, tests, lint, architecture tests. **The other developer approves the PR** (the `main` ruleset requires 1 approval and code-owner review). Merge with squash. The task is `done` on `main` as soon as the PR lands.
 5. When all sub-issues of an epic are done:
    - verify the epic's acceptance criteria
    - update `README.md` / `docs/`
-   - close the epic and tag `epic-Exx-done` (the `epic-progress` workflow does both when the last task closes)
+   - the epic becomes `status: done` when its last task is marked done (`scripts/epic.py` does it); after the merge the `epic-progress` workflow tags `epic-Exx-done`
    - the epic is then free: claim the next one with `scripts/epic.py next` / `claim`
    - giving up an epic before it is done: `scripts/epic.py release Exx`
 6. If something new comes up, create a new task under the right epic. Never expand scope silently.
 7. Architectural decisions that deviate from this file go into `docs/adr/` and need a PR.
 
-**Bootstrap** (run once, when asked):
-- With the `gh` CLI, create the labels, the Project with its fields and columns, the issue templates, and all epics below with their tasks as sub-issues, in order.
-- Report the created URLs.
+**New work** (rule 6): add a `### Exx-Tnn · …` section with `- status: todo` to the right epic file, run `scripts/board.py`, and include both in the PR.
 
 ### Epics (in order)
 
@@ -1164,7 +1157,7 @@ Epic dependencies live in the `depends:` front matter of `docs/epics/Exx.md` (e.
 - Cross-store effects go only through outbox events. Consumers are idempotent (inbox / unique `source_event_id`).
 - Angular: follow "Angular UI guidelines". Never install a UI library or invent final screens before that section is filled in.
 - Colors and fonts come only from `/design-tokens`. Never hard-code hex values in components.
-- Work only through GitHub issues: every PR closes a task, and every task belongs to an epic.
+- Work only through tasks in `docs/epics`: every PR names its task (`Task: Exx-Tnn`), and every task belongs to an epic.
 - Never branch on a category code or name. All behavior comes from the category document.
 - Keep the core generic, not food-specific. Use names like `catalogItems`, `businesses` and `Voucher`, so the platform can grow to flowers, books, services and other goods.
 - C#:

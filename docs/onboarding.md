@@ -12,10 +12,9 @@ iş necə gedir və hansı qaydalar danışılmazdır.
 ## 1. Giriş icazələri
 
 - [ ] **GitHub org dəvəti** — `QonaqEt` təşkilatı
-- [ ] **Repo girişi** — [`QonaqEt/qonaqet`](https://github.com/QonaqEt/qonaqet) (private)
-- [ ] **Board girişi** — "QONAQET" Project (v2)
+- [ ] **Repo girişi** — [`QonaqEt/qonaqet`](https://github.com/QonaqEt/qonaqet) (public)
 - [ ] **2FA aktivdir** (org tələbidir)
-- [ ] Əgər review məsuliyyəti daşıyırsansa — `@QonaqEt/owners` komandasına əlavə olunmaq
+- [ ] `@QonaqEt/owners` komandasına əlavə olunmaq — digər developerin PR-larını (o cümlədən `.github/**`, `scripts/**`, `CLAUDE.md`) təsdiqləmək üçün lazımdır
 
 İcazə verən: repo sahibi.
 
@@ -68,25 +67,29 @@ docker compose -f deploy/docker-compose.yml up
 
 ## 4. İş necə gedir
 
-**Epic → task → PR.** Hər task bir epic-in sub-issue-sudur, hər PR bir task bağlayır.
+**Epic → task → PR.** Epic-lər və task-lar repo-dadır: `docs/epics/Exx.md`, ümumi görünüş
+[`docs/BOARD.md`](BOARD.md) (ADR 0004). GitHub Project/issue-lar planlaşdırma üçün işlədilmir.
 
-Board sütunları: `Backlog → Ready → In Progress → In Review → Done`
+İki developer eyni epic-də işləmir: epic-in sahibi front matter-dəki `owner`-dir.
 
-1. **Task götür** — cari epic-in `Ready` sütunundakı ən yuxarıdakı task. Cari epic-in açıq
-   task-ları varkən yeni epic-ə keçmə (istisna: `parallel-ok` etiketli task-lar).
-2. **`In Progress`-ə keçir** (board özü də edir — branch push edəndə).
-3. **Branch:** `feat/<issue#>-<slug>` · `fix/...` · `chore/...`
+1. **Epic götür** — `scripts/epic.py status`, sonra `scripts/epic.py next` və `scripts/epic.py claim Exx`.
+   Səndə açıq epic varsa, onu davam etdir. Başqasının epic-inə toxunma
+   (istisna: `parallel-ok` task-lar).
+2. **Task götür** — epic-in ən yuxarıdakı `todo` task-ı → `scripts/epic.py task Exx-Tnn in-progress`.
+3. **Branch:** `feat/Exx-Tnn-<slug>` · `fix/...` · `chore/...`
 4. **Testlərlə yaz.** Test olmadan PR açma.
-5. **Commit:** Conventional Commits, issue nömrəsi ilə
-   `feat(gifts): partial voucher redemption (#123)`
-6. **PR:** şablonu doldur, `Closes #123` yaz. UI dəyişikliyi varsa skrinşot məcburidir.
-7. **CI yaşıl olmalıdır:** build, testlər, lint, arxitektura testləri.
-8. **Squash merge.** Task avtomatik `Done`-a keçir.
+5. **Commit:** Conventional Commits, task açarı ilə — `feat(gifts): partial voucher redemption (E09-T07)`
+6. **Bitəndə:** `scripts/epic.py task Exx-Tnn done` — `docs/BOARD.md` özü yenilənir; ikisini də commit et.
+7. **PR:** şablonu doldur, body-də `Task: Exx-Tnn`. UI dəyişikliyi varsa skrinşot məcburidir.
+8. **CI yaşıl olmalıdır:** build, testlər, lint, arxitektura testləri, `pr-checks`.
+9. **Digər developer təsdiqləyir**, sonra squash merge.
 
 Epic-in bütün task-ları bitəndə: acceptance criteria yoxlanılır, `README.md`/`docs/` yenilənir,
-epic bağlanır, `epic-Exx-done` tag-ı yaradılır.
+epic `status: done` olur (sonuncu `task ... done` bunu edir), birləşəndən sonra `epic-Exx-done` tag-ı
+avtomatik yaradılır.
 
-**Yeni iş çıxırsa** — düzgün epic altında yeni task yarat. Scope-u səssizcə genişləndirmə.
+**Yeni iş çıxırsa** — düzgün epic faylına `### Exx-Tnn · …` bölməsi (`- status: todo`) əlavə et və
+`scripts/board.py` işlət. Scope-u səssizcə genişləndirmə.
 
 ## 5. Danışılmaz qaydalar
 
@@ -164,44 +167,29 @@ Pul qəpikdir, vaxt UTC-də saxlanılır, iş günü **Asia/Baku** üzrədir.
 
 ### Niyə lazımdır
 
-GitHub Projects (v2) **yalnız GraphQL** ilə idarə olunur və Actions-ın avtomatik verdiyi
-`GITHUB_TOKEN` ona **yaza bilmir**. Ona görə board-a toxunan hər workflow ayrıca token tələb edir:
-`bootstrap.yml`, `project-sync.yml`, `epic-progress.yml`.
+Repo parametrlərini və `main` ruleset-ini yalnız repo admini dəyişə bilər; Actions-ın verdiyi
+`GITHUB_TOKEN` kifayət deyil. `repo-settings.yml` workflow-u admin istifadəçinin token-ini işlədir.
+Adı tarixi səbəbdən `PROJECT_TOKEN`-dir — GitHub Project board-u artıq işlədilmir (ADR 0004).
 
 ### Addımlar
 
 1. https://github.com/settings/tokens → **Generate new token (classic)**
-2. **Note:** `QONAQET project automation` · **Expiration:** 90 gün
-3. Scope-ları işarələ — **üçü də**:
-
-   | Scope | Siyahıda harada | Nə üçün |
-   |---|---|---|
-   | `repo` | ən yuxarıda, birinci | issue, label, sub-issue |
-   | `read:org` | `admin:org`-un altında | org və project oxumaq |
-   | `project` | aşağıda, ayrıca blok | **board yaratmaq və yazmaq** |
-
-   > ⚠️ `project` ilə `read:project` **ayrı sətirlərdir**. Yalnız alt sətri (`read:project`)
-   > işarələsən, board oxunur, amma yaradılmır — workflow belə qırılır:
-   > `The 'createProjectV2' field requires one of the following scopes: ['project']`.
-   > **Üst sətri işarələ**, alt sətir özü gəlir.
-
-4. **Generate token** → dəyəri kopyala (bir dəfə göstərilir)
-5. Repo → **Settings → Secrets and variables → Actions → New repository secret**
+2. **Note:** `QONAQET repo settings` · **Expiration:** 90 gün · **Scope:** `repo`
+3. **Generate token** → dəyəri kopyala (bir dəfə göstərilir)
+4. Repo → **Settings → Secrets and variables → Actions → New repository secret**
    - Name: `PROJECT_TOKEN`
    - Secret: kopyaladığın dəyər
 
 ### Yoxlama
 
-**Actions → bootstrap → Run workflow.** "Project board" addımı yaşıldırsa, token işləyir.
-Token yoxdursa, workflow qırılmır — həmin addımı ötürür və job summary-də bunu yazır.
+**Actions → repo-settings → Run workflow → `check`.** Cədvəldəki bütün sətirlər ✅ olmalıdır.
 
 ### Rotasiya
 
 - **Scope dəyişmək** (məs. `project` əlavə etmək): token-i **Edit** et → scope-u işarələ → Update.
   **Dəyər dəyişmir**, secret-i yenidən əlavə etməyə ehtiyac yoxdur.
 - **Regenerate** etsən, dəyər dəyişir — `PROJECT_TOKEN` secret-ini mütləq yenilə.
-- Müddəti bitməzdən əvvəl GitHub email göndərir. Bitəndə board avtomatikası səssizcə dayanır,
-  ona görə xəbərdarlığı gözdən qaçırma.
+- Müddəti bitməzdən əvvəl GitHub email göndərir. Bitəndə `repo-settings` workflow-u aydın xəta ilə dayanır.
 
 ### Təhlükəsizlik
 
@@ -214,7 +202,7 @@ Token yoxdursa, workflow qırılmır — həmin addımı ötürür və job summa
 - Workflow permissions repo səviyyəsində **read-only** qalır; hər workflow öz `permissions:`
   blokunu açıq yazır.
 - **Uzunmüddətli daha təmiz variant:** org-da ayrıca GitHub App
-  (`organization_projects: write` + `issues: write`) və `actions/create-github-app-token`.
+  (`administration: write`) və `actions/create-github-app-token`.
   Şəxsi token olmur, avtomatik rotasiya olunur, müddəti bitmir.
 
 ## 11. Claude Code ilə işləmək
@@ -231,13 +219,22 @@ Hər iki halda Claude `CLAUDE.md`-ni, `docs/epics/` və `docs/adr/` qovluqların
 
 ### İlk mesaj
 
-Nə üzərində işlədiyini və hansı task-ı götürdüyünü de. Məsələn:
+Sessiyanın əvvəlində Claude özü `scripts/epic.py status` işlədir (`CLAUDE.md` → "How Claude Code works").
+Sən sadəcə hansı epic-də və ya task-da işlədiyini de. Məsələn:
 
 ```
-E01-T04 task-ı üzərində işləyirik (#21): öz CQRS dispatcher-imiz.
-docs/epics/E01.md-dəki acceptance criteria-ya bax.
-Branch aç, testlərlə yaz, Closes #21 olan PR hazırla.
+E01-də işləyirik. scripts/epic.py claim E01 et, sonra ən üstdəki todo task-ı götür.
 ```
+
+və ya konkret task üçün:
+
+```
+E01-T04 (öz CQRS dispatcher-imiz) — docs/epics/E01.md-dəki acceptance criteria-ya bax.
+Branch aç, testlərlə yaz, body-də "Task: E01-T04" olan PR hazırla.
+```
+
+Epic-i kimin işlədiyi `docs/epics/Exx.md`-in `owner` sahəsindədir və `docs/BOARD.md`-də görünür.
+İkiniz eyni epic-i götürsəniz, ikinci PR-ın `pr-checks`-i qırılır.
 
 Scope-u açıq saxlama — Claude boş yerə genişləndirməsin deyə task nömrəsini həmişə göstər.
 
@@ -247,12 +244,10 @@ Bulud sessiyalarında vaxt itirməmək üçün:
 
 | Məhdudiyyət | Nə etmək |
 |---|---|
-| **GitHub GraphQL bloklanıb** | REST işlət. `gh issue close` GraphQL-dir — əvəzinə `gh api -X PATCH .../issues/N -f state=closed` |
-| **Projects v2 yalnız GraphQL-dir** | Board əməliyyatları yalnız Actions runner-ində (`PROJECT_TOKEN` ilə) mümkündür |
-| **`gh api --paginate` qırılır** | Link başlığı `repositories/{id}` yolunu verir. Açıq `page=N` dövrü ilə səhifələ — nümunə: `scripts/bootstrap-github.sh` |
+| **GitHub GraphQL bloklanıb** | REST işlət. İş izləmə onsuz da lokal markdown-dadır (ADR 0004) |
+| **`gh api --paginate` qırılır** | Link başlığı `repositories/{id}` yolunu verir. Açıq `page=N` dövrü ilə səhifələ — nümunə: `scripts/ci/epic-progress.py` tarixçəsi, `scripts/repo-settings.py` |
 | **Action-lar SHA ilə pinlənməlidir** | SHA tapmaq: `git ls-remote https://github.com/actions/checkout refs/tags/v5.0.0` |
 | **Workflow permissions read-only-dir** | Hər workflow öz `permissions:` blokunu açıq yazır |
-| **GitHub ikincili yaratma limiti** | Toplu issue əməliyyatlarında fasilə ver — `RATE_SLEEP` nümunəsinə bax |
 | **Org adı dəyişsə, REST qırılır** | Köhnə ad `repositories/{id}`-yə yönləndirilir və bloklanır. Yeni adla yeni sessiya lazımdır |
 
 ### Nəyə icazə vermə
@@ -265,7 +260,7 @@ Bulud sessiyalarında vaxt itirməmək üçün:
 
 ### PR-larını adi PR kimi yoxla
 
-Claude-un açdığı PR də eyni qaydalara tabedir: CI yaşıl, testlər var, `Closes #n` yazılıb,
+Claude-un açdığı PR də eyni qaydalara tabedir: CI yaşıl, testlər var, `Task: Exx-Tnn` yazılıb,
 şablonun yoxlama siyahısı doldurulub. İnsan PR-ından fərqi yoxdur — eyni gözlə bax.
 
 ## 12. Haradan soruşmaq

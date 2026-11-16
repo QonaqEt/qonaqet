@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DEPENDABOT = (ROOT / ".github/dependabot.yml").read_text(encoding="utf-8")
 CODEOWNERS = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
-BOOTSTRAP = (ROOT / "scripts/bootstrap-github.sh").read_text(encoding="utf-8")
+LABELER = (ROOT / ".github/labeler.yml").read_text(encoding="utf-8")
 
 
 def updates() -> list[str]:
@@ -36,13 +36,13 @@ class DependabotTests(unittest.TestCase):
             name = field(block, "package-ecosystem")
             self.assertIn("interval: weekly", block, name)
             self.assertRegex(block, r"groups:\n\s+[a-z-]+:\n\s+patterns: \[\"\*\"\]", name)
-            # pr-checks: başlıq `build(deps): ...` olmalıdır
-            self.assertIn('prefix: "build(deps)"', block, name)
+            # pr-checks: başlıq `build(deps): ...` olmalıdır — prefix `build` + include: scope
+            self.assertIn('prefix: "build", include: scope', block, name)
 
     def test_labels_exist(self) -> None:
         for block in updates():
             for label in re.findall(r"area:[a-z-]+", field(block, "labels")):
-                self.assertIn(label, BOOTSTRAP, f"{label} bootstrap-da yaradılmır")
+                self.assertIn(f"{label}:", LABELER, f"{label} labeler-də yoxdur")
 
     def test_directories_are_inside_the_monorepo_layout(self) -> None:
         for block in updates():
@@ -54,7 +54,8 @@ class DependabotTests(unittest.TestCase):
         compose = next(b for b in updates() if field(b, "package-ecosystem") == "docker-compose")
         for image in ("rustfs/rustfs", "mongo", "valkey/valkey", "rabbitmq"):
             self.assertRegex(compose, rf'dependency-name: "{re.escape(image)}"\n\s+update-types: \["version-update:semver-major"')
-        self.assertRegex(compose, r'"rustfs/rustfs"\n\s+update-types: \[[^\]]*semver-minor')
+        for image in ("rustfs/rustfs", "mongo"):  # RustFS 1.0.x GA, Mongo 8.0 LTS
+            self.assertRegex(compose, rf'"{re.escape(image)}"\n\s+update-types: \[[^\]]*semver-minor')
 
 
 class CodeownersTests(unittest.TestCase):

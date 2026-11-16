@@ -2,7 +2,7 @@
 # allowlist-də olmayan yeni paket gətirən PR guard-da qırılır.
 #
 # - həftəlik, ekosistem üzrə bir qrup PR
-# - başlıq prefiksi `build(deps)` → pr-checks-in Conventional Commit qaydasına uyğun
+# - başlıq `build(deps): ...` (prefix `build` + `include: scope`) → pr-checks-in Conventional Commit qaydasına uyğun
 # - infrastruktur image-lərində CLAUDE.md-dəki major xətlər saxlanılır (Mongo 8, Valkey 8,
 #   RabbitMQ 4, RustFS 1.0.x GA — ADR 0002); major/minor sıçrayışı ADR ilə əl ilə edilir
 
@@ -12,7 +12,7 @@ updates:
   - package-ecosystem: nuget
     directory: /backend
     schedule: { interval: weekly, day: monday }
-    commit-message: { prefix: "build(deps)", include: scope }
+    commit-message: { prefix: "build", include: scope }
     labels: [area:backend]
     groups:
       nuget:
@@ -21,7 +21,7 @@ updates:
   - package-ecosystem: npm
     directory: /web
     schedule: { interval: weekly, day: monday }
-    commit-message: { prefix: "build(deps)", include: scope }
+    commit-message: { prefix: "build", include: scope }
     labels: [area:web-landing, area:web-business, area:web-admin]
     groups:
       npm:
@@ -30,7 +30,7 @@ updates:
   - package-ecosystem: npm
     directory: /design-tokens
     schedule: { interval: weekly, day: monday }
-    commit-message: { prefix: "build(deps)", include: scope }
+    commit-message: { prefix: "build", include: scope }
     labels: [area:design]
     groups:
       npm-design-tokens:
@@ -39,7 +39,7 @@ updates:
   - package-ecosystem: pub
     directory: /mobile
     schedule: { interval: weekly, day: monday }
-    commit-message: { prefix: "build(deps)", include: scope }
+    commit-message: { prefix: "build", include: scope }
     labels: [area:mobile]
     groups:
       pub:
@@ -48,7 +48,7 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly, day: monday }
-    commit-message: { prefix: "build(deps)", include: scope }
+    commit-message: { prefix: "build", include: scope }
     labels: [area:infra]
     groups:
       github-actions:
@@ -57,7 +57,7 @@ updates:
   - package-ecosystem: docker
     directory: /deploy/dockerfiles
     schedule: { interval: weekly, day: monday }
-    commit-message: { prefix: "build(deps)", include: scope }
+    commit-message: { prefix: "build", include: scope }
     labels: [area:infra]
     groups:
       docker:
@@ -66,7 +66,7 @@ updates:
   - package-ecosystem: docker-compose
     directory: /deploy
     schedule: { interval: weekly, day: monday }
-    commit-message: { prefix: "build(deps)", include: scope }
+    commit-message: { prefix: "build", include: scope }
     labels: [area:infra]
     groups:
       docker-compose:
@@ -74,8 +74,9 @@ updates:
     ignore:
       - dependency-name: "rustfs/rustfs"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Mongo 8.0 LTS-də qalır; 8.1+ rapid release-dir (8.3.x kernel 6.19+ üzərində başlamır)
       - dependency-name: "mongo"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "valkey/valkey"
         update-types: ["version-update:semver-major"]
       - dependency-name: "rabbitmq"

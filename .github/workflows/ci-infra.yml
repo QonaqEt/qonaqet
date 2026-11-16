@@ -49,7 +49,7 @@ jobs:
           else
             echo "deploy=false" >> "$GITHUB_OUTPUT"
           fi
-          if printf '%s\n' "$changed" | grep -qE '^(scripts/|\.github/|docs/epics/)'; then
+          if printf '%s\n' "$changed" | grep -qE '^(scripts/|\.github/|docs/epics/|docs/BOARD\.md$)'; then
             echo "scripts=true" >> "$GITHUB_OUTPUT"
           else
             echo "scripts=false" >> "$GITHUB_OUTPUT"
@@ -81,6 +81,9 @@ jobs:
 
       - name: Epic sənədləri parse olunur
         run: python3 scripts/lib/parse-epics.py docs/epics > /dev/null
+
+      - name: docs/BOARD.md aktualdır
+        run: python3 scripts/board.py --check
 
       - name: Skript və repo konfiqurasiyası testləri
         run: python3 -m unittest discover -s scripts/tests -v

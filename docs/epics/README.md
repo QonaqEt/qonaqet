@@ -1,9 +1,11 @@
 # Epics
 
-Hər fayl bir epic-dir. `scripts/bootstrap-github.sh` bu faylları oxuyub GitHub-da yaradır:
+Hər fayl bir epic-dir və **işin yeganə izləmə yeridir** (ADR 0004). Ümumi görünüş `docs/BOARD.md`-dir —
+`scripts/board.py` onu bu fayllardan yaradır.
 
-- epic → `epic` label-li issue
-- hər task → həmin epic-in **sub-issue**-su (`task` + `area:*` + `p0|p1|p2` label-ları ilə)
+- epic-in vəziyyəti front matter-dədir: `owner` (GitHub login, boş = sərbəst) və `status`
+- hər task-ın vəziyyəti `- status:` sətridir
+- dəyişmək üçün: `scripts/epic.py claim|release|task`, sonra `scripts/board.py`
 
 Fayllar **maşınla parse olunur**, ona görə format dəqiq saxlanmalıdır.
 
@@ -15,7 +17,9 @@ id: E00
 title: Epic-in adı
 area: infra
 priority: p0
-depends: E01, E02            # bu epic-dən əvvəl bağlanmalı olan epic-lər (boş ola bilər)
+depends: E01, E02            # bu epic-dən əvvəl done olmalı olan epic-lər (boş ola bilər)
+owner: zahid2000             # işləyən developer (boş = sərbəst)
+status: in-progress          # todo | in-progress | done
 ---
 
 ## Goal
@@ -37,7 +41,7 @@ Bir-iki cümlə.
 - priority: p0
 - size: S
 - labels: parallel-ok        # ixtiyari, vergüllə ayrılır
-- done: true                 # ixtiyari — artıq yerinə yetirilibsə, bootstrap issue-nu yaradıb dərhal bağlayır
+- status: todo               # todo | in-progress | done | dropped
 
 Context: bir abzas — nə və niyə.
 
