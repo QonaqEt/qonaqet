@@ -22,3 +22,8 @@ Generasiya olunan fayllar git-ə düşmür (`.gitignore`); CI (`ci-infra / token
 Adi ölçülü mətnli CTA üçün `plum` (4.18:1) işlət. Cütlər `contrast-pairs.json`-dadır.
 
 **Hədiyyə temalarının rəngləri** (`color.theme.*`) təklifdir — UI həmkarı təsdiqləyənə qədər.
+
+**Asılılıq qeydi:** `package.json`-dakı `overrides.glob` Style Dictionary-nin keçid asılılığını
+yamaqlı versiyaya qaldırır (GHSA-3g3m-2fjr-6pw4). `deepmerge` üçün yamaq yoxdur (GHSA-gcqx-w48m-w2h4,
+prototype poisoning); o yalnız build zamanı bizim öz `tokens.json`-umuz üzərində işləyir, istifadəçi
+məlumatına toxunmur. Style Dictionary yeni versiyada düzəldəndə override silinir.
