@@ -1,0 +1,3 @@
+# Flutter SDK pin-i: <tag> <commit-sha>. scripts/ci/install-flutter.sh oxuyur və SHA-nı yoxlayır.
+# Yeniləmək: git ls-remote https://github.com/flutter/flutter refs/tags/<tag>
+3.47.9 c197ca5199e9ee5661e865596c9c07294dfab51c
