@@ -11,6 +11,7 @@ using Qonaqet.Infrastructure.Persistence.Mongo;
 using Qonaqet.Infrastructure.Persistence.Postgres;
 using Qonaqet.SharedKernel;
 using Qonaqet.Infrastructure.Messaging;
+using Qonaqet.Infrastructure.Messaging.RabbitMq;
 
 namespace Qonaqet.Infrastructure;
 
@@ -31,6 +32,8 @@ public static class DependencyInjection
         services.AddMongo(configuration);
         services.AddPostgres(configuration);
         services.AddValkey(configuration);
+        services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
+        services.AddSingleton<RabbitMqConnection>();
 
         // ICurrentUser və
         // IRequestContext host auth-u ilə (E02) gəlir.
