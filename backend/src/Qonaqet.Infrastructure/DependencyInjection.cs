@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Qonaqet.Application;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
+using Qonaqet.Infrastructure.Caching;
 using Qonaqet.Infrastructure.Documents.Csv;
 using Qonaqet.Infrastructure.Documents.Qr;
 using Qonaqet.Infrastructure.Persistence;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.AddApplicationPipeline();
         services.AddMongo(configuration);
         services.AddPostgres(configuration);
+        services.AddValkey(configuration);
 
         // ICurrentUser və
         // IRequestContext host auth-u ilə (E02) gəlir.

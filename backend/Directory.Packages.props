@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup Label="Messaging">
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.1" />
+    <PackageVersion Include="StackExchange.Redis" Version="2.13.23" />
   </ItemGroup>
   <ItemGroup Label="Test">
     <PackageVersion Include="xunit.v3" Version="4.0.3" />
