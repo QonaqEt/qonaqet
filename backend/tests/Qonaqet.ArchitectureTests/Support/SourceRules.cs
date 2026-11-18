@@ -143,6 +143,15 @@ internal static partial class ForbiddenSource
         new("raw SQL DELETE/TRUNCATE", new Regex(@"\bDELETE\s+FROM\b|\bTRUNCATE\b", Options | RegexOptions.IgnoreCase)),
     ];
 
+    /// <summary>
+    /// Silinmiş qeydlər yalnız admin ssenarilərində görünür: <c>IncludeDeleted()</c> çağırışı yalnız
+    /// <c>Features/Admin</c> və persistence qatında (repository-lərin özü) ola bilər.
+    /// </summary>
+    public static readonly SourceRule IncludeDeletedOutsideAdmin = new(
+        "IncludeDeleted() admin xaricində",
+        new Regex(@"\bIncludeDeleted\s*\(", Options),
+        (path, _) => !path.Contains("/Features/Admin/", StringComparison.Ordinal) && !path.Contains("/Persistence/", StringComparison.Ordinal));
+
     /// <summary>Seed edilmiş kateqoriya kodları yalnız seed məlumatında görünə bilər — məntiq heç vaxt koda görə şaxələnmir.</summary>
     public static readonly SourceRule CategoryCodeLiteral = new(
         "kateqoriya kodu literalı",
