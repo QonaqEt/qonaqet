@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Qonaqet.Application/Qonaqet.Application.csproj" />
+    <ProjectReference Include="../../src/Qonaqet.Infrastructure/Qonaqet.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
