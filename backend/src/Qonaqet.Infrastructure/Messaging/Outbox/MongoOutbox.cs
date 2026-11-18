@@ -1,4 +1,3 @@
-using System.Text.Json;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using Qonaqet.Application.Abstractions.Persistence;
@@ -34,8 +33,6 @@ public sealed class MongoOutbox(MongoContext context) : IOutbox
 {
     public const string CollectionName = "outboxMessages";
 
-    internal static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
-
     public async Task AddAsync(IReadOnlyList<IDomainEvent> events, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(events);
@@ -59,20 +56,12 @@ public sealed class MongoOutbox(MongoContext context) : IOutbox
     public static OutboxMessage ToMessage(IDomainEvent domainEvent)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
-        var type = domainEvent.GetType();
         return new OutboxMessage
         {
             Id = domainEvent.EventId,
-            Type = type.FullName ?? type.Name,
-            Payload = JsonSerializer.Serialize(domainEvent, type, JsonOptions),
+            Type = OutboxSerializer.TypeName(domainEvent),
+            Payload = OutboxSerializer.Serialize(domainEvent),
             OccurredAt = domainEvent.OccurredAt,
         };
-    }
-
-    private static JsonSerializerOptions CreateJsonOptions()
-    {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        options.Converters.Add(new StronglyTypedIdJsonConverterFactory());
-        return options;
     }
 }
