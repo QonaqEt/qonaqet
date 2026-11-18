@@ -1,6 +1,8 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Qonaqet.Application.Behaviors;
 using Qonaqet.SharedKernel.Messaging;
+using Qonaqet.SharedKernel.Validation;
 
 namespace Qonaqet.Infrastructure.Messaging;
 
@@ -65,6 +67,15 @@ public static class MessagingRegistration
             services.AddScoped(service, implementation);
         }
 
+        // Validator-lar da eyni scan ilə: bir sorğunun bir neçə validator-u ola bilər.
+        foreach (var type in types.Where(t => !t.ContainsGenericParameters))
+        {
+            foreach (var validator in type.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IValidator<>)))
+            {
+                services.AddScoped(validator, type);
+            }
+        }
+
         services.AddScoped<ISender, Sender>();
         return services;
     }
@@ -87,6 +98,32 @@ public static class MessagingRegistration
         services.AddScoped(typeof(IPipelineBehavior<,>), openBehaviorType);
         return services;
     }
+
+    /// <summary>
+    /// Application pipeline-ı sabit sırada qeyd edir:
+    /// Logging → Validation → Authorization → Idempotency → UnitOfWork (tranzaksiya + outbox) → handler.
+    /// </summary>
+    public static IServiceCollection AddApplicationPipeline(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        foreach (var behavior in PipelineOrder)
+        {
+            services.AddPipelineBehavior(behavior);
+        }
+
+        return services;
+    }
+
+    /// <summary>Behavior-ların icra sırası (ilk element ən xaricidir).</summary>
+    public static IReadOnlyList<Type> PipelineOrder { get; } =
+    [
+        typeof(LoggingBehavior<,>),
+        typeof(ValidationBehavior<,>),
+        typeof(AuthorizationBehavior<,>),
+        typeof(IdempotencyBehavior<,>),
+        typeof(UnitOfWorkBehavior<,>),
+    ];
 
     private static string RequestName(Type handlerService) => handlerService.GetGenericArguments()[0].Name;
 

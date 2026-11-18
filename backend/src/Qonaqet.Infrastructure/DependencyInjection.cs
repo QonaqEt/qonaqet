@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Qonaqet.Application;
+using Qonaqet.Application.Abstractions.Persistence;
+using Qonaqet.Infrastructure.Persistence;
+using Qonaqet.SharedKernel;
 using Qonaqet.Infrastructure.Messaging;
 
 namespace Qonaqet.Infrastructure;
@@ -13,7 +16,13 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddScoped<IAggregateTracker, AggregateTracker>();
         services.AddMessaging(typeof(ApplicationAssembly).Assembly);
+        services.AddApplicationPipeline();
+
+        // IUnitOfWork, IOutbox və IIdempotencyStore store-larla (E01-T07..T09), ICurrentUser və
+        // IRequestContext host auth-u ilə (E02) gəlir.
 
         // Store-lar, outbox, cache və scheduler sonrakı E01 task-ları ilə əlavə olunur.
         return services;

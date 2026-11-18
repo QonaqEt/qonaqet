@@ -5,4 +5,13 @@
     <ProjectReference Include="../Qonaqet.Contracts/Qonaqet.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      ILogger və DI abstraksiyaları üçün paylaşılan framework (allowlist-də olmayan Microsoft.Extensions.*
+      NuGet paketləri əvəzinə). Application ASP.NET Core tiplərini (HttpContext, controller) işlətmir —
+      bunu arxitektura testləri yoxlayır.
+    -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
 </Project>
