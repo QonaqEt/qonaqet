@@ -78,3 +78,23 @@ public sealed class IdempotencyRecordRow : IAppendOnly, INotAudited
 
     public DateTimeOffset CreatedAt { get; set; }
 }
+
+/// <summary><c>job_runs</c>: scheduler icralarının tarixçəsi (admin "background jobs" səhifəsi üçün). Silinmir.</summary>
+public sealed class JobRunRecord : IAppendOnly, INotAudited
+{
+    public Guid Id { get; set; }
+
+    public string JobName { get; set; } = string.Empty;
+
+    public string Instance { get; set; } = string.Empty;
+
+    public string Status { get; set; } = string.Empty;
+
+    public DateTimeOffset StartedAt { get; set; }
+
+    public DateTimeOffset? FinishedAt { get; set; }
+
+    public int ItemsProcessed { get; set; }
+
+    public string? Error { get; set; }
+}

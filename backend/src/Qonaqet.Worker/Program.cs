@@ -1,4 +1,5 @@
 using Qonaqet.Infrastructure;
+using Qonaqet.Infrastructure.Jobs;
 using Qonaqet.Infrastructure.Messaging;
 
 namespace Qonaqet.Worker;
@@ -12,7 +13,9 @@ public static class Program
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddMessagingHost(builder.Configuration);
 
-        // Scheduler E01-T11 ilə əlavə olunur.
+        builder.Services.AddJobScheduler();
+
+        // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Build().Run();
     }
 }
