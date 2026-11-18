@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Qonaqet.Application;
 using Qonaqet.Application.Abstractions.Persistence;
+using Qonaqet.Application.Abstractions.Services;
+using Qonaqet.Infrastructure.Documents.Csv;
 using Qonaqet.Infrastructure.Persistence;
 using Qonaqet.SharedKernel;
 using Qonaqet.Infrastructure.Messaging;
@@ -18,6 +20,7 @@ public static class DependencyInjection
 
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<IAggregateTracker, AggregateTracker>();
+        services.AddSingleton<ICsvService, CsvService>();
         services.AddMessaging(typeof(ApplicationAssembly).Assembly);
         services.AddApplicationPipeline();
 

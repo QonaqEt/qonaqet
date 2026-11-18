@@ -8,7 +8,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | Epic | Ad | Status | İşləyən | Task-lar | Gözlədiyi |
 |---|---|---|---|---|---|
 | [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 18/18 | — |
-| [E01](epics/E01.md) | Backend foundation | 🔄 in-progress | @Tapdiq49 | 6/17 | — |
+| [E01](epics/E01.md) | Backend foundation | 🔄 in-progress | @Tapdiq49 | 7/17 | — |
 | [E02](epics/E02.md) | Identity & users | ⬜ todo | — | 0/7 | E01 |
 | [E03](epics/E03.md) | Files, email & notifications | ⬜ todo | — | 0/5 | E01 |
 | [E04](epics/E04.md) | Businesses & catalog | ⬜ todo | — | 0/6 | E02 |
@@ -61,7 +61,7 @@ Yoxdur.
 
 ## E01 — Backend foundation
 
-🔄 in-progress · @Tapdiq49 · 6/17 task
+🔄 in-progress · @Tapdiq49 · 7/17 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -79,7 +79,7 @@ Yoxdur.
 | ⬜ | E01-T12 | Müşahidə: logging, OTel, health checks, correlation id | backend | p1 | M |
 | ⬜ | E01-T13 | OpenAPI və ProblemDetails middleware | backend | p1 | S |
 | ⬜ | E01-T14 | Öz arxitektura testlərimiz | backend | p0 | L |
-| ⬜ | E01-T15 | Öz CSV oxuyucu/yazıcımız (RFC 4180) | backend | p1 | S |
+| ✅ | E01-T15 | Öz CSV oxuyucu/yazıcımız (RFC 4180) | backend | p1 | S |
 | ⬜ | E01-T16 | Öz QR encoder-imiz (ISO/IEC 18004) | backend | p0 | M |
 | ⬜ | E01-T17 | Backend Dockerfile (Api, Integration.Api, Worker) | infra | p1 | S |
 
