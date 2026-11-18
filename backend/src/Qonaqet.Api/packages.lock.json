@@ -78,7 +78,8 @@
           "Microsoft.EntityFrameworkCore": "[10.0.15, )",
           "MongoDB.Driver": "[3.14.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
-          "Qonaqet.Application": "[1.0.0, )"
+          "Qonaqet.Application": "[1.0.0, )",
+          "RabbitMQ.Client": "[7.2.1, )"
         }
       },
       "qonaqet.sharedkernel": {
@@ -126,6 +127,12 @@
           "Microsoft.EntityFrameworkCore.Relational": "[10.0.4, 11.0.0)",
           "Npgsql": "10.0.3"
         }
+      },
+      "RabbitMQ.Client": {
+        "type": "CentralTransitive",
+        "requested": "[7.2.1, )",
+        "resolved": "7.2.1",
+        "contentHash": "YKXEfg9fVQiTKgZlvIhAfPSFaamEgi8DsQmisCH0IAsU4FYLrtoguDrDj6JtJVGUt40QPnBLRH6fTQcAC4qsOg=="
       }
     }
   }

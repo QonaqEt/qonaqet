@@ -26,6 +26,14 @@ public sealed class OutboxMessage
     public DateTimeOffset? ProcessedAt { get; set; }
 
     public int Attempts { get; set; }
+
+    /// <summary>Uğursuz cəhddən sonra növbəti cəhdin vaxtı (backoff).</summary>
+    public DateTimeOffset? NextAttemptAt { get; set; }
+
+    /// <summary>Relay instansının icarəsi: bu vaxta qədər başqa instans mesajı götürmür.</summary>
+    public DateTimeOffset? LockedUntil { get; set; }
+
+    public string? LastError { get; set; }
 }
 
 /// <summary>Domen hadisələrini cari Mongo tranzaksiyasında <c>outboxMessages</c>-ə yazır.</summary>

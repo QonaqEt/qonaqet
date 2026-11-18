@@ -43,6 +43,10 @@ public sealed class PostgresOutboxMessage : IAppendOnly, INotAudited
 
     public int Attempts { get; set; }
 
+    public DateTimeOffset? NextAttemptAt { get; set; }
+
+    public DateTimeOffset? LockedUntil { get; set; }
+
     public string? LastError { get; set; }
 }
 
