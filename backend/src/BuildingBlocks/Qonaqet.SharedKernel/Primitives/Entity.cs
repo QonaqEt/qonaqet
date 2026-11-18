@@ -4,7 +4,7 @@ namespace Qonaqet.SharedKernel;
 /// Bütün entity-lərin bazası (<c>CLAUDE.md</c>-dəki <c>BaseEntity</c>): <c>id</c>, yaradılma/yenilənmə
 /// auditi və soft delete sahələri. <see cref="IsDeleted"/> həmişə mövcuddur, default <c>false</c>.
 /// </summary>
-public abstract class Entity<TId> : ISoftDeletable, IEquatable<Entity<TId>>
+public abstract class Entity<TId> : ISoftDeletableEntity, IEquatable<Entity<TId>>
     where TId : struct, IStronglyTypedId<TId>
 {
     protected Entity(TId id, DateTimeOffset createdAt, Guid? createdBy = null)

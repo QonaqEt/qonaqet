@@ -16,6 +16,19 @@ public interface ISoftDeletable
 }
 
 /// <summary>
+/// Soft delete və audit sahələrini dəyişə bilən entity (<see cref="Entity{TId}"/>). Persistence qatı
+/// (EF interceptor-ları) generik tipi bilmədən bunu işlədir.
+/// </summary>
+public interface ISoftDeletableEntity : ISoftDeletable
+{
+    bool IsAppendOnly { get; }
+
+    void SoftDelete(DateTimeOffset at, Guid? by, string? reason);
+
+    void MarkUpdated(DateTimeOffset at, Guid? by);
+}
+
+/// <summary>
 /// Append-only aqreqat/entity marker-i (məs. <c>giftRedemptions</c>, <c>ledger_entries</c>, <c>audit_logs</c>).
 /// Belə qeydlər heç vaxt silinmir, soft delete də olunmur; düzəliş əks qeydlə edilir.
 /// </summary>
