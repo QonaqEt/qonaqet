@@ -1,0 +1,7 @@
+root = false
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_diagnostic.IDE0161.severity = warning
+dotnet_style_qualification_for_field = false:suggestion
+csharp_style_var_for_built_in_types = true:suggestion

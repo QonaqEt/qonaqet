@@ -117,20 +117,22 @@ jobs:
       - name: Unit testlər
         if: steps.sln.outputs.present == 'true'
         run: |
+          # Test runner Microsoft.Testing.Platform-dır (backend/global.json → test.runner):
+          # layihə `--project` ilə verilir, coverage `--coverage` ilə toplanır (ADR 0005).
           for project in backend/tests/Qonaqet.Domain.Tests backend/tests/Qonaqet.Application.Tests; do
-            dotnet test "$project" --configuration Release --no-build \
-              --collect "Code Coverage;Format=cobertura" --results-directory "$RESULTS/unit"
+            dotnet test --project "$project" --configuration Release --no-build \
+              --coverage --coverage-output-format cobertura --results-directory "$PWD/$RESULTS/unit"
           done
 
       - name: Arxitektura testləri
         if: steps.sln.outputs.present == 'true'
-        run: dotnet test backend/tests/Qonaqet.ArchitectureTests --configuration Release --no-build
+        run: dotnet test --project backend/tests/Qonaqet.ArchitectureTests --configuration Release --no-build
 
       - name: Integration testlər (Testcontainers)
         if: steps.sln.outputs.present == 'true'
         run: |
-          dotnet test backend/tests/Qonaqet.IntegrationTests --configuration Release --no-build \
-            --collect "Code Coverage;Format=cobertura" --results-directory "$RESULTS/integration"
+          dotnet test --project backend/tests/Qonaqet.IntegrationTests --configuration Release --no-build \
+            --coverage --coverage-output-format cobertura --results-directory "$PWD/$RESULTS/integration"
 
       - name: Coverage xülasəsi
         if: ${{ !cancelled() && steps.sln.outputs.present == 'true' }}

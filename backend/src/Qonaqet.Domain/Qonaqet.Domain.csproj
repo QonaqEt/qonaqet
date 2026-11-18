@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../BuildingBlocks/Qonaqet.SharedKernel/Qonaqet.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

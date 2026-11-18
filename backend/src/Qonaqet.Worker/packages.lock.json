@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "qonaqet.application": {
+        "type": "Project",
+        "dependencies": {
+          "Qonaqet.Contracts": "[1.0.0, )",
+          "Qonaqet.Domain": "[1.0.0, )"
+        }
+      },
+      "qonaqet.contracts": {
+        "type": "Project"
+      },
+      "qonaqet.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Qonaqet.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "qonaqet.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Qonaqet.Application": "[1.0.0, )"
+        }
+      },
+      "qonaqet.sharedkernel": {
+        "type": "Project"
+      }
+    }
+  }
+}

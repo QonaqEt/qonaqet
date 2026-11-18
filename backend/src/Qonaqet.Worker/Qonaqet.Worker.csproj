@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <ItemGroup>
+    <ProjectReference Include="../Qonaqet.Infrastructure/Qonaqet.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
