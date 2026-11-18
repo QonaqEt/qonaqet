@@ -21,6 +21,8 @@ public sealed class MongoFixture : IAsyncLifetime
 
     public IMongoClient Client { get; private set; } = null!;
 
+    public string ConnectionString { get; private set; } = string.Empty;
+
     public async ValueTask InitializeAsync()
     {
         MongoConventions.Register();
@@ -42,6 +44,7 @@ public sealed class MongoFixture : IAsyncLifetime
         await _container.ExecAsync(["mongosh", "--quiet", "--eval", "rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]})"]).ConfigureAwait(false);
 
         var connection = $"mongodb://{_container.Hostname}:{_container.GetMappedPublicPort(27017)}/?directConnection=true";
+        ConnectionString = connection;
         Client = new MongoClient(connection);
         await WaitForPrimaryAsync().ConfigureAwait(false);
     }

@@ -1,4 +1,5 @@
 using Qonaqet.Infrastructure;
+using Qonaqet.Infrastructure.Messaging;
 
 namespace Qonaqet.Worker;
 
@@ -9,8 +10,9 @@ public static class Program
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.Services.AddInfrastructure(builder.Configuration);
+        builder.Services.AddMessagingHost(builder.Configuration);
 
-        // Scheduler, outbox relay və consumer-lər E01-T09 / E01-T11 ilə əlavə olunur.
+        // Scheduler E01-T11 ilə əlavə olunur.
         builder.Build().Run();
     }
 }
