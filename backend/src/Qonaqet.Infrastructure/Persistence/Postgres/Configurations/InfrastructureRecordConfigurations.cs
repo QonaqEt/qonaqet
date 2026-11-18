@@ -64,3 +64,18 @@ public sealed class IdempotencyRecordConfiguration : IEntityTypeConfiguration<Id
         builder.HasIndex(x => new { x.ClientId, x.Key }).IsUnique();
     }
 }
+
+public sealed class JobRunConfiguration : IEntityTypeConfiguration<JobRunRecord>
+{
+    public void Configure(EntityTypeBuilder<JobRunRecord> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.ToTable("job_runs");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.JobName).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Instance).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Status).HasMaxLength(16).IsRequired();
+        builder.Property(x => x.Error).HasMaxLength(2000);
+        builder.HasIndex(x => new { x.JobName, x.StartedAt });
+    }
+}

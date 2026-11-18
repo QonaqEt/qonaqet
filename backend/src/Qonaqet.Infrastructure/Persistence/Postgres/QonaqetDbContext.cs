@@ -21,6 +21,8 @@ public class QonaqetDbContext(DbContextOptions options) : DbContext(options)
 
     public DbSet<IdempotencyRecordRow> IdempotencyRecords => Set<IdempotencyRecordRow>();
 
+    public DbSet<JobRunRecord> JobRuns => Set<JobRunRecord>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         ArgumentNullException.ThrowIfNull(configurationBuilder);
