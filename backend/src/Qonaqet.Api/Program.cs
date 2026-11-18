@@ -6,8 +6,13 @@ namespace Qonaqet.Api;
 
 public sealed class Program
 {
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
+        if (HealthProbe.IsRequested(args))
+        {
+            return HealthProbe.RunHttp();
+        }
+
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddQonaqetWeb("v1", "QONAQET API v1");
@@ -19,5 +24,6 @@ public sealed class Program
         app.UseQonaqetWeb();
 
         app.Run();
+        return 0;
     }
 }

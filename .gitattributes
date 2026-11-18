@@ -1,0 +1,4 @@
+# Konteynerdə işləyən fayllar Windows checkout-unda da LF qalmalıdır (CRLF ilə shell skriptləri qırılır).
+*.sh text eol=lf
+*.Dockerfile text eol=lf
+Dockerfile text eol=lf
