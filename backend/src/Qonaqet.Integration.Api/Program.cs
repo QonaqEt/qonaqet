@@ -1,4 +1,5 @@
 using Qonaqet.Infrastructure;
+using Qonaqet.Infrastructure.Web;
 
 namespace Qonaqet.Integration.Api;
 
@@ -8,12 +9,12 @@ public sealed class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddControllers();
+        builder.Services.AddQonaqetWeb("partner-v1", "QONAQET Partner API v1");
         builder.Services.AddInfrastructure(builder.Configuration);
 
         var app = builder.Build();
 
-        app.MapControllers();
+        app.UseQonaqetWeb();
 
         app.Run();
     }
