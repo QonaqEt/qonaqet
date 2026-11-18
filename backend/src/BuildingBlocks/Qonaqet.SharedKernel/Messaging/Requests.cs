@@ -3,14 +3,20 @@ namespace Qonaqet.SharedKernel.Messaging;
 /// <summary>Dispatcher-in göndərə bildiyi hər sorğu. Birbaşa deyil, <see cref="ICommand"/> / <see cref="IQuery{TResponse}"/> ilə işlədilir.</summary>
 public interface IRequest<TResponse>;
 
+/// <summary>Bütün əmrlərin qeyri-generik marker-i (UnitOfWork yalnız əmrlərə tətbiq olunur).</summary>
+public interface ICommandBase;
+
+/// <summary>Bütün oxuma sorğularının qeyri-generik marker-i.</summary>
+public interface IQueryBase;
+
 /// <summary>Vəziyyəti dəyişən, dəyər qaytarmayan əmr.</summary>
-public interface ICommand : IRequest<Result>;
+public interface ICommand : IRequest<Result>, ICommandBase;
 
 /// <summary>Vəziyyəti dəyişən və dəyər (adətən yeni ID) qaytaran əmr.</summary>
-public interface ICommand<TResponse> : IRequest<Result<TResponse>>;
+public interface ICommand<TResponse> : IRequest<Result<TResponse>>, ICommandBase;
 
 /// <summary>Vəziyyəti dəyişməyən oxuma sorğusu.</summary>
-public interface IQuery<TResponse> : IRequest<Result<TResponse>>;
+public interface IQuery<TResponse> : IRequest<Result<TResponse>>, IQueryBase;
 
 /// <summary>Bir sorğu tipinin yeganə handler-i. Birbaşa deyil, aşağıdakı ixtisaslaşmış interfeyslərlə implement olunur.</summary>
 public interface IRequestHandler<in TRequest, TResponse>
