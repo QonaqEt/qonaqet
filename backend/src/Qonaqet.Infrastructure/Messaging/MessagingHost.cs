@@ -22,9 +22,7 @@ public static class MessagingHostRegistration
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         services.Configure<OutboxRelayOptions>(configuration.GetSection(OutboxRelayOptions.SectionName));
-        services.AddSingleton<RabbitMqConnection>();
         services.AddSingleton<IEventBus, RabbitMqEventBus>();
 
         services.AddScoped<IOutboxStore, MongoOutboxStore>();

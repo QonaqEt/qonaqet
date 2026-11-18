@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Qonaqet.Infrastructure.Observability;
 using Qonaqet.SharedKernel;
 using Qonaqet.SharedKernel.Validation;
 
@@ -38,6 +40,7 @@ public static class WebHostExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
 
+        app.UseMiddleware<CorrelationIdMiddleware>();
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
@@ -45,6 +48,14 @@ public static class WebHostExtensions
         {
             app.MapOpenApi();
         }
+
+        // Liveness: proses cavab verir (store yoxlanmır). Readiness: bütün store-lar.
+        app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains(StoreHealthChecks.ReadyTag),
+            ResponseWriter = HealthResponseWriter.WriteAsync,
+        });
 
         app.MapControllers();
         return app;

@@ -1,4 +1,5 @@
 using Qonaqet.Infrastructure;
+using Qonaqet.Infrastructure.Observability;
 using Qonaqet.Infrastructure.Jobs;
 using Qonaqet.Infrastructure.Messaging;
 
@@ -10,6 +11,7 @@ public static class Program
     {
         var builder = Host.CreateApplicationBuilder(args);
 
+        builder.AddQonaqetObservability("qonaqet-worker");
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddMessagingHost(builder.Configuration);
 
