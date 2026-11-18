@@ -72,6 +72,24 @@ public sealed class SourceScanTests
     }
 
     [Fact]
+    public void IncludeDeleted_rule_allows_only_admin_and_persistence()
+    {
+        const string call = "var all = await repository.IncludeDeleted().FindAsync(filter, ct);";
+
+        Assert.NotEmpty(ForbiddenSource.IncludeDeletedOutsideAdmin.Violations("src/Qonaqet.Application/Features/Gifts/Queries/X.cs", call));
+        Assert.Empty(ForbiddenSource.IncludeDeletedOutsideAdmin.Violations("src/Qonaqet.Application/Features/Admin/Users/X.cs", call));
+        Assert.Empty(ForbiddenSource.IncludeDeletedOutsideAdmin.Violations("src/Qonaqet.Infrastructure/Persistence/Mongo/SoftDeleteRepository.cs", call));
+    }
+
+    [Fact]
+    public void Source_tree_reads_deleted_records_only_in_admin_features()
+    {
+        var violations = Scan([ForbiddenSource.IncludeDeletedOutsideAdmin]);
+
+        Assert.True(violations.Count == 0, "IncludeDeleted() yalnız admin endpoint-ləri üçündür (CLAUDE.md → Soft delete):\n" + string.Join('\n', violations));
+    }
+
+    [Fact]
     public void Comment_stripping_keeps_strings_and_line_numbers()
     {
         const string source = "var a = \"// not a comment\";\n/* line 2\nline 3 */ var b = @\"x\"\"y\";\n// line 4\nvar c = 1;";

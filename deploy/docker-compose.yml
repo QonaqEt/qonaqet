@@ -20,6 +20,7 @@ x-backend-env: &backend-env
   App__PublicBaseUrl: ${APP_PUBLIC_BASE_URL:-http://localhost:4200}
   Mongo__ConnectionString: mongodb://mongo:27017/?replicaSet=rs0
   Mongo__Database: ${MONGO_DATABASE:-qonaqet}
+  Mongo__ApplyMigrationsOnStartup: "true"
   ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-qonaqet};Username=${POSTGRES_USER:-qonaqet};Password=${POSTGRES_PASSWORD:-qonaqet-dev-only}
   Valkey__ConnectionString: valkey:6379
   RabbitMq__Uri: amqp://${RABBITMQ_USER:-qonaqet}:${RABBITMQ_PASSWORD:-qonaqet-dev-only}@rabbitmq:5672/

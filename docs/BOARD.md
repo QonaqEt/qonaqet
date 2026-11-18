@@ -8,7 +8,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | Epic | Ad | Status | İşləyən | Task-lar | Gözlədiyi |
 |---|---|---|---|---|---|
 | [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 18/18 | — |
-| [E01](epics/E01.md) | Backend foundation | 🔄 in-progress | @Tapdiq49 | 10/17 | — |
+| [E01](epics/E01.md) | Backend foundation | 🔄 in-progress | @Tapdiq49 | 11/17 | — |
 | [E02](epics/E02.md) | Identity & users | ⬜ todo | — | 0/7 | E01 |
 | [E03](epics/E03.md) | Files, email & notifications | ⬜ todo | — | 0/5 | E01 |
 | [E04](epics/E04.md) | Businesses & catalog | ⬜ todo | — | 0/6 | E02 |
@@ -61,7 +61,7 @@ Yoxdur.
 
 ## E01 — Backend foundation
 
-🔄 in-progress · @Tapdiq49 · 10/17 task
+🔄 in-progress · @Tapdiq49 · 11/17 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -71,7 +71,7 @@ Yoxdur.
 | ✅ | E01-T04 | Öz CQRS dispatcher-imiz | backend | p0 | M |
 | ✅ | E01-T05 | Pipeline behavior-ları | backend | p0 | L |
 | ✅ | E01-T06 | Öz validasiya çərçivəmiz | backend | p0 | S |
-| ⬜ | E01-T07 | Mongo: context, soft-delete repository, index runner | backend | p0 | L |
+| ✅ | E01-T07 | Mongo: context, soft-delete repository, index runner | backend | p0 | L |
 | ⬜ | E01-T08 | EF Core: DbContext, interceptor-lar, ilk migrasiya | backend | p0 | L |
 | ⬜ | E01-T09 | Outbox relay, RabbitMQ event bus, inbox | backend | p0 | L |
 | ⬜ | E01-T10 | Valkey: cache, distributed lock, rate limiter | backend | p0 | M |
