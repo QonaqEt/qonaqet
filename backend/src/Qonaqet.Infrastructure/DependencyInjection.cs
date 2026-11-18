@@ -4,6 +4,7 @@ using Qonaqet.Application;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Infrastructure.Documents.Csv;
+using Qonaqet.Infrastructure.Documents.Qr;
 using Qonaqet.Infrastructure.Persistence;
 using Qonaqet.SharedKernel;
 using Qonaqet.Infrastructure.Messaging;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<IAggregateTracker, AggregateTracker>();
         services.AddSingleton<ICsvService, CsvService>();
+        services.AddSingleton<IQrCodeEncoder, QrEncoder>();
         services.AddMessaging(typeof(ApplicationAssembly).Assembly);
         services.AddApplicationPipeline();
 
