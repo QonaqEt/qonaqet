@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Qonaqet.Api/Qonaqet.Api.csproj" />
+    <ProjectReference Include="../../src/Qonaqet.Integration.Api/Qonaqet.Integration.Api.csproj" />
+    <ProjectReference Include="../../src/Qonaqet.Worker/Qonaqet.Worker.csproj" />
+  </ItemGroup>
+
+</Project>

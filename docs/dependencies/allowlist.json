@@ -39,6 +39,7 @@
     { "name": "OpenTelemetry.Exporter.OpenTelemetryProtocol", "publisher": "CNCF", "license": "Apache-2.0", "reason": "Müşahidə" },
     { "name": "xunit.v3", "publisher": ".NET Foundation", "license": "Apache-2.0", "reason": "Test" },
     { "name": "Microsoft.AspNetCore.Mvc.Testing", "publisher": "Microsoft", "license": "MIT", "reason": "Test" },
+    { "name": "Microsoft.Testing.Extensions.CodeCoverage", "publisher": "Microsoft", "license": "Microsoft .NET Library (pulsuz, yalnız test)", "reason": "Microsoft.Testing.Platform üzərində cobertura coverage (ADR 0005)" },
     { "name": "Testcontainers", "publisher": "Docker Inc.", "license": "MIT", "reason": "Integration test" }
   ],
   "npm": [

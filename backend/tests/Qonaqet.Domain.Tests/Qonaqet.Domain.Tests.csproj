@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Qonaqet.Domain/Qonaqet.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

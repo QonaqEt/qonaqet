@@ -106,31 +106,39 @@ jobs:
           cache: true
           cache-dependency-path: backend/**/packages.lock.json
 
+      # dotnet əmrləri backend/ içindən işləyir ki, backend/global.json (SDK pini + MTP runner) tətbiq olunsun.
       - name: Restore (locked mode)
         if: steps.sln.outputs.present == 'true'
-        run: dotnet restore "$SOLUTION" --locked-mode
+        working-directory: backend
+        run: dotnet restore Qonaqet.sln --locked-mode
 
       - name: Build (warnings as errors)
         if: steps.sln.outputs.present == 'true'
-        run: dotnet build "$SOLUTION" --configuration Release --no-restore -warnaserror
+        working-directory: backend
+        run: dotnet build Qonaqet.sln --configuration Release --no-restore -warnaserror
 
       - name: Unit testlər
         if: steps.sln.outputs.present == 'true'
+        working-directory: backend
         run: |
-          for project in backend/tests/Qonaqet.Domain.Tests backend/tests/Qonaqet.Application.Tests; do
-            dotnet test "$project" --configuration Release --no-build \
-              --collect "Code Coverage;Format=cobertura" --results-directory "$RESULTS/unit"
+          # Test runner Microsoft.Testing.Platform-dır (backend/global.json → test.runner):
+          # layihə `--project` ilə verilir, coverage `--coverage` ilə toplanır (ADR 0005).
+          for project in tests/Qonaqet.Domain.Tests tests/Qonaqet.Application.Tests; do
+            dotnet test --project "$project" --configuration Release --no-build \
+              --coverage --coverage-output-format cobertura --results-directory "$GITHUB_WORKSPACE/$RESULTS/unit"
           done
 
       - name: Arxitektura testləri
         if: steps.sln.outputs.present == 'true'
-        run: dotnet test backend/tests/Qonaqet.ArchitectureTests --configuration Release --no-build
+        working-directory: backend
+        run: dotnet test --project tests/Qonaqet.ArchitectureTests --configuration Release --no-build
 
       - name: Integration testlər (Testcontainers)
         if: steps.sln.outputs.present == 'true'
+        working-directory: backend
         run: |
-          dotnet test backend/tests/Qonaqet.IntegrationTests --configuration Release --no-build \
-            --collect "Code Coverage;Format=cobertura" --results-directory "$RESULTS/integration"
+          dotnet test --project tests/Qonaqet.IntegrationTests --configuration Release --no-build \
+            --coverage --coverage-output-format cobertura --results-directory "$GITHUB_WORKSPACE/$RESULTS/integration"
 
       - name: Coverage xülasəsi
         if: ${{ !cancelled() && steps.sln.outputs.present == 'true' }}

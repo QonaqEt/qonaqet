@@ -16,3 +16,4 @@ PR ilə təsdiqlənir (`CLAUDE.md` → "How Claude Code works", 7).
 | [0002](./0002-object-storage-rustfs.md) | Obyekt saxlama: RustFS | Accepted (istisna) | 6 ayda bir |
 | [0003](./0003-allowlist-scope-direct-dependencies.md) | Allowlist yalnız birbaşa asılılıqlara tətbiq olunur | Accepted | E20 təhlükəsizlik baxışında |
 | [0004](./0004-work-tracking-in-markdown.md) | İş izləmə repo-dakı markdown-dadır | Accepted | komanda böyüyəndə |
+| [0005](./0005-test-runner-microsoft-testing-platform.md) | Test runner: Microsoft.Testing.Platform + CodeCoverage | Proposed | coverage lisenziyası dəyişəndə |
