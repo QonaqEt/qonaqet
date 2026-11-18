@@ -36,7 +36,7 @@ public sealed class MessagingFixture : IAsyncLifetime
                 .WithEnvironment("RABBITMQ_DEFAULT_USER", "test")
                 .WithEnvironment("RABBITMQ_DEFAULT_PASS", "test-only")
                 .WithPortBinding(5672, true)
-                .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("rabbitmq-diagnostics", "-q", "check_port_connectivity"))
+                .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("Server startup complete"))
                 .Build();
             await _rabbit.StartAsync().ConfigureAwait(false);
         }

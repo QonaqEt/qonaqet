@@ -88,13 +88,6 @@ public sealed partial class RabbitMqConsumerHost(
 {
     private readonly List<IChannel> _channels = [];
 
-    public static string QueueName(RabbitMqOptions options, IIntegrationEventConsumer consumer)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(consumer);
-        return $"{options.QueuePrefix}.{consumer.Name}";
-    }
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var conn = await connection.GetAsync(stoppingToken).ConfigureAwait(false);
@@ -102,7 +95,8 @@ public sealed partial class RabbitMqConsumerHost(
         {
             var channel = await conn.CreateChannelAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
             _channels.Add(channel);
-            var queue = await DeclareAsync(channel, consumer, stoppingToken).ConfigureAwait(false);
+            await connection.DeclareTopologyAsync(channel, stoppingToken).ConfigureAwait(false);
+            var queue = RabbitMqConnection.QueueName(connection.Options, consumer);
             await channel.BasicQosAsync(0, 16, false, stoppingToken).ConfigureAwait(false);
 
             var handler = new AsyncEventingBasicConsumer(channel);
@@ -111,34 +105,6 @@ public sealed partial class RabbitMqConsumerHost(
         }
 
         await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
-    }
-
-    private async Task<string> DeclareAsync(IChannel channel, IIntegrationEventConsumer consumer, CancellationToken cancellationToken)
-    {
-        var options = connection.Options;
-        await connection.DeclareTopologyAsync(channel, cancellationToken).ConfigureAwait(false);
-        var queue = QueueName(options, consumer);
-        var dead = queue + ".dead";
-
-        await channel.QueueDeclareAsync(dead, durable: true, exclusive: false, autoDelete: false, cancellationToken: cancellationToken).ConfigureAwait(false);
-        await channel.QueueBindAsync(dead, options.DeadLetterExchange, queue, cancellationToken: cancellationToken).ConfigureAwait(false);
-        await channel.QueueDeclareAsync(
-            queue,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: new Dictionary<string, object?>
-            {
-                ["x-dead-letter-exchange"] = options.DeadLetterExchange,
-                ["x-dead-letter-routing-key"] = queue,
-            },
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-        foreach (var type in consumer.EventTypes)
-        {
-            await channel.QueueBindAsync(queue, options.Exchange, type, cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-
-        return queue;
     }
 
     private async Task OnReceivedAsync(IChannel channel, IIntegrationEventConsumer consumer, BasicDeliverEventArgs delivery, CancellationToken cancellationToken)

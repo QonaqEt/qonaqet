@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.Extensions.Options;
+using Qonaqet.Infrastructure.Messaging.Inbox;
 using RabbitMQ.Client;
 
 namespace Qonaqet.Infrastructure.Messaging.RabbitMq;
@@ -20,7 +21,7 @@ public sealed class RabbitMqOptions
 }
 
 /// <summary>Prosesdə tək, tənbəl açılan RabbitMQ bağlantısı (avtomatik bərpa ilə).</summary>
-public sealed class RabbitMqConnection(IOptions<RabbitMqOptions> options) : IAsyncDisposable
+public sealed class RabbitMqConnection(IOptions<RabbitMqOptions> options, IEnumerable<IIntegrationEventConsumer> consumers) : IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IConnection? _connection;
@@ -57,12 +58,46 @@ public sealed class RabbitMqConnection(IOptions<RabbitMqOptions> options) : IAsy
         }
     }
 
-    /// <summary>Exchange-ləri elan edir (idempotent).</summary>
+    public static string QueueName(RabbitMqOptions options, IIntegrationEventConsumer consumer)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(consumer);
+        return $"{options.QueuePrefix}.{consumer.Name}";
+    }
+
+    /// <summary>
+    /// Exchange-ləri, hər consumer-in queue-sunu, dead-letter queue-sunu və binding-ləri elan edir (idempotent).
+    /// Publisher də bunu çağırır ki, consumer hələ qalxmamış göndərilən hadisə itməsin.
+    /// </summary>
     public async Task DeclareTopologyAsync(IChannel channel, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        await channel.ExchangeDeclareAsync(Options.Exchange, ExchangeType.Topic, durable: true, cancellationToken: cancellationToken).ConfigureAwait(false);
-        await channel.ExchangeDeclareAsync(Options.DeadLetterExchange, ExchangeType.Direct, durable: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var o = Options;
+        await channel.ExchangeDeclareAsync(o.Exchange, ExchangeType.Topic, durable: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await channel.ExchangeDeclareAsync(o.DeadLetterExchange, ExchangeType.Direct, durable: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        foreach (var consumer in consumers)
+        {
+            var queue = QueueName(o, consumer);
+            var dead = queue + ".dead";
+            await channel.QueueDeclareAsync(dead, durable: true, exclusive: false, autoDelete: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await channel.QueueBindAsync(dead, o.DeadLetterExchange, queue, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await channel.QueueDeclareAsync(
+                queue,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: new Dictionary<string, object?>
+                {
+                    ["x-dead-letter-exchange"] = o.DeadLetterExchange,
+                    ["x-dead-letter-routing-key"] = queue,
+                },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            foreach (var type in consumer.EventTypes)
+            {
+                await channel.QueueBindAsync(queue, o.Exchange, type, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+        }
     }
 
     public async ValueTask DisposeAsync()
