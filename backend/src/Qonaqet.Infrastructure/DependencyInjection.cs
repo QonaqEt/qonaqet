@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Qonaqet.Application;
+using Qonaqet.Infrastructure.Messaging;
 
 namespace Qonaqet.Infrastructure;
 
@@ -11,7 +13,9 @@ public static class DependencyInjection
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        // Store-lar, messaging, cache və scheduler sonrakı E01 task-ları ilə əlavə olunur.
+        services.AddMessaging(typeof(ApplicationAssembly).Assembly);
+
+        // Store-lar, outbox, cache və scheduler sonrakı E01 task-ları ilə əlavə olunur.
         return services;
     }
 }
