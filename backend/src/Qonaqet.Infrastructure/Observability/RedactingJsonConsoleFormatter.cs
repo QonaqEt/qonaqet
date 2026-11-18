@@ -18,6 +18,9 @@ public sealed partial class RedactingJsonConsoleFormatter() : ConsoleFormatter(F
     public const string FormatterName = "qonaqet-json";
     public const string Mask = "***";
 
+    // Log mətni HTML-də göstərilmir: Azərbaycan hərfləri və "+" escape olunmadan oxunaqlı qalsın.
+    private static readonly JsonWriterOptions WriterOptions = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
     private static readonly string[] SensitiveFragments =
         ["password", "secret", "token", "otp", "authorization", "cookie", "cvv", "iban", "email", "phone", "apikey"];
 
@@ -47,7 +50,7 @@ public sealed partial class RedactingJsonConsoleFormatter() : ConsoleFormatter(F
             : logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception) ?? string.Empty;
 
         using var buffer = new MemoryStream();
-        using (var json = new Utf8JsonWriter(buffer))
+        using (var json = new Utf8JsonWriter(buffer, WriterOptions))
         {
             json.WriteStartObject();
             json.WriteString("timestamp", DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));

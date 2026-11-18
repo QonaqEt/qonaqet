@@ -7,8 +7,13 @@ namespace Qonaqet.Worker;
 
 public static class Program
 {
-    public static void Main(string[] args)
+    public static int Main(string[] args)
     {
+        if (HealthProbe.IsRequested(args))
+        {
+            return HealthProbe.RunHeartbeat(DateTimeOffset.UtcNow);
+        }
+
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.AddQonaqetObservability("qonaqet-worker");
@@ -18,6 +23,8 @@ public static class Program
         builder.Services.AddJobScheduler();
 
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
+        builder.Services.AddHostedService<WorkerHeartbeat>();
         builder.Build().Run();
+        return 0;
     }
 }

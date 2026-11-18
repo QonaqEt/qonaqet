@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Infrastructure.Persistence.Postgres.Interceptors;
 
@@ -63,7 +64,30 @@ public sealed class PostgresMigrationHostedService(IServiceScopeFactory scopes, 
 
         await using var scope = scopes.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
-        await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+
+        // Bir neçə host (Api, Integration.Api, Worker) eyni anda qalxır: migrasiya advisory lock ilə ardıcıllaşır.
+        await using var lockConnection = new NpgsqlConnection(context.Database.GetConnectionString());
+        await lockConnection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await ExecuteAsync(lockConnection, "SELECT pg_advisory_lock(@key)", cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            await ExecuteAsync(lockConnection, "SELECT pg_advisory_unlock(@key)", CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Migrasiya kilidinin sabit açarı.</summary>
+    public const long MigrationLockKey = 0x51_4F_4E_41_51_45_54_01;
+
+    private static async Task ExecuteAsync(NpgsqlConnection connection, string sql, CancellationToken cancellationToken)
+    {
+        await using var command = new NpgsqlCommand(sql, connection);
+        command.Parameters.AddWithValue("key", MigrationLockKey);
+        command.CommandTimeout = 300;
+        await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
