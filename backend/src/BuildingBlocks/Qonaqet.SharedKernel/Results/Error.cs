@@ -4,12 +4,12 @@ namespace Qonaqet.SharedKernel;
 /// Sabit <see cref="Code"/> sətri (məs. <c>gift_expired</c>) və insan oxuyan mesaj.
 /// Kodlar API müqaviləsinin hissəsidir və heç vaxt dəyişmir.
 /// </summary>
-public sealed record Error
+public record Error
 {
     /// <summary>"Xəta yoxdur" — uğurlu nəticələrin daxili dəyəri.</summary>
     public static readonly Error None = new(string.Empty, string.Empty, ErrorType.Failure);
 
-    private Error(string code, string message, ErrorType type)
+    private protected Error(string code, string message, ErrorType type)
     {
         Code = code;
         Message = message;
