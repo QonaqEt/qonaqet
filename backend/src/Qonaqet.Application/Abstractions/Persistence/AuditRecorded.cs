@@ -67,3 +67,10 @@ public static class BusinessAuditActions
     public const string AddMember = "BusinessAddMember";
     public const string RemoveMember = "BusinessRemoveMember";
 }
+
+/// <summary>Kateqoriya və təsdiq əməliyyatlarının audit adları.</summary>
+public static class CategoryAuditActions
+{
+    public const string Create = "CategoryCreate";
+    public const string Update = "CategoryUpdate";
+}
