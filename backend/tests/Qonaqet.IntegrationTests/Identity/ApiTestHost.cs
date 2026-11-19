@@ -87,6 +87,23 @@ public sealed class ApiTestHost : IAsyncDisposable
         return await JsonAsync(verify);
     }
 
+    /// <summary>Bearer token (varsa) və JSON body (varsa) ilə istənilən metod.</summary>
+    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? accessToken, object? body = null)
+    {
+        using var request = new HttpRequestMessage(method, new Uri(path, UriKind.Relative));
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body);
+        }
+
+        if (accessToken is not null)
+        {
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        }
+
+        return await Client.SendAsync(request, TestContext.Current.CancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Bearer token ilə GET.</summary>
     public async Task<HttpResponseMessage> GetAsync(string path, string? accessToken)
     {
