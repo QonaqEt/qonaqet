@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddPush(configuration);
         services.AddIdentityServices(configuration);
         services.AddBusinesses();
+        services.AddCategories();
 
         // HTTP host-ları (AddQonaqetWeb) öz aktorlarını əvvəlcədən qeyd edir; Worker anonim aktor alır.
         services.TryAddSingleton<AnonymousActor>();
