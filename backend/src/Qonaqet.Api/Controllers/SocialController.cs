@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Qonaqet.Application.Features.Social.Commands.CancelClaim;
 using Qonaqet.Application.Features.Social.Commands.ClaimOffer;
 using Qonaqet.Application.Features.Social.Queries.GetMyClaims;
 using Qonaqet.Application.Features.Social.Queries.ListOffers;
@@ -30,6 +31,10 @@ public sealed class SocialController(ISender sender) : ControllerBase
         var result = await sender.Send(new ClaimOfferCommand(OfferId.From(offerId)), cancellationToken);
         return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : result.ToActionResult();
     }
+
+    [HttpPost("claims/{claimId:guid}/cancel")]
+    public async Task<IActionResult> CancelClaim(Guid claimId, CancellationToken cancellationToken) =>
+        (await sender.Send(new CancelClaimCommand(ClaimId.From(claimId)), cancellationToken)).ToActionResult();
 
     [HttpGet("me/claims")]
     [EnableRateLimiting(RateLimitPolicies.Claim)]

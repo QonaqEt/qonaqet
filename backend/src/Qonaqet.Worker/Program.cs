@@ -1,3 +1,4 @@
+using Qonaqet.Application.Features.Social.Jobs;
 using Qonaqet.Application.Features.Verification.Jobs;
 using Qonaqet.Infrastructure;
 using Qonaqet.Infrastructure.Documents.Pdf;
@@ -33,6 +34,9 @@ public static class Program
 
         // Saatda bir yoxlayır; hər təsdiq üçün xatırlatma bir dəfə gedir (idempotent), ona görə tez-tez işləmək təhlükəsizdir.
         builder.Services.AddScheduledJob<VerificationRemindersJob>(VerificationRemindersJob.Name, TimeSpan.FromHours(1));
+
+        // 30 dəqiqəlik claim rezervlərini buraxır; hər claim atomik status keçidi ilə götürülür.
+        builder.Services.AddScheduledJob<ExpireClaimsJob>(ExpireClaimsJob.Name, TimeSpan.FromMinutes(1));
 
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Services.AddHostedService<WorkerHeartbeat>();
