@@ -42,6 +42,16 @@ public sealed class RefreshSessionHandler(
             return AuthErrors.RefreshTokenInvalid;
         }
 
+        if (token.RevokeReason is RefreshTokenRevokeReason.AccountBlocked)
+        {
+            return AuthErrors.UserBlocked;
+        }
+
+        if (token.RevokeReason is RefreshTokenRevokeReason.AccountDeleted)
+        {
+            return AuthErrors.RefreshTokenInvalid;
+        }
+
         if (token.IsRevoked)
         {
             await refreshTokens.RevokeAllForUserAsync(token.UserId, now, RefreshTokenRevokeReason.ReuseDetected, cancellationToken).ConfigureAwait(false);
@@ -58,6 +68,12 @@ public sealed class RefreshSessionHandler(
         {
             await refreshTokens.TryRevokeAsync(token.Id, now, RefreshTokenRevokeReason.AccountDeleted, null, cancellationToken).ConfigureAwait(false);
             return AuthErrors.RefreshTokenInvalid;
+        }
+
+        if (user.IsBlocked)
+        {
+            await refreshTokens.RevokeAllForUserAsync(user.Id, now, RefreshTokenRevokeReason.AccountBlocked, cancellationToken).ConfigureAwait(false);
+            return AuthErrors.UserBlocked;
         }
 
         var (tokens, newId) = await sessions.IssueAsync(user, now, cancellationToken).ConfigureAwait(false);

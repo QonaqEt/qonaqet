@@ -26,3 +26,10 @@ public interface IIdempotentCommand;
 /// hadisələri outbox-a yazıb commit edir; exception isə yenə rollback edir.
 /// </summary>
 public interface ICommitsOnFailure;
+
+/// <summary>
+/// Yalnız aktiv (bloklanmamış, silinməmiş) hesab üçün: claim yaratmaq, hədiyyə göndərmək kimi əmrlər. Authorization
+/// behavior hesabın vəziyyətini store-dan oxuyur; bloklanmış hesab <c>403 user_blocked</c> alır.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public sealed class RequiresActiveAccountAttribute : Attribute;

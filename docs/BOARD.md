@@ -9,14 +9,14 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 |---|---|---|---|---|---|
 | [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 18/18 | — |
 | [E01](epics/E01.md) | Backend foundation | ✅ done | @Tapdiq49 | 17/17 | — |
-| [E02](epics/E02.md) | Identity & users | 🔄 in-progress | @Tapdiq49 | 5/7 | — |
+| [E02](epics/E02.md) | Identity & users | 🔄 in-progress | @Tapdiq49 | 6/7 | — |
 | [E03](epics/E03.md) | Files, email & notifications | ⬜ todo · 🟢 götürülə bilər | — | 0/5 | — |
 | [E04](epics/E04.md) | Businesses & catalog | ⬜ todo | — | 0/6 | E02 |
 | [E05](epics/E05.md) | Categories & verification | ⬜ todo | — | 0/7 | E02, E03 |
-| [E06](epics/E06.md) | Social treating | ⬜ todo | — | 0/7 | E04, E05 |
+| [E06](epics/E06.md) | Social treating | ⬜ todo | — | 0/8 | E04, E05 |
 | [E07](epics/E07.md) | Payments & ledger | ⬜ todo | — | 0/6 | E02 |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ⬜ todo | — | 0/6 | E06, E07 |
-| [E09](epics/E09.md) | Gifting | ⬜ todo | — | 0/9 | E03, E04, E07 |
+| [E09](epics/E09.md) | Gifting | ⬜ todo | — | 0/10 | E03, E04, E07 |
 | [E10](epics/E10.md) | Corporate & CSR | ⬜ todo | — | 0/5 | E09 |
 | [E11](epics/E11.md) | Leaderboard & gamification | ⬜ todo | — | 0/6 | E06, E09 |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo | — | 0/4 | E05 |
@@ -85,7 +85,7 @@ Yoxdur.
 
 ## E02 — Identity & users
 
-🔄 in-progress · @Tapdiq49 · 5/7 task
+🔄 in-progress · @Tapdiq49 · 6/7 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -94,7 +94,7 @@ Yoxdur.
 | ✅ | E02-T03 | Rollar və avtorizasiya siyasətləri | backend | p0 | M |
 | ✅ | E02-T04 | Profil: GET/PATCH/DELETE me | backend | p0 | S |
 | ✅ | E02-T05 | FCM token-lərinin idarəsi | backend | p1 | XS |
-| ⬜ | E02-T06 | İstifadəçi bloklama | backend | p1 | S |
+| ✅ | E02-T06 | İstifadəçi bloklama | backend | p1 | S |
 | ⬜ | E02-T07 | Partial unique index-lər və email təkrar istifadəsi | backend | p1 | XS |
 
 ## E03 — Files, email & notifications
@@ -138,7 +138,7 @@ Yoxdur.
 
 ## E06 — Social treating
 
-⬜ todo · 0/7 task
+⬜ todo · 0/8 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -149,6 +149,7 @@ Yoxdur.
 | ⬜ | E06-T05 | Claim təhvili (staff tərəfi) | backend | p0 | M |
 | ⬜ | E06-T06 | Müddət bitmə job-u və rezervin buraxılması | backend | p0 | S |
 | ⬜ | E06-T07 | Məxfilik testləri | backend | p0 | M |
+| ⬜ | E06-T08 | Bloklanmış istifadəçi: claim qadağası və aktiv claim-lərin ləğvi | backend | p1 | S |
 
 ## E07 — Payments & ledger
 
@@ -178,7 +179,7 @@ Yoxdur.
 
 ## E09 — Gifting
 
-⬜ todo · 0/9 task
+⬜ todo · 0/10 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -191,6 +192,7 @@ Yoxdur.
 | ⬜ | E09-T07 | GiftRedeemed consumer-i | backend | p0 | M |
 | ⬜ | E09-T08 | Ləğv və refund | backend | p0 | M |
 | ⬜ | E09-T09 | Müddət bitməsi, xatırlatma və expiryAction | backend | p0 | L |
+| ⬜ | E09-T10 | Bloklanmış istifadəçi hədiyyə yarada bilmir | backend | p1 | XS |
 
 ## E10 — Corporate & CSR
 

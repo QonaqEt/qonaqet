@@ -52,6 +52,19 @@ public static class CurrentUserExtensions
     }
 }
 
+/// <summary>Hesabın vəziyyəti (<c>[RequiresActiveAccount]</c> yoxlaması üçün).</summary>
+public enum AccountStatus
+{
+    Active,
+    Blocked,
+    Missing,
+}
+
+public interface IAccountStatusReader
+{
+    Task<AccountStatus> GetAsync(Guid userId, CancellationToken cancellationToken);
+}
+
 /// <summary>Sorğu səviyyəli kontekst (HTTP başlıqlarından).</summary>
 public interface IRequestContext
 {

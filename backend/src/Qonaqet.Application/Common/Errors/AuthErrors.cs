@@ -14,6 +14,12 @@ public static class AuthErrors
     public static readonly Error UserNotFound =
         Error.NotFound("user_not_found", "İstifadəçi tapılmadı.");
 
+    public static readonly Error UserBlocked =
+        Error.Forbidden("user_blocked", "Hesabınız bloklanıb.");
+
+    public static readonly Error CannotBlockSelf =
+        Error.Conflict("cannot_block_self", "Özünüzü bloklaya bilməzsiniz.");
+
     public static readonly Error FirstNameRequired =
         Error.Validation("first_name_required", "Ad boş ola bilməz.");
 

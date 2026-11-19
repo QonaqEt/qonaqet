@@ -54,6 +54,13 @@ public sealed class User : AggregateRoot<UserId>
         private set => _fcmTokens = [.. value];
     }
 
+    /// <summary>Admin tərəfindən bloklanıb: giriş, sessiya yeniləmə və <c>[RequiresActiveAccount]</c> əmrləri qadağandır.</summary>
+    public bool IsBlocked { get; private set; }
+
+    public DateTimeOffset? BlockedAt { get; private set; }
+
+    public string? BlockReason { get; private set; }
+
     public bool ProfileCompleted => !string.IsNullOrWhiteSpace(FirstName);
 
     /// <summary>OTP ilə təsdiqlənmiş email üçün yeni hesab (rol: <see cref="Role.User"/>).</summary>
@@ -93,6 +100,37 @@ public sealed class User : AggregateRoot<UserId>
         }
 
         MarkUpdated(at, Id.Value);
+        return true;
+    }
+
+    /// <summary>Bloklayır və <see cref="UserBlocked"/> qaldırır; artıq bloklanıbsa heç nə etmir.</summary>
+    public bool Block(string reason, DateTimeOffset at, Guid? by)
+    {
+        if (IsBlocked)
+        {
+            return false;
+        }
+
+        IsBlocked = true;
+        BlockedAt = Guard.Utc(at);
+        BlockReason = Guard.NotNullOrWhiteSpace(reason).Trim();
+        MarkUpdated(at, by);
+        Raise(new UserBlocked(Id, at));
+        return true;
+    }
+
+    public bool Unblock(DateTimeOffset at, Guid? by)
+    {
+        if (!IsBlocked)
+        {
+            return false;
+        }
+
+        IsBlocked = false;
+        BlockedAt = null;
+        BlockReason = null;
+        MarkUpdated(at, by);
+        Raise(new UserUnblocked(Id, at));
         return true;
     }
 
