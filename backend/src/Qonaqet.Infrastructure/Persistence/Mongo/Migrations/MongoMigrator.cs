@@ -40,11 +40,25 @@ public sealed partial class MongoMigrator(IMongoDatabase database, MongoIndexRun
     private partial void LogBackfilled(string collection, long count);
 }
 
-/// <summary><c>Mongo:ApplyMigrationsOnStartup = true</c> olduqda migrasiyanı host qalxarkən işə salır.</summary>
-public sealed class MongoMigrationHostedService(MongoMigrator migrator, IOptions<MongoOptions> options) : IHostedService
+/// <summary>
+/// <c>Mongo:ApplyMigrationsOnStartup = true</c> olduqda migrasiyanı host qalxarkən işə salır, sonra
+/// (<c>Mongo:SeedReferenceData</c>) ilkin kateqoriyaları seed edir.
+/// </summary>
+public sealed class MongoMigrationHostedService(MongoMigrator migrator, Seed.CategorySeeder seeder, IOptions<MongoOptions> options) : IHostedService
 {
-    public Task StartAsync(CancellationToken cancellationToken) =>
-        options.Value.ApplyMigrationsOnStartup ? migrator.RunAsync(cancellationToken) : Task.CompletedTask;
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        if (!options.Value.ApplyMigrationsOnStartup)
+        {
+            return;
+        }
+
+        await migrator.RunAsync(cancellationToken).ConfigureAwait(false);
+        if (options.Value.SeedReferenceData)
+        {
+            await seeder.RunAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

@@ -15,4 +15,10 @@ public sealed class MongoOptions
     /// testlər və konfiqurasiyasız host-lar üçün default bağlıdır ki, startup Mongo gözləməsin.
     /// </summary>
     public bool ApplyMigrationsOnStartup { get; set; }
+
+    /// <summary>
+    /// Migrasiyadan sonra ilkin istinad datasını (4 kateqoriya + default hovuzları) idempotent seed edir. Yalnız
+    /// <see cref="ApplyMigrationsOnStartup"/> açıq olduqda işləyir; bütün mühitlərdə default açıqdır.
+    /// </summary>
+    public bool SeedReferenceData { get; set; } = true;
 }
