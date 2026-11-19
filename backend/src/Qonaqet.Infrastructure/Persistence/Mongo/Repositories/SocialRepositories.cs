@@ -89,6 +89,12 @@ public sealed class OfferRepository(MongoContext context, IAggregateTracker trac
             Builders<Offer>.Update.Inc(x => x.Remaining, 1), cancellationToken).ConfigureAwait(false);
     }
 
+    public Task<long> CascadeDeleteForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken) =>
+        CascadeSoftDeleteAsync(Filter.Eq(x => x.BusinessId, businessId), businessId.Value, userId, BusinessCascade.DeleteReason, cancellationToken);
+
+    public Task<long> CascadeRestoreForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken) =>
+        CascadeRestoreAsync(Filter.Eq(x => x.BusinessId, businessId), businessId.Value, userId, BusinessCascade.DeleteReason, cancellationToken);
+
     public async Task<IReadOnlyList<Offer>> ListDonatedByAsync(Guid donorUserId, int limit, CancellationToken cancellationToken)
     {
         var filter = Active(Filter.Eq(x => x.DonorUserId, donorUserId));
@@ -188,6 +194,10 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
     public Task<long> CountRedeemedForOfferAsync(OfferId offerId, CancellationToken cancellationToken) =>
         Collection.CountDocumentsAsync(
             Active(Filter.And(Filter.Eq(x => x.OfferId, offerId), Filter.Eq(x => x.Status, ClaimStatus.Redeemed))), cancellationToken: cancellationToken);
+
+    public async Task<IReadOnlyList<Claim>> ListReservedForBusinessAsync(BusinessId businessId, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.And(Filter.Eq(x => x.BusinessId, businessId), Filter.Eq(x => x.Status, ClaimStatus.Reserved))))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public async Task<IReadOnlyList<Claim>> ListReservedForUserAsync(Guid userId, CancellationToken cancellationToken) =>
         await Collection.Find(Active(Filter.And(Filter.Eq(x => x.RecipientUserId, userId), Filter.Eq(x => x.Status, ClaimStatus.Reserved))))
