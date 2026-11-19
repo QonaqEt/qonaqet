@@ -68,9 +68,17 @@ docker compose -f deploy/docker-compose.yml up -d --wait
   Dockerfile-ları müvafiq skeleton task-ları ilə gəlir.
 - Yoxlama: `python3 -m unittest discover -s deploy/tests` (statik) və `deploy/tests/smoke.sh` (real stack).
 
+### Giriş (dev)
+
+Api host-da giriş email OTP ilədir: `POST /api/v1/auth/otp/send` → `POST /api/v1/auth/otp/verify`
+(cavabda `tokens.accessToken` 15 dəq, `tokens.refreshToken` 30 gün, hər `POST /api/v1/auth/refresh`-də rotasiya
+olunur). Email göndəricisi E03-ə qədər yoxdur: Development-də kod Api logunda `DEV giriş kodu` sətrindədir.
+Sirlər: `Jwt__SigningKey` (≥ 32 bayt) və `Security__TokenHashSecret`; Development-də verilməsə dev açarları işlənir,
+digər mühitlərdə məcburidir.
+
 ## Vəziyyət
 
-Repozitoriya **skeleton** mərhələsindədir: qovluq quruluşu qurulub, kod hələ yazılmayıb.
+Backend təməli (E01) və hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 
