@@ -67,9 +67,9 @@ public sealed partial class MongoIndexRunner(IMongoDatabase database, ILogger<Mo
     internal static CreateIndexModel<BsonDocument> ToModel(MongoIndexDefinition definition)
     {
         var options = new CreateIndexOptions<BsonDocument> { Name = definition.Name, Unique = definition.Unique ? true : null };
-        if (definition.Partial)
+        if (definition.PartialFilter is { } filter)
         {
-            options.PartialFilterExpression = MongoIndexDefinition.NotDeletedFilter;
+            options.PartialFilterExpression = filter;
         }
 
         return new CreateIndexModel<BsonDocument>(new BsonDocumentIndexKeysDefinition<BsonDocument>(definition.Keys), options);
@@ -96,8 +96,8 @@ public sealed partial class MongoIndexRunner(IMongoDatabase database, ILogger<Mo
         }
 
         var hasFilter = existing.TryGetValue("partialFilterExpression", out var filter);
-        return definition.Partial
-            ? hasFilter && filter.AsBsonDocument.Equals(MongoIndexDefinition.NotDeletedFilter)
+        return definition.PartialFilter is { } expected
+            ? hasFilter && filter.AsBsonDocument.Equals(expected)
             : !hasFilter;
     }
 
