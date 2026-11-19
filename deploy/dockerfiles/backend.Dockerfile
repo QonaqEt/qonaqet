@@ -27,6 +27,8 @@ COPY backend/src/Qonaqet.Infrastructure/*.csproj backend/src/Qonaqet.Infrastruct
 COPY backend/src/${PROJECT}/*.csproj backend/src/${PROJECT}/packages.lock.json src/${PROJECT}/
 RUN dotnet restore "src/${PROJECT}/${PROJECT}.csproj" --locked-mode
 
+# Email şablonlarının rəngləri design-tokens/tokens.json-dan embedded olunur (Infrastructure csproj).
+COPY design-tokens/tokens.json ../design-tokens/tokens.json
 COPY backend/src/ src/
 RUN dotnet publish "src/${PROJECT}/${PROJECT}.csproj" -c Release --no-restore -o /app \
     && mv "/app/${PROJECT}" /app/host

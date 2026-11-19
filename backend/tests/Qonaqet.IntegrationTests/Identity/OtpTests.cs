@@ -167,12 +167,17 @@ public sealed class OtpTests(MongoFixture mongo)
     [InlineData("Production", false)]
     public async Task Code_is_logged_only_in_development(string environment, bool logged)
     {
-        var logger = new CapturingLogger<LoggingOtpSender>();
-        var sender = new LoggingOtpSender(new TestEnvironment(environment), logger);
+        var logger = new CapturingLogger<Infrastructure.Email.EmailOtpSender>();
+        var queue = new CapturingEmailQueue();
+        var sender = new Infrastructure.Email.EmailOtpSender(new Infrastructure.Email.EmailTemplateRenderer(), queue, new TestEnvironment(environment), logger);
 
         await sender.SendAsync(Email, "482913", DateTimeOffset.UtcNow, TestContext.Current.CancellationToken);
 
         Assert.Equal(logged, logger.Messages.Any(m => m.Contains("482913", StringComparison.Ordinal)));
+        var email = Assert.Single(queue.Messages);
+        Assert.Equal(Email, email.To);
+        Assert.Contains("482913", email.Subject, StringComparison.Ordinal);
+        Assert.Contains("482913", email.HtmlBody, StringComparison.Ordinal);
     }
 
     private sealed class TestEnvironment(string name) : IHostEnvironment
@@ -184,6 +189,17 @@ public sealed class OtpTests(MongoFixture mongo)
         public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
 
         public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = null!;
+    }
+}
+
+public sealed class CapturingEmailQueue : Application.Abstractions.Services.IEmailQueue
+{
+    public List<Application.Abstractions.Services.EmailMessage> Messages { get; } = [];
+
+    public ValueTask EnqueueAsync(Application.Abstractions.Services.EmailMessage message, string kind, CancellationToken cancellationToken)
+    {
+        Messages.Add(message);
+        return ValueTask.CompletedTask;
     }
 }
 

@@ -18,8 +18,15 @@
     <PackageReference Include="RabbitMQ.Client" />
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="MailKit" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Email şablonları və dizayn token-ləri (tək mənbə: design-tokens/tokens.json) assembly-yə daxil edilir. -->
+    <EmbeddedResource Include="Email/Templates/**/*" />
+    <EmbeddedResource Include="../../../design-tokens/tokens.json" LogicalName="Qonaqet.DesignTokens.json" Link="Email/tokens.json" />
   </ItemGroup>
 
 </Project>
