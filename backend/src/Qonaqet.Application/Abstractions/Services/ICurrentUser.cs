@@ -10,7 +10,7 @@ public interface ICurrentUser
 
     IReadOnlySet<string> Roles { get; }
 
-    /// <summary>Biznes rollu aktorun biznesi (JWT <c>business_id</c>); yoxdursa <c>null</c>.</summary>
+    /// <summary>Biznes rollu aktorun əsas biznesi (JWT <c>business_id</c>; yalnız köhnə tək-biznes klientləri üçün). Giriş yoxlaması üçün işlətməyin — <c>BusinessAccess</c>.</summary>
     Guid? BusinessId { get; }
 
     /// <summary>Korporativ aktorun şirkəti (JWT <c>corporate_id</c>); yoxdursa <c>null</c>.</summary>
@@ -31,18 +31,8 @@ public static class CurrentUserExtensions
 
     public static bool IsAdmin(this ICurrentUser user) => user.IsInRole(Domain.Users.RoleNames.Admin);
 
-    /// <summary>Admin hər biznes üçün; staff/sahib yalnız öz biznesi üçün hərəkət edə bilər.</summary>
-    public static bool CanActForBusiness(this ICurrentUser user, Guid businessId)
-    {
-        ArgumentNullException.ThrowIfNull(user);
-        if (user.IsAdmin())
-        {
-            return true;
-        }
-
-        return user.BusinessId == businessId
-            && (user.IsInRole(Domain.Users.RoleNames.BusinessOwner) || user.IsInRole(Domain.Users.RoleNames.BusinessStaff));
-    }
+    // Biznes üzrə yoxlama JWT-dəki tək business_id ilə aparılmır (şəbəkə sahibi bir neçə biznesə malikdir, səssiz "default"
+    // biznes olmamalıdır): handler-lər Features/Businesses/Common/BusinessAccess-i üzvlüklə işlədir (E04-T06).
 
     /// <summary>Admin hər şirkət üçün; korporativ istifadəçi yalnız öz şirkəti üçün.</summary>
     public static bool CanActForCorporate(this ICurrentUser user, Guid corporateId)

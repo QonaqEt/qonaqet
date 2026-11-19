@@ -27,6 +27,9 @@ public sealed class BusinessRepository(MongoContext context, IAggregateTracker t
     public Task<bool> HasPendingApplicationAsync(Guid applicantUserId, CancellationToken cancellationToken) =>
         ExistsAsync(Filter.And(Filter.Eq(x => x.OwnerUserId, applicantUserId), Filter.Eq(x => x.Status, BusinessStatus.Pending)), cancellationToken);
 
+    public async Task<IReadOnlyList<Business>> ListByApplicantAsync(Guid applicantUserId, CancellationToken cancellationToken) =>
+        [.. (await FindAsync(Filter.Eq(x => x.OwnerUserId, applicantUserId), cancellationToken).ConfigureAwait(false)).OrderBy(b => b.CreatedAt)];
+
     public async Task<PagedResult<Business>> ListForAdminAsync(BusinessStatus? status, bool includeDeleted, PageRequest page, CancellationToken cancellationToken)
     {
         var filter = status is { } s ? Filter.Eq(x => x.Status, s) : Filter.Empty;

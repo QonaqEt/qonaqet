@@ -6,21 +6,7 @@ namespace Qonaqet.Application.Tests.Authorization;
 /// <summary>Handler-lərdə resurs yoxlaması (E02-T03).</summary>
 public sealed class ResourceAuthorizationTests
 {
-    private static readonly Guid Business = Guid.CreateVersion7();
     private static readonly Guid Corporate = Guid.CreateVersion7();
-
-    [Theory]
-    [InlineData(RoleNames.BusinessStaff, true, true)]
-    [InlineData(RoleNames.BusinessOwner, true, true)]
-    [InlineData(RoleNames.BusinessStaff, false, false)]
-    [InlineData(RoleNames.User, true, false)]
-    [InlineData(RoleNames.Admin, false, true)]
-    public void Staff_can_act_only_for_their_own_business(string role, bool sameBusiness, bool expected)
-    {
-        var actor = new Actor([role], sameBusiness ? Business : Guid.CreateVersion7(), null);
-
-        Assert.Equal(expected, actor.CanActForBusiness(Business));
-    }
 
     [Theory]
     [InlineData(RoleNames.CorporateUser, true, true)]

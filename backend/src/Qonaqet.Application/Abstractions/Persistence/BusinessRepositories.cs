@@ -18,6 +18,9 @@ public interface IBusinessRepository : IRepository<Business, BusinessId>
     /// <summary>İstifadəçinin baxılmamış (<see cref="BusinessStatus.Pending"/>) müraciəti varmı.</summary>
     Task<bool> HasPendingApplicationAsync(Guid applicantUserId, CancellationToken cancellationToken);
 
+    /// <summary>İstifadəçinin müraciət etdiyi (sahibi olacağı/olduğu) bizneslər, ən köhnələr əvvəl.</summary>
+    Task<IReadOnlyList<Business>> ListByApplicantAsync(Guid applicantUserId, CancellationToken cancellationToken);
+
     /// <summary>Admin siyahısı: status filtri, ən yenilər əvvəl; <paramref name="includeDeleted"/> silinmişləri də göstərir.</summary>
     Task<PagedResult<Business>> ListForAdminAsync(BusinessStatus? status, bool includeDeleted, PageRequest page, CancellationToken cancellationToken);
 }

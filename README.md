@@ -89,10 +89,21 @@ digər mühitlərdə məcburidir.
 - **Push:** `Firebase__CredentialsJson` (service account JSON) verilməsə push göndərilmir (dev). İstifadəçi bildiriş
   növlərini `GET`/`PATCH /api/v1/me/notifications` ilə push/email üzrə söndürə bilir.
 
+### Bizneslər və kataloq (E04)
+
+- **Müraciət:** `POST /api/v1/businesses/apply` → `Pending`; admin `POST /api/v1/admin/businesses/{id}/activate` edəndə
+  müraciətçi `BusinessOwner` olur (`suspend`, `DELETE` = kaskad soft delete, `restore`).
+- **Panel:** biznes həmişə URL-dədir — `/api/v1/business/{businessId}/…` (`staff`, `catalog`, `settings`); giriş
+  `businessMemberships`-dən yoxlanılır, başqa biznes `403 business_access_denied`. Şəbəkə sahibi bizneslərini
+  `GET /api/v1/business/mine` ilə görür.
+- **İctimai:** `GET /api/v1/businesses?lat=&lng=&radiusKm=&type=&acceptsPool=&acceptsNetworkVouchers=` (2dsphere, yalnız aktivlər)
+  və `GET /api/v1/businesses/{idOrSlug}` (aktiv kataloq ilə).
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
-fayllar/email/bildirişlər (E03: RustFS saxlama, yükləmə axını, MailKit + şablonlar, Playwright PDF, FCM push + seçimlər) hazırdır.
+fayllar/email/bildirişlər (E03: RustFS saxlama, yükləmə axını, MailKit + şablonlar, Playwright PDF, FCM push + seçimlər) və
+bizneslər/kataloq (E04: müraciət + aktivləşdirmə, işçilər, kataloq, parametrlər, coğrafi axtarış, şəbəkələr) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 
