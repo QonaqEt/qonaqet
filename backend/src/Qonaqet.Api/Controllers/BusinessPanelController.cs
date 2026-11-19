@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Qonaqet.Application.Features.Businesses.Commands.AddStaff;
+using Qonaqet.Application.Features.Businesses.Commands.ChangeBusinessSettings;
 using Qonaqet.Application.Features.Businesses.Commands.RemoveStaff;
 using Qonaqet.Application.Features.Businesses.Queries.GetMyBusiness;
 using Qonaqet.Application.Features.Businesses.Queries.ListStaff;
@@ -26,6 +27,16 @@ public sealed class BusinessPanelController(ISender sender) : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get(Guid businessId, CancellationToken cancellationToken) =>
         (await sender.Send(new GetMyBusinessQuery(BusinessId.From(businessId)), cancellationToken)).ToActionResult();
+
+    [HttpPatch("settings")]
+    public async Task<IActionResult> ChangeSettings(Guid businessId, SettingsRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return (await sender.Send(
+            new ChangeBusinessSettingsCommand(
+                BusinessId.From(businessId), request.AcceptsPool, request.AcceptsNetworkVouchers, request.VoucherMinQepik, request.VoucherMaxQepik),
+            cancellationToken)).ToActionResult();
+    }
 
     [HttpGet("staff")]
     public async Task<IActionResult> ListStaff(Guid businessId, CancellationToken cancellationToken) =>
@@ -74,6 +85,8 @@ public sealed class BusinessPanelController(ISender sender) : ControllerBase
         (await sender.Send(new DeleteCatalogItemCommand(BusinessId.From(businessId), CatalogItemId.From(itemId), reason), cancellationToken)).ToActionResult();
 
     public sealed record AddStaffRequest(string Email);
+
+    public sealed record SettingsRequest(bool? AcceptsPool, bool? AcceptsNetworkVouchers, long? VoucherMinQepik, long? VoucherMaxQepik);
 
     public sealed record CatalogItemRequest(
         string Title, string? Description, long PriceQepik, Guid? ImageFileId, string? Group, bool IsActive = true, bool IsGiftable = true);
