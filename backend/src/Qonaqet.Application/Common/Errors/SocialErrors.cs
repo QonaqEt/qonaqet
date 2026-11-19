@@ -24,8 +24,13 @@ public static class SocialErrors
     public static readonly Error CategoryNotEligible =
         Error.Forbidden("category_not_eligible", "Bu təklif sizin statusunuza uyğun deyil. Statusunuzu profildə təsdiqləyə bilərsiniz.");
 
-    /// <summary>Limit: aktiv rezerv, gündəlik/aylıq say və ya bu təklifdən bu gün artıq alınıb.</summary>
-    public static readonly Error LimitReached = Error.Conflict("limit_reached", "Limitə çatdınız.");
+    // Bütün limit xətaları eyni sabit kodu (limit_reached) daşıyır; mesaj səbəbi deyir.
+    public static readonly Error OfferAlreadyClaimedToday =
+        Error.Conflict("limit_reached", "Bu təklifdən bu gün artıq istifadə etmisiniz. Sabah yenidən gələ bilərsiniz.");
+
+    public static readonly Error DailyLimitReached = Error.Conflict("limit_reached", "Bugünkü limitə çatdınız. Sabah yenidən baxın.");
+
+    public static readonly Error MonthlyLimitReached = Error.Conflict("limit_reached", "Bu ayın limitinə çatdınız.");
 
     public static readonly Error ActiveClaimExists =
         Error.Conflict("limit_reached", "Sizin artıq aktiv rezerviniz var. Onu istifadə edin və ya ləğv edin.");
