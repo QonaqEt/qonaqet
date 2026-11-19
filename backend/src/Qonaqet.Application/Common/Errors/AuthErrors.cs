@@ -14,6 +14,9 @@ public static class AuthErrors
     public static readonly Error UserNotFound =
         Error.NotFound("user_not_found", "İstifadəçi tapılmadı.");
 
+    public static readonly Error FirstNameRequired =
+        Error.Validation("first_name_required", "Ad boş ola bilməz.");
+
     public static readonly Error CannotRemoveOwnAdmin =
         Error.Conflict("cannot_remove_own_admin", "Öz admin rolunuzu silə bilməzsiniz.");
 

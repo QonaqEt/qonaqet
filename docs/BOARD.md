@@ -9,7 +9,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 |---|---|---|---|---|---|
 | [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 18/18 | — |
 | [E01](epics/E01.md) | Backend foundation | ✅ done | @Tapdiq49 | 17/17 | — |
-| [E02](epics/E02.md) | Identity & users | 🔄 in-progress | @Tapdiq49 | 3/7 | — |
+| [E02](epics/E02.md) | Identity & users | 🔄 in-progress | @Tapdiq49 | 4/7 | — |
 | [E03](epics/E03.md) | Files, email & notifications | ⬜ todo · 🟢 götürülə bilər | — | 0/5 | — |
 | [E04](epics/E04.md) | Businesses & catalog | ⬜ todo | — | 0/6 | E02 |
 | [E05](epics/E05.md) | Categories & verification | ⬜ todo | — | 0/7 | E02, E03 |
@@ -85,14 +85,14 @@ Yoxdur.
 
 ## E02 — Identity & users
 
-🔄 in-progress · @Tapdiq49 · 3/7 task
+🔄 in-progress · @Tapdiq49 · 4/7 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
 | ✅ | E02-T01 | Email OTP göndərmə və yoxlama | backend | p0 | M |
 | ✅ | E02-T02 | JWT ifraz və refresh rotasiyası | backend | p0 | M |
 | ✅ | E02-T03 | Rollar və avtorizasiya siyasətləri | backend | p0 | M |
-| ⬜ | E02-T04 | Profil: GET/PATCH/DELETE me | backend | p0 | S |
+| ✅ | E02-T04 | Profil: GET/PATCH/DELETE me | backend | p0 | S |
 | ⬜ | E02-T05 | FCM token-lərinin idarəsi | backend | p1 | XS |
 | ⬜ | E02-T06 | İstifadəçi bloklama | backend | p1 | S |
 | ⬜ | E02-T07 | Partial unique index-lər və email təkrar istifadəsi | backend | p1 | XS |

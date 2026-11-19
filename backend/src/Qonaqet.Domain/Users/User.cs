@@ -51,6 +51,15 @@ public sealed class User : AggregateRoot<UserId>
 
     public bool HasRole(Role role) => _roles.Contains(role);
 
+    /// <summary>Profil: ad məcburidir, soyad boş sətirlə silinir; avatar fayl ID-si ilə (null = avatarı sil).</summary>
+    public void UpdateProfile(string firstName, string? lastName, Guid? avatarFileId, DateTimeOffset at)
+    {
+        FirstName = Guard.NotNullOrWhiteSpace(firstName).Trim();
+        LastName = string.IsNullOrWhiteSpace(lastName) ? null : lastName.Trim();
+        AvatarFileId = avatarFileId == Guid.Empty ? null : avatarFileId;
+        MarkUpdated(at, Id.Value);
+    }
+
     /// <summary>Rolları əvəz edir. <see cref="Role.User"/> həmişə qalır, təkrarlar atılır.</summary>
     public void SetRoles(IEnumerable<Role> roles, DateTimeOffset at, Guid? by)
     {
