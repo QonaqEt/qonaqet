@@ -230,6 +230,28 @@ public sealed class CategoryValidity
     public static CategoryValidity Create(ValidityType type, int? month, int? day, int? months) =>
         IsValid(type, month, day, months) ? new CategoryValidity(type, month, day, months) : throw new ArgumentException("Etibarlılıq qaydası düzgün deyil.", nameof(type));
 
+    /// <summary>
+    /// Təsdiq anından etibarlılığın (eksklüziv) sonu, Bakı təqvimi ilə; <see cref="ValidityType.None"/> üçün <c>null</c>.
+    /// <list type="bullet">
+    /// <item><see cref="ValidityType.Months"/>: təsdiq gününə N ay əlavə olunur, həmin günün sonuna qədər etibarlıdır.</item>
+    /// <item><see cref="ValidityType.FixedDate"/>: həmin ay/günün ən yaxın gələcək tarixi (bu gün də daxil), o günün sonuna qədər.</item>
+    /// </list>
+    /// </summary>
+    public DateTimeOffset? ValidUntil(DateTimeOffset approvedAt)
+    {
+        var today = BakuTime.ToBakuDate(approvedAt);
+        switch (Type)
+        {
+            case ValidityType.Months:
+                return BakuTime.EndOfDayUtc(today.AddMonths(Months!.Value));
+            case ValidityType.FixedDate:
+                var candidate = new DateOnly(today.Year, Month!.Value, Day!.Value);
+                return BakuTime.EndOfDayUtc(candidate < today ? candidate.AddYears(1) : candidate);
+            default:
+                return null;
+        }
+    }
+
     public static CategoryValidity FixedDate(int month, int day) => Create(ValidityType.FixedDate, month, day, null);
 
     public static CategoryValidity ForMonths(int months) => Create(ValidityType.Months, null, null, months);

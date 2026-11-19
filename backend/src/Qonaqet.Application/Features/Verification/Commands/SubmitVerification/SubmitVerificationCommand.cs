@@ -49,6 +49,7 @@ public sealed class SubmitVerificationHandler(
     ICategoryRepository categories,
     IVerificationRequestRepository requests,
     IIdentityHashRepository identities,
+    IUserRepository users,
     IFinHasher finHasher,
     FileUploader uploader,
     ICurrentUser currentUser,
@@ -72,6 +73,15 @@ public sealed class SubmitVerificationHandler(
         if (await requests.HasPendingAsync(userId, category.Id, cancellationToken).ConfigureAwait(false))
         {
             return VerificationErrors.Pending;
+        }
+
+        // Etibarlı təsdiq varsa yeniləmə yalnız müddətin bitməsinə 14 gün qalmış (və ya bitəndən sonra) mümkündür.
+        var user = await users.GetAsync(Domain.Users.UserId.From(userId), cancellationToken).ConfigureAwait(false);
+        var now = clock.UtcNow;
+        if (user?.VerifiedCategoryFor(category.Id.Value) is { } current
+            && (current.ValidUntil is null || current.ValidUntil > now.Add(VerificationPolicy.RenewalWindow)))
+        {
+            return VerificationErrors.AlreadyVerified;
         }
 
         var fields = (request.Fields ?? new Dictionary<string, string>())

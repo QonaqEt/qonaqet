@@ -62,3 +62,57 @@ public sealed class VerificationRulesTests
         Assert.Equal("Qonaq", CategoryLabel.ForOtherParties(null));
     }
 }
+
+public sealed class ValidityTests
+{
+    // 2026-11-19 10:00 Bakı (06:00 UTC).
+    private static readonly DateTimeOffset Approved = new(2026, 11, 19, 6, 0, 0, TimeSpan.Zero);
+
+    private static DateTimeOffset EndOfBakuDay(int year, int month, int day) => new(year, month, day, 20, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    public void None_never_expires() => Assert.Null(CategoryValidity.None.ValidUntil(Approved));
+
+    [Fact]
+    public void Months_count_from_the_baku_approval_day_to_its_end()
+    {
+        // 19 may 2027 Bakı gününün sonu = 2027-05-19T20:00Z (UTC+4).
+        Assert.Equal(EndOfBakuDay(2027, 5, 19), CategoryValidity.ForMonths(6).ValidUntil(Approved));
+        Assert.Equal(EndOfBakuDay(2027, 11, 19), CategoryValidity.ForMonths(12).ValidUntil(Approved));
+    }
+
+    [Fact]
+    public void Fixed_date_is_the_next_occurrence_including_today()
+    {
+        Assert.Equal(EndOfBakuDay(2027, 9, 30), CategoryValidity.FixedDate(9, 30).ValidUntil(Approved));
+        Assert.Equal(EndOfBakuDay(2026, 11, 19), CategoryValidity.FixedDate(11, 19).ValidUntil(Approved));
+        Assert.Equal(EndOfBakuDay(2026, 12, 31), CategoryValidity.FixedDate(12, 31).ValidUntil(Approved));
+    }
+
+    [Fact]
+    public void Baku_day_boundary_is_used_not_utc()
+    {
+        // 2026-09-30T21:30Z artıq Bakıda 1 oktyabrdır → növbəti il.
+        var lateUtc = new DateTimeOffset(2026, 9, 30, 21, 30, 0, TimeSpan.Zero);
+        Assert.Equal(EndOfBakuDay(2027, 9, 30), CategoryValidity.FixedDate(9, 30).ValidUntil(lateUtc));
+    }
+
+    [Fact]
+    public void Verified_category_validity_is_logical()
+    {
+        var user = Qonaqet.Domain.Users.User.Register("u@example.az", Approved);
+        var categoryId = Guid.CreateVersion7();
+        var verificationId = Guid.CreateVersion7();
+        user.VerifyCategory(categoryId, null, Approved.AddDays(1), verificationId, Approved, null);
+
+        var entry = user.VerifiedCategoryFor(categoryId)!;
+        Assert.True(entry.IsValidAt(Approved));
+        Assert.False(entry.IsValidAt(Approved.AddDays(1)));
+
+        // Yeniləmə köhnə qeydi əvəz edir.
+        user.VerifyCategory(categoryId, "qazi", null, Guid.CreateVersion7(), Approved, null);
+        Assert.Single(user.VerifiedCategories);
+        Assert.True(user.VerifiedCategories[0].IsValidAt(Approved.AddYears(50)));
+        Assert.False(user.OverrideCategoryValidity(verificationId, null, Approved, null));
+    }
+}

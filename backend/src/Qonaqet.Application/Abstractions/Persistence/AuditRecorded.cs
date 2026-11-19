@@ -73,4 +73,7 @@ public static class CategoryAuditActions
 {
     public const string Create = "CategoryCreate";
     public const string Update = "CategoryUpdate";
+    public const string ApproveVerification = "VerificationApprove";
+    public const string RejectVerification = "VerificationReject";
+    public const string ChangeVerificationValidity = "VerificationChangeValidity";
 }

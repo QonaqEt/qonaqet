@@ -16,6 +16,7 @@ public sealed class User : AggregateRoot<UserId>
     private List<Role> _roles = [];
     private List<string> _fcmTokens = [];
     private List<NotificationOptOut> _notificationOptOuts = [];
+    private List<VerifiedCategory> _verifiedCategories = [];
 
     private User(UserId id, string email, DateTimeOffset createdAt)
         : base(id, createdAt)
@@ -70,6 +71,40 @@ public sealed class User : AggregateRoot<UserId>
     public string? BlockReason { get; private set; }
 
     public bool ProfileCompleted => !string.IsNullOrWhiteSpace(FirstName);
+
+    /// <summary>
+    /// Təsdiqlənmiş kateqoriyalar (hər kateqoriyaya bir qeyd). Müddət məntiqidir: <see cref="VerifiedCategory.IsValidAt"/>
+    /// <c>validUntil</c>-i indiki anla müqayisə edir, bitmiş qeyd heç bir hüquq vermir.
+    /// </summary>
+    public IReadOnlyList<VerifiedCategory> VerifiedCategories
+    {
+        get => _verifiedCategories;
+        private set => _verifiedCategories = [.. value];
+    }
+
+    public VerifiedCategory? VerifiedCategoryFor(Guid categoryId) => _verifiedCategories.FirstOrDefault(v => v.CategoryId == categoryId);
+
+    /// <summary>Kateqoriya təsdiqi yazılır; həmin kateqoriyanın köhnə qeydi (yeniləmə) əvəz olunur.</summary>
+    public void VerifyCategory(Guid categoryId, string? subtype, DateTimeOffset? validUntil, Guid verificationId, DateTimeOffset at, Guid? by)
+    {
+        _verifiedCategories.RemoveAll(v => v.CategoryId == categoryId);
+        _verifiedCategories.Add(VerifiedCategory.Create(categoryId, subtype, validUntil, verificationId, at));
+        MarkUpdated(at, by);
+    }
+
+    /// <summary>Admin <c>validUntil</c>-i əl ilə dəyişir (<c>null</c> = müddətsiz). Bu təsdiq istifadəçidə yoxdursa <c>false</c>.</summary>
+    public bool OverrideCategoryValidity(Guid verificationId, DateTimeOffset? validUntil, DateTimeOffset at, Guid? by)
+    {
+        var entry = _verifiedCategories.FirstOrDefault(v => v.VerificationId == verificationId);
+        if (entry is null)
+        {
+            return false;
+        }
+
+        entry.ChangeValidUntil(validUntil);
+        MarkUpdated(at, by);
+        return true;
+    }
 
     /// <summary>OTP ilə təsdiqlənmiş email üçün yeni hesab (rol: <see cref="Role.User"/>).</summary>
     public static User Register(string email, DateTimeOffset at) =>
