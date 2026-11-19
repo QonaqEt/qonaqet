@@ -83,6 +83,9 @@ public sealed class Claim : AggregateRoot<ClaimId>
 
     public string? CancelReason { get; private set; }
 
+    /// <summary>Qısa kodun hash-i (kodun özü saxlanılmır; QR və qısa kod ID-dən server sirri ilə törədilir).</summary>
+    public string? ShortCodeHash { get; private set; }
+
     public bool IsReserved => Status == ClaimStatus.Reserved;
 
     /// <summary>Rezerv bu anda hələ qüvvədədirmi (müddət məntiqidir).</summary>
@@ -108,6 +111,17 @@ public sealed class Claim : AggregateRoot<ClaimId>
             QuotaDate = offer.Type == Social.OfferType.BusinessDaily ? Guard.NotNullOrWhiteSpace(quotaDate) : null,
             ExpiresAt = now + ReservationTtl,
         };
+    }
+
+    /// <summary>Qısa kodun hash-ini bağlayır (yaradılandan dərhal sonra, yazılmazdan əvvəl; bir dəfə).</summary>
+    public void AttachShortCode(string shortCodeHash)
+    {
+        if (ShortCodeHash is not null)
+        {
+            throw new InvalidOperationException("Qısa kod artıq bağlanıb.");
+        }
+
+        ShortCodeHash = Guard.NotNullOrWhiteSpace(shortCodeHash);
     }
 
     /// <summary>Rezerv bitdi (job): <see cref="ClaimStatus.Reserved"/> → <see cref="ClaimStatus.Expired"/>.</summary>

@@ -66,6 +66,7 @@ public static class MongoIndexCatalog
             Query("catalogItems", ("businessId", 1), ("isActive", 1)),
             Query("claims", ("recipientUserId", 1), ("status", 1), ("createdAt", 1)),
             Query("claims", ("recipientUserId", 1), ("offerId", 1), ("createdAt", 1)),
+            Query("claims", ("businessId", 1), ("shortCodeHash", 1)),
 
             // Bir istifadəçinin eyni anda yalnız bir aktiv (Reserved) claim-i: paralel claim-lərdə də (E06-T03).
             new("claims", "ux_claims_recipientUserId_reserved", new BsonDocument("recipientUserId", 1), Unique: true,

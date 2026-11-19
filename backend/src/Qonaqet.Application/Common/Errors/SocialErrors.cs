@@ -35,5 +35,7 @@ public static class SocialErrors
     public static readonly Error ActiveClaimExists =
         Error.Conflict("limit_reached", "Sizin artıq aktiv rezerviniz var. Onu istifadə edin və ya ləğv edin.");
 
+    public static readonly Error ClaimNotFound = Error.NotFound("claim_not_found", "Claim tapılmadı.");
+
     public static readonly Error DonorNotFound = Error.NotFound("donor_not_found", "Bu email ilə QONAQET hesabı yoxdur.");
 }

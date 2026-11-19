@@ -56,4 +56,7 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
     /// <paramref name="offerId"/> verilibsə yalnız həmin təklifdən. Bitmiş və ləğv olunmuş rezervlər limitə daxil deyil.
     /// </summary>
     Task<long> CountCountedSinceAsync(Guid userId, DateTimeOffset since, OfferId? offerId, CancellationToken cancellationToken);
+
+    /// <summary>Alıcının claim-ləri, ən yenilər əvvəl, ən çox <paramref name="limit"/>.</summary>
+    Task<IReadOnlyList<Claim>> ListForRecipientAsync(Guid userId, int limit, CancellationToken cancellationToken);
 }
