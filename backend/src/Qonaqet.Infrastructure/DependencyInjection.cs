@@ -1,11 +1,14 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Qonaqet.Application;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Infrastructure.Caching;
 using Qonaqet.Infrastructure.Documents.Csv;
 using Qonaqet.Infrastructure.Documents.Qr;
+using Qonaqet.Infrastructure.Identity;
+using Qonaqet.Infrastructure.Web;
 using Qonaqet.Infrastructure.Persistence;
 using Qonaqet.Infrastructure.Persistence.Mongo;
 using Qonaqet.Infrastructure.Persistence.Postgres;
@@ -35,10 +38,12 @@ public static class DependencyInjection
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         services.AddSingleton<RabbitMqConnection>();
 
-        // ICurrentUser və
-        // IRequestContext host auth-u ilə (E02) gəlir.
+        services.AddIdentityServices(configuration);
 
-        // Store-lar, outbox, cache və scheduler sonrakı E01 task-ları ilə əlavə olunur.
+        // HTTP host-ları (AddQonaqetWeb) öz aktorlarını əvvəlcədən qeyd edir; Worker anonim aktor alır.
+        services.TryAddSingleton<AnonymousActor>();
+        services.TryAddScoped<ICurrentUser>(sp => sp.GetRequiredService<AnonymousActor>());
+        services.TryAddScoped<IRequestContext>(sp => sp.GetRequiredService<AnonymousActor>());
         return services;
     }
 }

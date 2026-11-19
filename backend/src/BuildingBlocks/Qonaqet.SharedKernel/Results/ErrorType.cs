@@ -9,4 +9,7 @@ public enum ErrorType
     Conflict = 3,
     Forbidden = 4,
     Unauthorized = 5,
+
+    /// <summary>Limit aşılıb (429), məs. OTP göndərmə limiti.</summary>
+    TooManyRequests = 6,
 }

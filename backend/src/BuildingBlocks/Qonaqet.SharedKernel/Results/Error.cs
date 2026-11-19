@@ -41,5 +41,7 @@ public record Error
 
     public static Error Unauthorized(string code, string message) => Create(code, message, ErrorType.Unauthorized);
 
+    public static Error TooManyRequests(string code, string message) => Create(code, message, ErrorType.TooManyRequests);
+
     public override string ToString() => $"{Code}: {Message}";
 }
