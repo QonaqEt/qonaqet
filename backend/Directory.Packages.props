@@ -24,6 +24,7 @@
   <ItemGroup Label="Files, email, push">
     <PackageVersion Include="AWSSDK.S3" Version="4.1.1" />
     <PackageVersion Include="MailKit" Version="4.18.2" />
+    <PackageVersion Include="FirebaseAdmin" Version="3.7.0" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.65.0" />
   </ItemGroup>
   <ItemGroup Label="Test">

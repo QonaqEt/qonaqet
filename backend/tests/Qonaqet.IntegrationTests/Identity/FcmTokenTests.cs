@@ -66,7 +66,7 @@ public sealed class FcmTokenTests(MongoFixture mongo)
         await using (var scope = host.Services.CreateAsyncScope())
         {
             var notifier = scope.ServiceProvider.GetRequiredService<UserPushNotifier>();
-            await notifier.NotifyAsync(UserId.From(login.GetProperty("userId").GetGuid()), new PushMessage("Salam", "Hədiyyəniz var"), TestContext.Current.CancellationToken);
+            await notifier.NotifyAsync(UserId.From(login.GetProperty("userId").GetGuid()), NotificationType.GiftReceived, new PushMessage("Salam", "Hədiyyəniz var"), TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(["device-dead", "device-live"], push.LastTokens);

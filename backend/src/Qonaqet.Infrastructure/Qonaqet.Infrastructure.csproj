@@ -19,6 +19,7 @@
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="MailKit" />
+    <PackageReference Include="FirebaseAdmin" />
     <PackageReference Include="Microsoft.Playwright" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
