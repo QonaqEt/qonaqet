@@ -267,6 +267,10 @@ public sealed class PipelineTests
         public Guid? ActorId { get; } = authenticated ? Guid.CreateVersion7() : null;
 
         public IReadOnlySet<string> Roles { get; } = roles.ToHashSet();
+
+        public Guid? BusinessId => null;
+
+        public Guid? CorporateId => null;
     }
 
     private sealed class FakeRequestContext(string? key) : IRequestContext

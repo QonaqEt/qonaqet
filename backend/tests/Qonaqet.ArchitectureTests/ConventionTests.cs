@@ -42,6 +42,20 @@ public sealed class ConventionTests
         Assert.DoesNotContain(violations, v => v.Contains(nameof(ThinController), StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Controllers_leave_authorization_to_the_pipeline()
+    {
+        var authAttributes = new[] { typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute) };
+        var violations = ProductionTypes
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
+            .SelectMany(t => new MemberInfo[] { t }.Concat(t.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)))
+            .Where(m => authAttributes.Any(a => m.IsDefined(a, inherit: true)))
+            .Select(m => m is Type type ? type.Name : $"{m.DeclaringType!.Name}.{m.Name}")
+            .ToArray();
+
+        Assert.True(violations.Length == 0, $"Siyasət controller-də deyil, sorğuda olmalıdır ([RequiresRole]/[PublicRequest]): {string.Join(", ", violations)}");
+    }
+
     // ---------- adlandırma ----------
 
     [Fact]

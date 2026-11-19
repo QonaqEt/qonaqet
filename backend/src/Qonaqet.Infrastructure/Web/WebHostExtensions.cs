@@ -19,7 +19,11 @@ public static class WebHostExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddControllers()
-            .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new StronglyTypedIdJsonConverterFactory()))
+            .AddJsonOptions(o =>
+            {
+                o.JsonSerializerOptions.Converters.Add(new StronglyTypedIdJsonConverterFactory());
+                o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+            })
             .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = InvalidModelState);
 
         services.AddHttpContextAccessor();

@@ -37,6 +37,12 @@ public sealed class User : AggregateRoot<UserId>
         private set => _roles = [.. value];
     }
 
+    /// <summary>Biznes rolları üçün bağlı biznes (E04 təyin edir).</summary>
+    public Guid? BusinessId { get; private set; }
+
+    /// <summary>Korporativ istifadəçi üçün şirkət (E10 təyin edir).</summary>
+    public Guid? CorporateId { get; private set; }
+
     public bool ProfileCompleted => !string.IsNullOrWhiteSpace(FirstName);
 
     /// <summary>OTP ilə təsdiqlənmiş email üçün yeni hesab (rol: <see cref="Role.User"/>).</summary>
@@ -44,4 +50,12 @@ public sealed class User : AggregateRoot<UserId>
         new(StronglyTypedId.New<UserId>(), EmailAddress.Normalize(email), at);
 
     public bool HasRole(Role role) => _roles.Contains(role);
+
+    /// <summary>Rolları əvəz edir. <see cref="Role.User"/> həmişə qalır, təkrarlar atılır.</summary>
+    public void SetRoles(IEnumerable<Role> roles, DateTimeOffset at, Guid? by)
+    {
+        ArgumentNullException.ThrowIfNull(roles);
+        _roles = [Role.User, .. roles.Where(r => r != Role.User).Distinct().Order()];
+        MarkUpdated(at, by);
+    }
 }

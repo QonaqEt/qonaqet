@@ -25,6 +25,13 @@ public sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentUse
 
     public IReadOnlySet<string> Roles =>
         Principal?.FindAll(QonaqetClaims.Role).Select(c => c.Value).ToHashSet(StringComparer.Ordinal) ?? [];
+
+    public Guid? BusinessId => GuidClaim(QonaqetClaims.BusinessId);
+
+    public Guid? CorporateId => GuidClaim(QonaqetClaims.CorporateId);
+
+    private Guid? GuidClaim(string type) =>
+        Guid.TryParse(Principal?.FindFirst(type)?.Value, out var id) && id != Guid.Empty ? id : null;
 }
 
 public sealed class HttpRequestContext(IHttpContextAccessor accessor) : IRequestContext
@@ -45,6 +52,10 @@ public sealed class AnonymousActor : ICurrentUser, IRequestContext
     public Guid? ActorId => null;
 
     public IReadOnlySet<string> Roles { get; } = new HashSet<string>();
+
+    public Guid? BusinessId => null;
+
+    public Guid? CorporateId => null;
 
     public string? IdempotencyKey => null;
 }

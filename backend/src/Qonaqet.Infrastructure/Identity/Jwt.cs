@@ -58,6 +58,15 @@ public sealed class JwtAccessTokenIssuer(IOptions<JwtOptions> options, JwtSignin
             [JwtRegisteredClaimNames.Jti] = Guid.CreateVersion7().ToString("N"),
             [QonaqetClaims.Role] = user.Roles.Select(r => r.ToString()).ToArray(),
         };
+        if (user.BusinessId is { } businessId)
+        {
+            claims[QonaqetClaims.BusinessId] = businessId.ToString("D");
+        }
+
+        if (user.CorporateId is { } corporateId)
+        {
+            claims[QonaqetClaims.CorporateId] = corporateId.ToString("D");
+        }
 
         var descriptor = new SecurityTokenDescriptor
         {
