@@ -13,6 +13,21 @@ public sealed class UserRepository(MongoContext context, IAggregateTracker track
         var found = await FindAsync(Filter.Eq(x => x.Email, EmailAddress.Normalize(email)), cancellationToken).ConfigureAwait(false);
         return found.Count == 0 ? null : found[0];
     }
+
+    public async Task RemoveFcmTokensAsync(UserId userId, IReadOnlyCollection<string> tokens, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(tokens);
+        if (tokens.Count == 0)
+        {
+            return;
+        }
+
+        var update = Builders<User>.Update.PullAll("fcmTokens", tokens);
+        var filter = Active(ById(userId));
+        _ = Context.Session is { } session
+            ? await Collection.UpdateOneAsync(session, filter, update, cancellationToken: cancellationToken).ConfigureAwait(false)
+            : await Collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
 }
 
 public sealed class OtpCodeRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)

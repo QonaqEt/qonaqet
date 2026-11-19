@@ -10,7 +10,11 @@ public sealed class User : AggregateRoot<UserId>
 {
     public const int NameMaxLength = 100;
 
+    /// <summary>Bir hesabda ən çox bu qədər cihaz token-i saxlanılır; yenisi gələndə ən köhnəsi düşür.</summary>
+    public const int MaxFcmTokens = 10;
+
     private List<Role> _roles = [];
+    private List<string> _fcmTokens = [];
 
     private User(UserId id, string email, DateTimeOffset createdAt)
         : base(id, createdAt)
@@ -43,6 +47,13 @@ public sealed class User : AggregateRoot<UserId>
     /// <summary>Korporativ istifadəçi üçün şirkət (E10 təyin edir).</summary>
     public Guid? CorporateId { get; private set; }
 
+    /// <summary>Push üçün cihaz token-ləri (köhnədən yeniyə).</summary>
+    public IReadOnlyList<string> FcmTokens
+    {
+        get => _fcmTokens;
+        private set => _fcmTokens = [.. value];
+    }
+
     public bool ProfileCompleted => !string.IsNullOrWhiteSpace(FirstName);
 
     /// <summary>OTP ilə təsdiqlənmiş email üçün yeni hesab (rol: <see cref="Role.User"/>).</summary>
@@ -58,6 +69,31 @@ public sealed class User : AggregateRoot<UserId>
         LastName = string.IsNullOrWhiteSpace(lastName) ? null : lastName.Trim();
         AvatarFileId = avatarFileId == Guid.Empty ? null : avatarFileId;
         MarkUpdated(at, Id.Value);
+    }
+
+    /// <summary>Cihaz token-i əlavə edir; artıq varsa dublikat yaratmır, sadəcə ən yeni kimi sona keçir.</summary>
+    public void AddFcmToken(string token, DateTimeOffset at)
+    {
+        Guard.NotNullOrWhiteSpace(token);
+        _fcmTokens.Remove(token);
+        _fcmTokens.Add(token);
+        if (_fcmTokens.Count > MaxFcmTokens)
+        {
+            _fcmTokens.RemoveRange(0, _fcmTokens.Count - MaxFcmTokens);
+        }
+
+        MarkUpdated(at, Id.Value);
+    }
+
+    public bool RemoveFcmToken(string token, DateTimeOffset at)
+    {
+        if (!_fcmTokens.Remove(token))
+        {
+            return false;
+        }
+
+        MarkUpdated(at, Id.Value);
+        return true;
     }
 
     /// <summary>Rolları əvəz edir. <see cref="Role.User"/> həmişə qalır, təkrarlar atılır.</summary>
