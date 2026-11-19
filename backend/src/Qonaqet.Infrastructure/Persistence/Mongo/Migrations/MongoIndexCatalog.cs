@@ -21,7 +21,7 @@ public static class MongoIndexCatalog
     public static readonly IReadOnlyList<string> SoftDeletableCollections =
     [
         "users", "otpCodes", "refreshTokens", "files", "categories", "identityHashes", "verificationRequests",
-        "businesses", "catalogItems", "offers", "pools", "poolDonations", "campaigns", "claims", "gifts",
+        "businesses", "businessMemberships", "catalogItems", "offers", "pools", "poolDonations", "campaigns", "claims", "gifts",
         "corporates", "corporateGiftOrders", "brands", "coupons", "couponCodes", "reports",
     ];
 
@@ -39,6 +39,7 @@ public static class MongoIndexCatalog
             Unique("identityHashes", ("finHash", 1), ("categoryId", 1)),
             Unique("businesses", ("voen", 1)),
             Unique("businesses", ("slug", 1)),
+            Unique("businessMemberships", ("businessId", 1), ("userId", 1)),
             Unique("couponCodes", ("couponId", 1), ("code", 1)),
             Unique("gifts", ("linkTokenHash", 1)),
 
@@ -47,6 +48,7 @@ public static class MongoIndexCatalog
             Geo("businesses", "location"),
             Query("businesses", ("status", 1), ("acceptsPool", 1)),
             Query("businesses", ("status", 1), ("acceptsNetworkVouchers", 1)),
+            Query("businessMemberships", ("userId", 1), ("createdAt", 1)),
             Query("catalogItems", ("businessId", 1), ("isActive", 1)),
             Query("claims", ("recipientUserId", 1), ("status", 1), ("createdAt", 1)),
             Query("claims", ("businessId", 1), ("status", 1)),

@@ -20,3 +20,15 @@ public interface IBusinessRepository : IRepository<Business, BusinessId>
     /// <summary>Admin siyahısı: status filtri, ən yenilər əvvəl; <paramref name="includeDeleted"/> silinmişləri də göstərir.</summary>
     Task<PagedResult<Business>> ListForAdminAsync(BusinessStatus? status, bool includeDeleted, PageRequest page, CancellationToken cancellationToken);
 }
+
+/// <summary><c>businessMemberships</c>: kim hansı biznesdə sahib/işçidir. Silinmiş (çıxarılmış) üzvlüklər görünmür.</summary>
+public interface IBusinessMembershipRepository : IRepository<BusinessMembership, BusinessMembershipId>
+{
+    Task<BusinessMembership?> FindAsync(BusinessId businessId, Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>Biznesin üzvləri, ən köhnələr əvvəl.</summary>
+    Task<IReadOnlyList<BusinessMembership>> ListForBusinessAsync(BusinessId businessId, CancellationToken cancellationToken);
+
+    /// <summary>İstifadəçinin bütün üzvlükləri, ən köhnələr əvvəl.</summary>
+    Task<IReadOnlyList<BusinessMembership>> ListForUserAsync(Guid userId, CancellationToken cancellationToken);
+}
