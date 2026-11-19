@@ -3,6 +3,7 @@ using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Common.Errors;
 using Qonaqet.Application.Features.Auth.Commands.SendOtp;
+using Qonaqet.Application.Features.Auth.Common;
 using Qonaqet.Domain.Users;
 using Qonaqet.SharedKernel;
 using Qonaqet.SharedKernel.Messaging;
@@ -11,14 +12,14 @@ using Qonaqet.SharedKernel.Validation;
 namespace Qonaqet.Application.Features.Auth.Commands.VerifyOtp;
 
 /// <summary>
-/// Kodu yoxlayır; email-in hesabı yoxdursa yaradır (qeydiyyat: email → kod → ad). Hər yanlış cəhd sayılır,
+/// Kodu yoxlayır; email-in hesabı yoxdursa yaradır (qeydiyyat: email → kod → ad) və sessiya açır (access + refresh token). Hər yanlış cəhd sayılır,
 /// 5 cəhddən sonra kod yararsızdır. Bütün uğursuzluqlar eyni <c>otp_invalid</c> kodunu qaytarır.
 /// </summary>
 [PublicRequest]
 public sealed record VerifyOtpCommand(string Email, string Code) : ICommand<OtpVerifiedDto>;
 
 /// <summary><see cref="ProfileCompleted"/> = <c>false</c> olanda klient ad addımını göstərir.</summary>
-public sealed record OtpVerifiedDto(UserId UserId, bool IsNewUser, bool ProfileCompleted);
+public sealed record OtpVerifiedDto(UserId UserId, bool IsNewUser, bool ProfileCompleted, AuthTokensDto Tokens);
 
 public sealed class VerifyOtpValidator : Validator<VerifyOtpCommand>
 {
@@ -36,6 +37,7 @@ public sealed class VerifyOtpHandler(
     IOtpCodeRepository otpCodes,
     IUserRepository users,
     ISecretHasher hasher,
+    SessionIssuer sessions,
     IClock clock) : ICommandHandler<VerifyOtpCommand, OtpVerifiedDto>
 {
     public async Task<Result<OtpVerifiedDto>> Handle(VerifyOtpCommand request, CancellationToken cancellationToken)
@@ -60,6 +62,7 @@ public sealed class VerifyOtpHandler(
             await users.AddAsync(user, cancellationToken).ConfigureAwait(false);
         }
 
-        return new OtpVerifiedDto(user.Id, isNew, user.ProfileCompleted);
+        var (tokens, _) = await sessions.IssueAsync(user, now, cancellationToken).ConfigureAwait(false);
+        return new OtpVerifiedDto(user.Id, isNew, user.ProfileCompleted, tokens);
     }
 }

@@ -10,4 +10,10 @@ public static class AuthErrors
 
     public static readonly Error OtpInvalid =
         Error.Validation("otp_invalid", "Kod yanlışdır və ya vaxtı bitib.");
+
+    public static readonly Error RefreshTokenInvalid =
+        Error.Unauthorized("refresh_token_invalid", "Sessiya etibarsızdır. Yenidən daxil olun.");
+
+    public static readonly Error RefreshTokenReused =
+        Error.Unauthorized("refresh_token_reused", "Sessiya təhlükəsizlik səbəbilə bağlandı. Yenidən daxil olun.");
 }

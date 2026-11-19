@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Qonaqet.Application.Features.Auth.Commands.Logout;
+using Qonaqet.Application.Features.Auth.Commands.RefreshSession;
 using Qonaqet.Application.Features.Auth.Commands.SendOtp;
 using Qonaqet.Application.Features.Auth.Commands.VerifyOtp;
 using Qonaqet.Infrastructure.Web;
@@ -20,5 +22,15 @@ public sealed class AuthController(ISender sender) : ControllerBase
     [HttpPost("otp/verify")]
     [EnableRateLimiting(RateLimitPolicies.Otp)]
     public async Task<IActionResult> VerifyOtp(VerifyOtpCommand command, CancellationToken cancellationToken) =>
+        (await sender.Send(command, cancellationToken)).ToActionResult();
+
+    [HttpPost("refresh")]
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
+    public async Task<IActionResult> Refresh(RefreshSessionCommand command, CancellationToken cancellationToken) =>
+        (await sender.Send(command, cancellationToken)).ToActionResult();
+
+    [HttpPost("logout")]
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
+    public async Task<IActionResult> Logout(LogoutCommand command, CancellationToken cancellationToken) =>
         (await sender.Send(command, cancellationToken)).ToActionResult();
 }

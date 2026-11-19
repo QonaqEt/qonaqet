@@ -27,3 +27,11 @@ public interface IOtpSender
 {
     Task SendAsync(string email, string code, DateTimeOffset expiresAt, CancellationToken cancellationToken);
 }
+
+/// <summary>Qısa ömürlü access token (JWT). İmza açarı yalnız konfiqurasiyadan gəlir.</summary>
+public interface IAccessTokenIssuer
+{
+    AccessToken Issue(Domain.Users.User user, DateTimeOffset now);
+}
+
+public sealed record AccessToken(string Token, DateTimeOffset ExpiresAt);

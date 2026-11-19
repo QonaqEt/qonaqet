@@ -23,3 +23,16 @@ public interface IOtpCodeRepository : IRepository<OtpCode, OtpCodeId>
     /// <summary>Kodu cari tranzaksiyada istifadə olunmuş kimi qeyd edir; artıq istifadə olunubsa <c>false</c>.</summary>
     Task<bool> TryMarkUsedAsync(OtpCodeId id, DateTimeOffset now, CancellationToken cancellationToken);
 }
+
+public interface IRefreshTokenRepository : IRepository<RefreshToken, RefreshTokenId>
+{
+    /// <summary>Hash üzrə token, ləğv olunmuş və vaxtı keçmiş olsa da (təkrar istifadəni aşkarlamaq üçün).</summary>
+    Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken);
+
+    /// <summary>Token hələ ləğv olunmayıbsa atomik ləğv edir; artıq ləğv olunubsa <c>false</c> (paralel rotasiya).</summary>
+    Task<bool> TryRevokeAsync(
+        RefreshTokenId id, DateTimeOffset now, RefreshTokenRevokeReason reason, RefreshTokenId? replacedBy, CancellationToken cancellationToken);
+
+    /// <summary>İstifadəçinin bütün aktiv token-lərini ləğv edir (bütün sessiyalar bağlanır); ləğv olunanların sayı.</summary>
+    Task<long> RevokeAllForUserAsync(UserId userId, DateTimeOffset now, RefreshTokenRevokeReason reason, CancellationToken cancellationToken);
+}

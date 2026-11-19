@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -42,6 +43,7 @@ public sealed class ApiTestHost : IAsyncDisposable
                 s.AddSingleton<IRateLimitStore>(RateLimits);
                 s.RemoveAll<IClock>();
                 s.AddSingleton<IClock>(Clock);
+                s.AddControllers().AddApplicationPart(typeof(ApiTestHost).Assembly);
                 configure?.Invoke(s);
             });
         });
@@ -58,7 +60,8 @@ public sealed class ApiTestHost : IAsyncDisposable
 
     public InMemoryRateLimitStore RateLimits { get; } = new();
 
-    public FixedClock Clock { get; } = new(new DateTimeOffset(2026, 11, 19, 10, 0, 0, TimeSpan.Zero));
+    /// <summary>Real vaxtdan başlayır: JWT doğrulaması sistem saatı ilə işləyir.</summary>
+    public FixedClock Clock { get; } = new(DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
 
     public IServiceProvider Services => _factory.Services;
 
@@ -82,6 +85,18 @@ public sealed class ApiTestHost : IAsyncDisposable
         using var verify = await PostAsync("/api/v1/auth/otp/verify", new { email, code = Otp.LastCode(email) });
         Assert.True(verify.IsSuccessStatusCode, await verify.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         return await JsonAsync(verify);
+    }
+
+    /// <summary>Bearer token ilə GET.</summary>
+    public async Task<HttpResponseMessage> GetAsync(string path, string? accessToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(path, UriKind.Relative));
+        if (accessToken is not null)
+        {
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        }
+
+        return await Client.SendAsync(request, TestContext.Current.CancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
@@ -114,4 +129,15 @@ public sealed class InMemoryRateLimitStore : IRateLimitStore
 
     public Task<RateLimitDecision> TryAcquireAsync(string partitionKey, int permitLimit, TimeSpan window, CancellationToken cancellationToken) =>
         Task.FromResult(Deny ? new RateLimitDecision(false, 0, TimeSpan.FromSeconds(30)) : new RateLimitDecision(true, permitLimit, TimeSpan.Zero));
+}
+
+/// <summary>Yalnız testlər üçün: autentifikasiya olunmuş principal-ı göstərir.</summary>
+[ApiController]
+[Route("__test/auth")]
+public sealed class AuthProbeController : ControllerBase
+{
+    [HttpGet("whoami")]
+    public IActionResult WhoAmI() => User.Identity?.IsAuthenticated == true
+        ? Ok(new { sub = User.FindFirst("sub")?.Value, roles = User.FindAll("role").Select(c => c.Value).ToArray() })
+        : Unauthorized();
 }

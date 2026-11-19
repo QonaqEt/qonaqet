@@ -64,6 +64,7 @@ public static class MongoIndexCatalog
             Query("giftRedemptions", ("businessId", 1), ("createdAt", 1)),
             Query("otpCodes", ("email", 1), ("createdAt", 1)),
             Query("refreshTokens", ("tokenHash", 1)),
+            Query("refreshTokens", ("userId", 1), ("revokedAt", 1)),
             Query("files", ("ownerType", 1), ("ownerId", 1)),
 
             // Outbox relay-in növbəsi (append-only, isDeleted yoxdur → partial deyil).

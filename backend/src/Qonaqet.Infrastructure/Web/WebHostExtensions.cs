@@ -26,6 +26,7 @@ public static class WebHostExtensions
         services.AddScoped<Application.Abstractions.Services.ICurrentUser, HttpCurrentUser>();
         services.AddScoped<Application.Abstractions.Services.IRequestContext, HttpRequestContext>();
         services.AddQonaqetRateLimits();
+        services.AddAuthentication();
 
         services.AddProblemDetails();
         services.AddExceptionHandler<UnhandledExceptionHandler>();
@@ -62,6 +63,7 @@ public static class WebHostExtensions
             ResponseWriter = HealthResponseWriter.WriteAsync,
         });
 
+        app.UseAuthentication();
         app.UseRateLimiter();
         app.MapControllers();
         return app;

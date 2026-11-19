@@ -55,6 +55,45 @@ public sealed class OtpCodeRepository(MongoContext context, IAggregateTracker tr
     }
 }
 
+public sealed class RefreshTokenRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<RefreshToken, RefreshTokenId>(context, tracker, outbox, clock, CollectionNames.RefreshTokens), IRefreshTokenRepository
+{
+    public async Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken)
+    {
+        var found = await FindAsync(Filter.Eq(x => x.TokenHash, tokenHash), cancellationToken).ConfigureAwait(false);
+        return found.Count == 0 ? null : found[0];
+    }
+
+    public async Task<bool> TryRevokeAsync(
+        RefreshTokenId id, DateTimeOffset now, RefreshTokenRevokeReason reason, RefreshTokenId? replacedBy, CancellationToken cancellationToken)
+    {
+        var result = await UpdateAsync(Active(Filter.And(ById(id), NotRevoked)), Revoke(now, reason).Set(x => x.ReplacedById, replacedBy), many: false, cancellationToken)
+            .ConfigureAwait(false);
+        return result == 1;
+    }
+
+    public Task<long> RevokeAllForUserAsync(UserId userId, DateTimeOffset now, RefreshTokenRevokeReason reason, CancellationToken cancellationToken) =>
+        UpdateAsync(Active(Filter.And(Filter.Eq(x => x.UserId, userId), NotRevoked)), Revoke(now, reason), many: true, cancellationToken);
+
+    private static FilterDefinition<RefreshToken> NotRevoked => Filter.Eq(x => x.RevokedAt, null);
+
+    private static UpdateDefinition<RefreshToken> Revoke(DateTimeOffset now, RefreshTokenRevokeReason reason) =>
+        Builders<RefreshToken>.Update.Set(x => x.RevokedAt, now).Set(x => x.RevokeReason, reason).Set(x => x.UpdatedAt, now);
+
+    private async Task<long> UpdateAsync(FilterDefinition<RefreshToken> filter, UpdateDefinition<RefreshToken> update, bool many, CancellationToken cancellationToken)
+    {
+        var session = Context.Session;
+        UpdateResult result = (many, session) switch
+        {
+            (true, { } s) => await Collection.UpdateManyAsync(s, filter, update, cancellationToken: cancellationToken).ConfigureAwait(false),
+            (true, null) => await Collection.UpdateManyAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false),
+            (false, { } s) => await Collection.UpdateOneAsync(s, filter, update, cancellationToken: cancellationToken).ConfigureAwait(false),
+            (false, null) => await Collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false),
+        };
+        return result.ModifiedCount;
+    }
+}
+
 /// <summary>Mongo kolleksiya adları (<c>CLAUDE.md</c> → "Collections").</summary>
 public static class CollectionNames
 {
