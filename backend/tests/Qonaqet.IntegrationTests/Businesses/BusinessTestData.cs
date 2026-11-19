@@ -62,4 +62,9 @@ internal static class BusinessTestData
     public static Task<bool> AuditExistsAsync(ApiTestHost host, string action) =>
         host.Database.GetCollection<BsonDocument>("outboxMessages")
             .Find(Builders<BsonDocument>.Filter.Regex("payload", new BsonRegularExpression(action))).AnyAsync(TestContext.Current.CancellationToken);
+
+    /// <summary>Outbox-da bu tipdə domen hadisəsi varmı (tip adı üzrə).</summary>
+    public static Task<bool> EventExistsAsync(ApiTestHost host, string eventType) =>
+        host.Database.GetCollection<BsonDocument>("outboxMessages")
+            .Find(Builders<BsonDocument>.Filter.Regex("type", new BsonRegularExpression(eventType))).AnyAsync(TestContext.Current.CancellationToken);
 }

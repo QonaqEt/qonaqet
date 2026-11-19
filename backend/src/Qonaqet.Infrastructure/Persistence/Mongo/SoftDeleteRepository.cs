@@ -138,6 +138,57 @@ public abstract class SoftDeleteRepository<TAggregate, TId> : IRepository<TAggre
             cancellationToken);
 
     /// <summary>
+    /// Valideyn silinəndə uşaq qeydlərin kaskad soft delete-i (<paramref name="reason"/> sabitdir, bərpa onu axtarır).
+    /// Bir audit qeydi yazılır (valideynin ID-si ilə). Silinən qeydlərin sayı.
+    /// </summary>
+    protected async Task<long> CascadeSoftDeleteAsync(
+        FilterDefinition<TAggregate> filter, Guid parentId, Guid? userId, string reason, CancellationToken cancellationToken)
+    {
+        var now = Clock.UtcNow;
+        var update = Builders<TAggregate>.Update
+            .Set(x => x.IsDeleted, true).Set(x => x.DeletedAt, now).Set(x => x.DeletedBy, userId).Set(x => x.DeleteReason, reason)
+            .Set(x => x.UpdatedAt, now).Set(x => x.UpdatedBy, userId);
+        var count = await UpdateManyAsync(Active(filter), update, cancellationToken).ConfigureAwait(false);
+        await CascadeAuditAsync(AuditActions.SoftDelete, parentId, userId, now, reason, count, cancellationToken).ConfigureAwait(false);
+        return count;
+    }
+
+    /// <summary><see cref="CascadeSoftDeleteAsync"/> ilə (eyni səbəblə) silinmiş qeydləri bərpa edir; ayrıca silinmişlərə toxunmur.</summary>
+    protected async Task<long> CascadeRestoreAsync(
+        FilterDefinition<TAggregate> filter, Guid parentId, Guid? userId, string reason, CancellationToken cancellationToken)
+    {
+        var now = Clock.UtcNow;
+        var deleted = Filter.And(filter, Filter.Eq(x => x.IsDeleted, true), Filter.Eq(x => x.DeleteReason, reason));
+        var update = Builders<TAggregate>.Update
+            .Set(x => x.IsDeleted, false).Set(x => x.DeletedAt, null).Set(x => x.DeletedBy, null).Set(x => x.DeleteReason, null)
+            .Set(x => x.UpdatedAt, now).Set(x => x.UpdatedBy, userId);
+        var count = await UpdateManyAsync(deleted, update, cancellationToken).ConfigureAwait(false);
+        await CascadeAuditAsync(AuditActions.Restore, parentId, userId, now, reason, count, cancellationToken).ConfigureAwait(false);
+        return count;
+    }
+
+    private async Task<long> UpdateManyAsync(FilterDefinition<TAggregate> filter, UpdateDefinition<TAggregate> update, CancellationToken cancellationToken)
+    {
+        var result = Context.Session is { } session
+            ? await Collection.UpdateManyAsync(session, filter, update, cancellationToken: cancellationToken).ConfigureAwait(false)
+            : await Collection.UpdateManyAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount;
+    }
+
+    private Task CascadeAuditAsync(string action, Guid parentId, Guid? userId, DateTimeOffset at, string reason, long count, CancellationToken cancellationToken)
+    {
+        var data = new Dictionary<string, string?>
+        {
+            ["collection"] = CollectionName,
+            ["reason"] = reason,
+            ["count"] = count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["cascade"] = "true",
+        };
+        var entry = new AuditRecorded(at, userId, userId is null ? "System" : "User", action, typeof(TAggregate).Name, parentId, data);
+        return Outbox.AddAsync([entry], cancellationToken);
+    }
+
+    /// <summary>
     /// Silinmiş qeydlər daxil olmaqla oxu — <b>yalnız admin</b> sorğuları üçün (arxitektura testi
     /// istifadəni <c>Features/Admin</c> və persistence qatı ilə məhdudlaşdırır). Yalnız oxuyur.
     /// </summary>
