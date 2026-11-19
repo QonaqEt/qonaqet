@@ -46,3 +46,12 @@ public interface IPushSender
 {
     Task<PushSendResult> SendAsync(IReadOnlyList<string> tokens, PushMessage message, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// FIN-in açarlı hash-i (HMAC-SHA256, server sirri ilə, böyük hərfə çevrilmiş FIN üzərində). Xam FIN heç vaxt saxlanılmır və loglanmır;
+/// eyni FIN həmişə eyni hash verir ki, (hash, kateqoriya) unikallığı yoxlanıla bilsin.
+/// </summary>
+public interface IFinHasher
+{
+    string Hash(string fin);
+}

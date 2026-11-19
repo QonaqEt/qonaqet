@@ -16,7 +16,8 @@ namespace Qonaqet.Application.Features.Verification.Commands.SubmitVerification;
 /// <summary>
 /// <c>POST verification</c> (multipart): istifadəçi təsdiq tələb edən kateqoriya üçün sorğu göndərir — alt növ, dinamik sahələr,
 /// FIN və sənədlər. Bütün yoxlama kateqoriya sənədindən qurulur. Sənədlər (PDF/JPG/PNG, hər biri ≤5 MB) əvvəlcə hamısı yoxlanılır,
-/// sonra sorğunun sahibliyi ilə saxlanılır. Xam FIN nə saxlanılır, nə loglanır.
+/// sonra sorğunun sahibliyi ilə saxlanılır. Xam FIN nə saxlanılır, nə loglanır: yalnız <see cref="IFinHasher"/> hash-i, və o,
+/// (hash, kateqoriya) üzrə bir hesaba bağlanır (<c>identityHashes</c>).
 /// </summary>
 [RequiresActiveAccount]
 public sealed record SubmitVerificationCommand(
@@ -47,6 +48,8 @@ public sealed class SubmitVerificationValidator : Validator<SubmitVerificationCo
 public sealed class SubmitVerificationHandler(
     ICategoryRepository categories,
     IVerificationRequestRepository requests,
+    IIdentityHashRepository identities,
+    IFinHasher finHasher,
     FileUploader uploader,
     ICurrentUser currentUser,
     IClock clock) : ICommandHandler<SubmitVerificationCommand, VerificationRequestDto>
@@ -80,6 +83,23 @@ public sealed class SubmitVerificationHandler(
             return new ValidationError([.. problems.Select(p => new ValidationFailure(p.Field, p.Code, p.Message))]);
         }
 
+        // FIN: yalnız HMAC hash-i işlənir. Eyni FIN bu kateqoriyada başqa hesaba bağlıdırsa → identity_already_used.
+        string? finHash = null;
+        if (category.Verification.RequiresFin)
+        {
+            finHash = finHasher.Hash(VerificationRules.NormalizeFin(request.Fin)!);
+            var bound = await identities.FindAsync(finHash, category.Id, cancellationToken).ConfigureAwait(false);
+            if (bound is not null && bound.UserId != userId)
+            {
+                return VerificationErrors.IdentityAlreadyUsed;
+            }
+
+            if (bound is null)
+            {
+                await identities.AddAsync(IdentityHash.Bind(finHash, category.Id, userId, clock.UtcNow), cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         var uploads = request.Files.Select(f => new FileUpload(FilePurpose.VerificationDocument, f.ContentType, f.Content)).ToList();
         foreach (var upload in uploads)
         {
@@ -103,9 +123,8 @@ public sealed class SubmitVerificationHandler(
             fileIds.Add(stored.Value.Id.Value);
         }
 
-        // FIN formatı yuxarıda yoxlanılıb; hash-i və təkrar istifadə qoruması E05-T05-dədir. Xam FIN heç vaxt saxlanılmır.
         var verification = VerificationRequest.Submit(
-            id, userId, category.Id, request.Subtype?.Trim(), fields, finHash: null, fileIds, clock.UtcNow);
+            id, userId, category.Id, request.Subtype?.Trim(), fields, finHash, fileIds, clock.UtcNow);
         await requests.AddAsync(verification, cancellationToken).ConfigureAwait(false);
         return verification.ToDto(category);
     }

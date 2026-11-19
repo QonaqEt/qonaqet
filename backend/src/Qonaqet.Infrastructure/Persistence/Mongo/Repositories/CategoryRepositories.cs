@@ -76,6 +76,17 @@ public sealed class VerificationRequestRepository(MongoContext context, IAggrega
         [.. (await FindAsync(Filter.Eq(x => x.UserId, userId), cancellationToken).ConfigureAwait(false)).OrderByDescending(r => r.CreatedAt)];
 }
 
+public sealed class IdentityHashRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<IdentityHash, IdentityHashId>(context, tracker, outbox, clock, CategoryCollectionNames.IdentityHashes), IIdentityHashRepository
+{
+    public async Task<IdentityHash?> FindAsync(string finHash, CategoryId categoryId, CancellationToken cancellationToken)
+    {
+        var found = await FindAsync(Filter.And(Filter.Eq(x => x.FinHash, finHash), Filter.Eq(x => x.CategoryId, categoryId)), cancellationToken)
+            .ConfigureAwait(false);
+        return found.Count == 0 ? null : found[0];
+    }
+}
+
 /// <summary>
 /// Başqa kolleksiyaların kateqoriyaya istinadları. Sənədlər xam BSON kimi oxunur (təkliflər və kampaniyalar öz epic-lərində
 /// gəlir); hər sorğu <c>isDeleted: false</c> daşıyır və partial indekslərə düşür.
@@ -133,6 +144,7 @@ public static class CategoryCollectionNames
     public const string Offers = "offers";
     public const string Campaigns = "campaigns";
     public const string Pools = "pools";
+    public const string IdentityHashes = "identityHashes";
 }
 
 /// <summary>Kateqoriya və təsdiq sahəsinin DI qeydiyyatı.</summary>
@@ -145,6 +157,7 @@ public static class CategoryRegistration
         services.AddScoped<ICategoryUsageReader, MongoCategoryUsageReader>();
         services.AddScoped<IPoolRepository, PoolRepository>();
         services.AddScoped<IVerificationRequestRepository, VerificationRequestRepository>();
+        services.AddScoped<IIdentityHashRepository, IdentityHashRepository>();
         services.AddScoped<CategoryIconCheck>();
         return services;
     }
