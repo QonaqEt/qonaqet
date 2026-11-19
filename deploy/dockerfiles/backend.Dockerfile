@@ -10,6 +10,7 @@
 
 ARG SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0.404-noble
 ARG RUNTIME_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0.15-noble-chiseled
+ARG WORKER_RUNTIME_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0.15-noble
 
 FROM ${SDK_IMAGE} AS build
 ARG PROJECT
@@ -32,6 +33,21 @@ COPY design-tokens/tokens.json ../design-tokens/tokens.json
 COPY backend/src/ src/
 RUN dotnet publish "src/${PROJECT}/${PROJECT}.csproj" -c Release --no-restore -o /app \
     && mv "/app/${PROJECT}" /app/host
+
+# Worker: PDF renderer (Playwright) headless Chromium və onun sistem kitabxanalarını tələb edir; chiseled image-də
+# apt yoxdur, ona görə Worker tam (noble) aspnet image-indən qurulur. Default build (target-siz) son stage-dir: runtime.
+#   docker build -f deploy/dockerfiles/backend.Dockerfile --build-arg PROJECT=Qonaqet.Worker --target worker .
+FROM ${WORKER_RUNTIME_IMAGE} AS worker
+WORKDIR /app
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY --from=build --chown=app:app /app ./
+# Playwright-ın node driver-i libatomic1 tələb edir; qalan Chromium asılılıqlarını `install --with-deps` qoyur.
+RUN apt-get update     && apt-get install -y --no-install-recommends libatomic1     && /app/host --install-chromium     && rm -rf /var/lib/apt/lists/*
+USER app
+ENV ASPNETCORE_HTTP_PORTS=8080     DOTNET_RUNNING_IN_CONTAINER=true
+EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=6 CMD ["/app/host", "--health-probe"]
+ENTRYPOINT ["/app/host"]
 
 FROM ${RUNTIME_IMAGE} AS runtime
 WORKDIR /app

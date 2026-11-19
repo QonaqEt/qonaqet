@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<title>{{title}}</title>
+<style>
+  @page { size: A4; }
+  body { font-family: 'Manrope', sans-serif; color: {{token.color.text.default}}; font-size: 11pt; margin: 0; }
+  header { background: {{token.color.brand.nar}}; color: {{token.color.text.onNar}}; padding: 18px 22px; border-radius: 10px; }
+  header .brand { font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 14pt; letter-spacing: 1px; }
+  h1 { font-family: 'Unbounded', sans-serif; font-size: 18pt; margin: 6px 0 0; }
+  .meta { margin: 16px 0; color: {{token.color.brand.plum}}; }
+  table.data { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  table.data th { text-align: left; background: {{token.color.brand.blush}}; padding: 8px; font-weight: 700; }
+  table.data td { padding: 7px 8px; border-bottom: 1px solid {{token.color.brand.blush}}; }
+  footer { margin-top: 24px; font-size: 9pt; color: {{token.color.brand.plum}}; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">QONAQET</div>
+  <h1>{{title}}</h1>
+</header>
+<p class="meta">{{subtitle}}</p>
+<!--TABLE-->
+<footer>Qonaq et, xoşbəxt et · {{generatedAt}}</footer>
+</body>
+</html>

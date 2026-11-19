@@ -1,4 +1,5 @@
 using Qonaqet.Infrastructure;
+using Qonaqet.Infrastructure.Documents.Pdf;
 using Qonaqet.Infrastructure.Observability;
 using Qonaqet.Infrastructure.Jobs;
 using Qonaqet.Infrastructure.Messaging;
@@ -14,11 +15,18 @@ public static class Program
             return HealthProbe.RunHeartbeat(DateTimeOffset.UtcNow);
         }
 
+        // Docker build zamanı (Worker stage): Chromium headless shell + Linux asılılıqları.
+        if (args.Contains("--install-chromium", StringComparer.Ordinal))
+        {
+            return PdfRegistration.InstallChromium(withDependencies: true);
+        }
+
         var builder = Host.CreateApplicationBuilder(args);
 
         builder.AddQonaqetObservability("qonaqet-worker");
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddMessagingHost(builder.Configuration);
+        builder.Services.AddPdfRenderer(builder.Configuration);
 
         builder.Services.AddJobScheduler();
 
