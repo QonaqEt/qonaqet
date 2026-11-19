@@ -11,6 +11,11 @@ public static class CategoryErrors
     public static readonly Error CodeInUse =
         Error.Conflict("category_code_in_use", "Kateqoriya artıq istifadədədir, onun kodu dəyişdirilə bilməz.");
 
+    /// <summary>Silinə bilməz: səbəblər (aktiv təklif, kampaniya, hovuz balansı, etibarlı təsdiq) mesajda sabit kodlarla verilir.</summary>
+    public static Error InUse(IReadOnlyList<string> reasons) => Error.Conflict(
+        "category_in_use",
+        $"Kateqoriya istifadədədir ({string.Join(", ", reasons)}): onu silmək olmaz, yalnız deaktiv etmək olar.");
+
     public static readonly Error IconInvalid =
         Error.Validation("category_icon_invalid", "İkon faylı tapılmadı və ya loqo/ikon təyinatlı şəkil deyil.");
 }

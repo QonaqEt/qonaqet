@@ -43,6 +43,9 @@ public static class MongoIndexCatalog
             Unique("couponCodes", ("couponId", 1), ("code", 1)),
             Unique("gifts", ("linkTokenHash", 1)),
 
+            // Kateqoriyanın bir default (campaignId: null) və hər kampaniyanın bir hovuzu.
+            Unique("pools", ("categoryId", 1), ("campaignId", 1)),
+
             Query("offers", ("businessId", 1), ("type", 1)),
             Query("offers", ("categoryId", 1), ("type", 1)),
             Geo("businesses", "location"),
