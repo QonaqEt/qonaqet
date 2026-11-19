@@ -8,6 +8,7 @@ using Qonaqet.Infrastructure.Caching;
 using Qonaqet.Infrastructure.Documents.Csv;
 using Qonaqet.Infrastructure.Documents.Qr;
 using Qonaqet.Infrastructure.Identity;
+using Qonaqet.Infrastructure.Storage;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.Infrastructure.Persistence;
 using Qonaqet.Infrastructure.Persistence.Mongo;
@@ -38,6 +39,7 @@ public static class DependencyInjection
         services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
         services.AddSingleton<RabbitMqConnection>();
 
+        services.AddFileStorage(configuration);
         services.AddIdentityServices(configuration);
 
         // HTTP host-ları (AddQonaqetWeb) öz aktorlarını əvvəlcədən qeyd edir; Worker anonim aktor alır.
