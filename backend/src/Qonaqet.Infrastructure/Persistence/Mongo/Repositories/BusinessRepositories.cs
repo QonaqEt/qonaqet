@@ -47,9 +47,27 @@ public sealed class BusinessRepository(MongoContext context, IAggregateTracker t
     }
 }
 
+public sealed class BusinessMembershipRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<BusinessMembership, BusinessMembershipId>(context, tracker, outbox, clock, BusinessCollectionNames.Memberships),
+        IBusinessMembershipRepository
+{
+    public async Task<BusinessMembership?> FindAsync(BusinessId businessId, Guid userId, CancellationToken cancellationToken)
+    {
+        var found = await FindAsync(Filter.And(Filter.Eq(x => x.BusinessId, businessId), Filter.Eq(x => x.UserId, userId)), cancellationToken).ConfigureAwait(false);
+        return found.Count == 0 ? null : found[0];
+    }
+
+    public async Task<IReadOnlyList<BusinessMembership>> ListForBusinessAsync(BusinessId businessId, CancellationToken cancellationToken) =>
+        [.. (await FindAsync(Filter.Eq(x => x.BusinessId, businessId), cancellationToken).ConfigureAwait(false)).OrderBy(m => m.CreatedAt)];
+
+    public async Task<IReadOnlyList<BusinessMembership>> ListForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        [.. (await FindAsync(Filter.Eq(x => x.UserId, userId), cancellationToken).ConfigureAwait(false)).OrderBy(m => m.CreatedAt)];
+}
+
 public static class BusinessCollectionNames
 {
     public const string Businesses = "businesses";
+    public const string Memberships = "businessMemberships";
 }
 
 /// <summary>Biznes və kataloq sahəsinin DI qeydiyyatı.</summary>
@@ -59,6 +77,8 @@ public static class BusinessRegistration
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IBusinessRepository, BusinessRepository>();
+        services.AddScoped<IBusinessMembershipRepository, BusinessMembershipRepository>();
+        services.AddScoped<BusinessAccess>();
         services.AddScoped<BusinessImageCheck>();
         services.AddScoped<BusinessAccessSync>();
         return services;

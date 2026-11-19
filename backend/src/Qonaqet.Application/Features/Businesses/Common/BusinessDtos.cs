@@ -10,20 +10,20 @@ namespace Qonaqet.Application.Features.Businesses.Common;
 public sealed record DailyHoursDto(DayOfWeek Day, string Opens, string Closes);
 
 /// <summary>
-/// Biznesin tam görünüşü — yalnız sahib, işçi və admin üçün (VÖEN, IBAN daxil). İctimai siyahılar başqa DTO işlədir.
+/// Biznesin daxili görünüşü — yalnız sahib, işçi və admin üçün; VÖEN və IBAN yalnız sahib və adminə. İctimai siyahılar başqa DTO işlədir.
 /// </summary>
 public sealed record BusinessDto(
     BusinessId Id,
     string Name,
     string Slug,
     BusinessType Type,
-    string Voen,
+    string? Voen,
     string Address,
     double Latitude,
     double Longitude,
     string Phone,
     string Email,
-    string Iban,
+    string? Iban,
     IReadOnlyList<DailyHoursDto> WorkingHours,
     Guid? LogoFileId,
     Guid? CoverFileId,
@@ -40,12 +40,13 @@ public sealed record BusinessDto(
 
 public static class BusinessMapping
 {
-    public static BusinessDto ToDto(this Business business)
+    /// <summary><paramref name="includeFinancials"/> = false olanda VÖEN və IBAN boş qaytarılır (işçilər üçün).</summary>
+    public static BusinessDto ToDto(this Business business, bool includeFinancials = true)
     {
         ArgumentNullException.ThrowIfNull(business);
         return new BusinessDto(
-            business.Id, business.Name, business.Slug, business.Type, business.Voen, business.Address,
-            business.Location.Latitude, business.Location.Longitude, business.Phone, business.Email, business.Iban,
+            business.Id, business.Name, business.Slug, business.Type, includeFinancials ? business.Voen : null, business.Address,
+            business.Location.Latitude, business.Location.Longitude, business.Phone, business.Email, includeFinancials ? business.Iban : null,
             [.. business.WorkingHours.Select(h => new DailyHoursDto(h.Day, h.Opens, h.Closes))],
             business.LogoFileId, business.CoverFileId, business.AcceptsPool, business.AcceptsNetworkVouchers,
             business.VoucherMinQepik, business.VoucherMaxQepik, business.Status, business.OwnerUserId,
