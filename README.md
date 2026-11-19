@@ -72,13 +72,27 @@ docker compose -f deploy/docker-compose.yml up -d --wait
 
 Api host-da giriş email OTP ilədir: `POST /api/v1/auth/otp/send` → `POST /api/v1/auth/otp/verify`
 (cavabda `tokens.accessToken` 15 dəq, `tokens.refreshToken` 30 gün, hər `POST /api/v1/auth/refresh`-də rotasiya
-olunur). Email göndəricisi E03-ə qədər yoxdur: Development-də kod Api logunda `DEV giriş kodu` sətrindədir.
+olunur). Kod email ilə gəlir: dev-də məktubu Mailpit-də (http://localhost:8025) görürsünüz; Development-də kod
+əlavə olaraq Api logunda `DEV giriş kodu` sətrindədir (digər mühitlərdə heç vaxt loglanmır).
 Sirlər: `Jwt__SigningKey` (≥ 32 bayt) və `Security__TokenHashSecret`; Development-də verilməsə dev açarları işlənir,
 digər mühitlərdə məcburidir.
 
+### Fayllar, email, PDF, push (E03)
+
+- **Fayllar:** `POST /api/v1/files` (multipart `file` + `purpose`), `GET`/`DELETE /api/v1/files/{id}`. Fayllara yalnız
+  `fileId` ilə istinad olunur; RustFS-də açarlar dəyişməzdir, versioning açıqdır, heç nə silinmir (`DELETE` = soft delete → 404).
+  Konfiqurasiya: `Storage__ServiceUrl`, `Storage__AccessKey`, `Storage__SecretKey`, `Storage__Bucket`.
+- **Email:** `Smtp__Host`, `Smtp__Port`, `Smtp__Security` (`None`/`StartTls`/`SslOnConnect`), `Smtp__UserName`, `Smtp__Password`,
+  `Smtp__FromAddress`. Şablonlar `Infrastructure/Email/Templates`, rənglər `design-tokens/tokens.json`-dan.
+- **PDF:** yalnız Worker-də (Playwright + headless Chromium; Worker image-i `--target worker` stage-indən qurulur).
+  Lokal testlər Chromium-u `PLAYWRIGHT_BROWSERS_PATH`-a özü yükləyir.
+- **Push:** `Firebase__CredentialsJson` (service account JSON) verilməsə push göndərilmir (dev). İstifadəçi bildiriş
+  növlərini `GET`/`PATCH /api/v1/me/notifications` ilə push/email üzrə söndürə bilir.
+
 ## Vəziyyət
 
-Backend təməli (E01) və hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) hazırdır.
+Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
+fayllar/email/bildirişlər (E03: RustFS saxlama, yükləmə axını, MailKit + şablonlar, Playwright PDF, FCM push + seçimlər) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 

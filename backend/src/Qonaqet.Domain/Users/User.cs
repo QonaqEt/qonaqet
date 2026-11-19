@@ -15,6 +15,7 @@ public sealed class User : AggregateRoot<UserId>
 
     private List<Role> _roles = [];
     private List<string> _fcmTokens = [];
+    private List<NotificationOptOut> _notificationOptOuts = [];
 
     private User(UserId id, string email, DateTimeOffset createdAt)
         : base(id, createdAt)
@@ -52,6 +53,13 @@ public sealed class User : AggregateRoot<UserId>
     {
         get => _fcmTokens;
         private set => _fcmTokens = [.. value];
+    }
+
+    /// <summary>Söndürülmüş bildirişlər (növ + kanal); siyahıda olmayan hər şey açıqdır.</summary>
+    public IReadOnlyList<NotificationOptOut> NotificationOptOuts
+    {
+        get => _notificationOptOuts;
+        private set => _notificationOptOuts = [.. value];
     }
 
     /// <summary>Admin tərəfindən bloklanıb: giriş, sessiya yeniləmə və <c>[RequiresActiveAccount]</c> əmrləri qadağandır.</summary>
@@ -101,6 +109,22 @@ public sealed class User : AggregateRoot<UserId>
 
         MarkUpdated(at, Id.Value);
         return true;
+    }
+
+    public bool AllowsNotification(NotificationType type, NotificationChannel channel) =>
+        !_notificationOptOuts.Contains(new NotificationOptOut(type, channel));
+
+    /// <summary>Bildiriş növünü kanal üzrə açır/söndürür.</summary>
+    public void SetNotificationPreference(NotificationType type, NotificationChannel channel, bool enabled, DateTimeOffset at)
+    {
+        var optOut = new NotificationOptOut(type, channel);
+        _notificationOptOuts.Remove(optOut);
+        if (!enabled)
+        {
+            _notificationOptOuts.Add(optOut);
+        }
+
+        MarkUpdated(at, Id.Value);
     }
 
     /// <summary>Bloklayır və <see cref="UserBlocked"/> qaldırır; artıq bloklanıbsa heç nə etmir.</summary>

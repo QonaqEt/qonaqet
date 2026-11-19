@@ -40,6 +40,25 @@ public sealed class RustFsFixture : IAsyncLifetime
         }
 
         ServiceUrl = $"http://{_container.Hostname}:{_container.GetMappedPublicPort(9000)}";
+        await WaitForS3Async().ConfigureAwait(false);
+    }
+
+    /// <summary><c>/health</c> tez cavab verir, amma S3 API ilk saniyələrdə 503 qaytara bilir — real sorğu uğurlu olana qədər gözləyirik.</summary>
+    private async Task WaitForS3Async()
+    {
+        using var client = StorageRegistration.CreateClient(Options("readiness"));
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                await client.ListBucketsAsync().ConfigureAwait(false);
+                return;
+            }
+            catch (Amazon.S3.AmazonS3Exception) when (attempt < 60)
+            {
+                await Task.Delay(500).ConfigureAwait(false);
+            }
+        }
     }
 
     public StorageOptions Options(string? bucket = null) => new()

@@ -5,15 +5,15 @@ using Qonaqet.Domain.Users;
 namespace Qonaqet.Application.Features.Users.Common;
 
 /// <summary>
-/// İstifadəçinin bütün cihazlarına push göndərir və provayderin etibarsız saydığı token-ləri dərhal təmizləyir
+/// İstifadəçi bu bildiriş növünün push-unu söndürməyibsə, bütün cihazlarına push göndərir və provayderin etibarsız saydığı token-ləri dərhal təmizləyir
 /// (növbəti göndərmələr ölü cihazlara getməsin). Hədiyyə/claim bildirişləri bunu işlədəcək.
 /// </summary>
 public sealed class UserPushNotifier(IUserRepository users, IPushSender pushSender)
 {
-    public async Task NotifyAsync(UserId userId, PushMessage message, CancellationToken cancellationToken)
+    public async Task NotifyAsync(UserId userId, NotificationType type, PushMessage message, CancellationToken cancellationToken)
     {
         var user = await users.GetAsync(userId, cancellationToken).ConfigureAwait(false);
-        if (user is null || user.FcmTokens.Count == 0)
+        if (user is null || user.FcmTokens.Count == 0 || !user.AllowsNotification(type, NotificationChannel.Push))
         {
             return;
         }

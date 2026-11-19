@@ -9,6 +9,7 @@ using Qonaqet.Infrastructure.Documents.Csv;
 using Qonaqet.Infrastructure.Documents.Qr;
 using Qonaqet.Infrastructure.Email;
 using Qonaqet.Infrastructure.Identity;
+using Qonaqet.Infrastructure.Push;
 using Qonaqet.Infrastructure.Storage;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.Infrastructure.Persistence;
@@ -42,6 +43,7 @@ public static class DependencyInjection
 
         services.AddFileStorage(configuration);
         services.AddEmail(configuration);
+        services.AddPush(configuration);
         services.AddIdentityServices(configuration);
 
         // HTTP host-ları (AddQonaqetWeb) öz aktorlarını əvvəlcədən qeyd edir; Worker anonim aktor alır.

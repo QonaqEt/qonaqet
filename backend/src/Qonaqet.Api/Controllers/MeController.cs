@@ -3,7 +3,9 @@ using Qonaqet.Application.Features.Users.Commands.DeleteMe;
 using Qonaqet.Application.Features.Users.Commands.RegisterFcmToken;
 using Qonaqet.Application.Features.Users.Commands.RemoveFcmToken;
 using Qonaqet.Application.Features.Users.Commands.UpdateProfile;
+using Qonaqet.Application.Features.Users.Commands.UpdateNotificationPreferences;
 using Qonaqet.Application.Features.Users.Queries.GetMe;
+using Qonaqet.Application.Features.Users.Queries.GetNotificationPreferences;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.SharedKernel.Messaging;
 
@@ -28,6 +30,14 @@ public sealed class MeController(ISender sender) : ControllerBase
 
     [HttpDelete("fcm-token")]
     public async Task<IActionResult> RemoveFcmToken(RemoveFcmTokenCommand command, CancellationToken cancellationToken) =>
+        (await sender.Send(command, cancellationToken)).ToActionResult();
+
+    [HttpGet("notifications")]
+    public async Task<IActionResult> GetNotifications(CancellationToken cancellationToken) =>
+        (await sender.Send(new GetNotificationPreferencesQuery(), cancellationToken)).ToActionResult();
+
+    [HttpPatch("notifications")]
+    public async Task<IActionResult> UpdateNotifications(UpdateNotificationPreferencesCommand command, CancellationToken cancellationToken) =>
         (await sender.Send(command, cancellationToken)).ToActionResult();
 
     [HttpDelete]

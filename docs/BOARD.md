@@ -10,13 +10,13 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 18/18 | — |
 | [E01](epics/E01.md) | Backend foundation | ✅ done | @Tapdiq49 | 17/17 | — |
 | [E02](epics/E02.md) | Identity & users | ✅ done | @Tapdiq49 | 7/7 | — |
-| [E03](epics/E03.md) | Files, email & notifications | 🔄 in-progress | @Tapdiq49 | 4/5 | — |
+| [E03](epics/E03.md) | Files, email & notifications | ✅ done | @Tapdiq49 | 5/5 | — |
 | [E04](epics/E04.md) | Businesses & catalog | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
-| [E05](epics/E05.md) | Categories & verification | ⬜ todo | — | 0/7 | E03 |
+| [E05](epics/E05.md) | Categories & verification | ⬜ todo · 🟢 götürülə bilər | — | 0/7 | — |
 | [E06](epics/E06.md) | Social treating | ⬜ todo | — | 0/8 | E04, E05 |
 | [E07](epics/E07.md) | Payments & ledger | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ⬜ todo | — | 0/6 | E06, E07 |
-| [E09](epics/E09.md) | Gifting | ⬜ todo | — | 0/10 | E03, E04, E07 |
+| [E09](epics/E09.md) | Gifting | ⬜ todo | — | 0/10 | E04, E07 |
 | [E10](epics/E10.md) | Corporate & CSR | ⬜ todo | — | 0/5 | E09 |
 | [E11](epics/E11.md) | Leaderboard & gamification | ⬜ todo | — | 0/6 | E06, E09 |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo | — | 0/4 | E05 |
@@ -27,7 +27,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E17](epics/E17.md) | Business portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/9 | — |
 | [E18](epics/E18.md) | Admin & corporate portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E19](epics/E19.md) | Landing website (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
-| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
+| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
 
 ## Hazırda işlənən task-lar
 
@@ -99,7 +99,7 @@ Yoxdur.
 
 ## E03 — Files, email & notifications
 
-🔄 in-progress · @Tapdiq49 · 4/5 task
+✅ done · @Tapdiq49 · 5/5 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -107,7 +107,7 @@ Yoxdur.
 | ✅ | E03-T02 | files kolleksiyası və yükləmə axını | backend | p0 | M |
 | ✅ | E03-T03 | Email: MailKit + öz şablon mühərrikimiz | backend | p0 | M |
 | ✅ | E03-T04 | Playwright PDF renderer | backend | p1 | M |
-| ⬜ | E03-T05 | Push göndərici və bildiriş seçimləri | backend | p1 | S |
+| ✅ | E03-T05 | Push göndərici və bildiriş seçimləri | backend | p1 | S |
 
 ## E04 — Businesses & catalog
 

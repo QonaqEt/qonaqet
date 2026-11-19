@@ -36,7 +36,7 @@ public interface IAccessTokenIssuer
 
 public sealed record AccessToken(string Token, DateTimeOffset ExpiresAt);
 
-/// <summary>Push bildirişi (FCM). Göndərici E03-T05-də gəlir.</summary>
+/// <summary>Push bildirişi (FCM).</summary>
 public sealed record PushMessage(string Title, string Body, IReadOnlyDictionary<string, string>? Data = null);
 
 /// <summary><see cref="InvalidTokens"/>: provayderin artıq qəbul etmədiyi (silinmiş tətbiq, etibarsız) token-lər.</summary>
