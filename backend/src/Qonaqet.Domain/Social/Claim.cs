@@ -88,6 +88,12 @@ public sealed class Claim : AggregateRoot<ClaimId>
 
     public bool IsReserved => Status == ClaimStatus.Reserved;
 
+    /// <summary>
+    /// Onlayn ödənişlə maliyyələşən mənbə (hovuz, remote): təhvildə biznesə kredit + komissiya yazılır. <c>BusinessDaily</c> və
+    /// <c>Suspended</c> pulsuzdur — onlarda nə kredit, nə komissiya var.
+    /// </summary>
+    public bool IsCommissionable => Source == ClaimSource.Pool || OfferType == Social.OfferType.Remote;
+
     /// <summary>Rezerv bu anda hələ qüvvədədirmi (müddət məntiqidir).</summary>
     public bool IsRedeemableAt(DateTimeOffset now) => Status == ClaimStatus.Reserved && now < ExpiresAt;
 
@@ -124,6 +130,25 @@ public sealed class Claim : AggregateRoot<ClaimId>
         ShortCodeHash = Guard.NotNullOrWhiteSpace(shortCodeHash);
     }
 
+    /// <summary>
+    /// İşçi kassada təhvil verdi: <see cref="ClaimStatus.Reserved"/> → <see cref="ClaimStatus.Redeemed"/> və <see cref="ClaimRedeemed"/>
+    /// qaldırılır (ledger, xal, webhook consumer-ləri üçün). Müddəti keçmiş rezerv təhvil verilə bilməz.
+    /// </summary>
+    public void Redeem(Guid staffUserId, DateTimeOffset now)
+    {
+        EnsureReserved();
+        if (!IsRedeemableAt(now))
+        {
+            throw new InvalidOperationException("Rezervin müddəti bitib.");
+        }
+
+        Status = ClaimStatus.Redeemed;
+        RedeemedAt = now;
+        RedeemedByStaffId = Guard.NotEmpty(staffUserId);
+        MarkUpdated(now, staffUserId);
+        Raise(new ClaimRedeemed(Id, BusinessId, Source, OfferId, OfferType, PoolId, AmountQepik, IsCommissionable, staffUserId, now));
+    }
+
     /// <summary>Rezerv bitdi (job): <see cref="ClaimStatus.Reserved"/> → <see cref="ClaimStatus.Expired"/>.</summary>
     public void Expire(DateTimeOffset now)
     {
@@ -150,3 +175,19 @@ public sealed class Claim : AggregateRoot<ClaimId>
         }
     }
 }
+
+/// <summary>
+/// Claim təhvil verildi. Alıcının kimliyi hadisədə yoxdur. <see cref="Commissionable"/> = <c>false</c> (gündəlik/askıda) olduqda ledger
+/// consumer-i heç nə yazmır; pullu mənbədə (E08) kredit + komissiya yazır.
+/// </summary>
+public sealed record ClaimRedeemed(
+    ClaimId ClaimId,
+    BusinessId BusinessId,
+    ClaimSource Source,
+    OfferId? OfferId,
+    OfferType? OfferType,
+    PoolId? PoolId,
+    long? AmountQepik,
+    bool Commissionable,
+    Guid StaffUserId,
+    DateTimeOffset At) : DomainEvent(At);
