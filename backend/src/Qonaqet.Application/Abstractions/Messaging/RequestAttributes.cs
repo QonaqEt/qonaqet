@@ -19,3 +19,10 @@ public sealed class RequiresRoleAttribute(params string[] roles) : Attribute
 /// təkrar verilir; eyni açar + fərqli body → <c>409 idempotency_key_reused</c>.
 /// </summary>
 public interface IIdempotentCommand;
+
+/// <summary>
+/// Uğursuz nəticəsi də biznes nəticəsi olan əmr: təhlükəsizlik yan təsirləri (məs. oğurlanmış refresh token aşkarlananda
+/// bütün sessiyaların bağlanması) xəta qaytarılsa da commit olunmalıdır. UnitOfWork belə əmrlərdə uğursuzluqda da
+/// hadisələri outbox-a yazıb commit edir; exception isə yenə rollback edir.
+/// </summary>
+public interface ICommitsOnFailure;

@@ -1,3 +1,4 @@
+using Qonaqet.Application.Abstractions.Messaging;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.SharedKernel;
 using Qonaqet.SharedKernel.Messaging;
@@ -7,7 +8,7 @@ namespace Qonaqet.Application.Behaviors;
 /// <summary>
 /// Ən daxili behavior, yalnız əmrlər üçün: tranzaksiya açır, handler uğurlu olarsa izlənən aqreqatların
 /// domen hadisələrini <b>eyni tranzaksiyada</b> outbox-a yazır və commit edir. Uğursuz nəticə və ya exception
-/// rollback edir — heç bir hadisə yazılmır.
+/// rollback edir — heç bir hadisə yazılmır (<see cref="ICommitsOnFailure"/> əmrləri istisna: uğursuzluq da commit olunur).
 /// </summary>
 public sealed class UnitOfWorkBehavior<TRequest, TResponse>(IUnitOfWork unitOfWork, IAggregateTracker tracker, IOutbox outbox)
     : IPipelineBehavior<TRequest, TResponse>
@@ -25,7 +26,7 @@ public sealed class UnitOfWorkBehavior<TRequest, TResponse>(IUnitOfWork unitOfWo
         try
         {
             var response = await next(cancellationToken).ConfigureAwait(false);
-            if (response is Result { IsFailure: true })
+            if (response is Result { IsFailure: true } && request is not ICommitsOnFailure)
             {
                 await unitOfWork.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 return response;

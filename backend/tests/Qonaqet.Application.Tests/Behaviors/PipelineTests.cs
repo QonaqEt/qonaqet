@@ -23,7 +23,19 @@ public sealed class PipelineTests
         typeof(PublicPing), typeof(PublicPingHandler),
         typeof(GetGift), typeof(GetGiftHandler),
         typeof(VerifyOtp), typeof(VerifyOtpHandler),
+        typeof(RevokeSessionsCommand), typeof(RevokeSessionsHandler),
     ];
+
+    [Fact]
+    public async Task Commits_on_failure_command_persists_its_side_effects_with_the_failure()
+    {
+        await using var app = TestApp.Create(authenticated: false);
+
+        var result = await app.Send(new RevokeSessionsCommand());
+
+        Assert.Equal("refresh_token_reused", result.Error.Code);
+        Assert.Equal(["begin", "handler", "outbox:1", "commit"], app.Trace);
+    }
 
     [Fact]
     public void Behaviors_are_registered_in_the_documented_order()
@@ -410,6 +422,19 @@ public sealed class PipelineTests
         {
             trace.Add("handler");
             return Task.FromResult(Result<int>.Success(request.Id));
+        }
+    }
+
+    [PublicRequest]
+    public sealed record RevokeSessionsCommand : ICommand, ICommitsOnFailure;
+
+    public sealed class RevokeSessionsHandler(IAggregateTracker tracker, List<string> trace, IClock clock) : ICommandHandler<RevokeSessionsCommand>
+    {
+        public Task<Result> Handle(RevokeSessionsCommand request, CancellationToken cancellationToken)
+        {
+            trace.Add("handler");
+            tracker.Track(new Gift(clock.UtcNow));
+            return Task.FromResult(Result.Failure(Error.Unauthorized("refresh_token_reused", "Token təkrar işlədildi.")));
         }
     }
 
