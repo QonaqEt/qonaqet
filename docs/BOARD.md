@@ -9,25 +9,25 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 |---|---|---|---|---|---|
 | [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 18/18 | — |
 | [E01](epics/E01.md) | Backend foundation | ✅ done | @Tapdiq49 | 17/17 | — |
-| [E02](epics/E02.md) | Identity & users | 🔄 in-progress | @Tapdiq49 | 6/7 | — |
+| [E02](epics/E02.md) | Identity & users | ✅ done | @Tapdiq49 | 7/7 | — |
 | [E03](epics/E03.md) | Files, email & notifications | ⬜ todo · 🟢 götürülə bilər | — | 0/5 | — |
-| [E04](epics/E04.md) | Businesses & catalog | ⬜ todo | — | 0/6 | E02 |
-| [E05](epics/E05.md) | Categories & verification | ⬜ todo | — | 0/7 | E02, E03 |
+| [E04](epics/E04.md) | Businesses & catalog | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
+| [E05](epics/E05.md) | Categories & verification | ⬜ todo | — | 0/7 | E03 |
 | [E06](epics/E06.md) | Social treating | ⬜ todo | — | 0/8 | E04, E05 |
-| [E07](epics/E07.md) | Payments & ledger | ⬜ todo | — | 0/6 | E02 |
+| [E07](epics/E07.md) | Payments & ledger | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ⬜ todo | — | 0/6 | E06, E07 |
 | [E09](epics/E09.md) | Gifting | ⬜ todo | — | 0/10 | E03, E04, E07 |
 | [E10](epics/E10.md) | Corporate & CSR | ⬜ todo | — | 0/5 | E09 |
 | [E11](epics/E11.md) | Leaderboard & gamification | ⬜ todo | — | 0/6 | E06, E09 |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo | — | 0/4 | E05 |
 | [E13](epics/E13.md) | Integration platform | ⬜ todo | — | 0/10 | E07, E09 |
-| [E14](epics/E14.md) | Mobile foundation | ⬜ todo | — | 0/10 | E02 |
+| [E14](epics/E14.md) | Mobile foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
 | [E15](epics/E15.md) | Mobile user features | ⬜ todo | — | 0/10 | E14 |
 | [E16](epics/E16.md) | Mobile business mode | ⬜ todo | — | 0/5 | E14 |
-| [E17](epics/E17.md) | Business portal (web) | ⬜ todo | — | 0/9 | E02 |
-| [E18](epics/E18.md) | Admin & corporate portal (web) | ⬜ todo | — | 0/6 | E02 |
+| [E17](epics/E17.md) | Business portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/9 | — |
+| [E18](epics/E18.md) | Admin & corporate portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E19](epics/E19.md) | Landing website (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
-| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
+| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
 
 ## Hazırda işlənən task-lar
 
@@ -85,7 +85,7 @@ Yoxdur.
 
 ## E02 — Identity & users
 
-🔄 in-progress · @Tapdiq49 · 6/7 task
+✅ done · @Tapdiq49 · 7/7 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -95,7 +95,7 @@ Yoxdur.
 | ✅ | E02-T04 | Profil: GET/PATCH/DELETE me | backend | p0 | S |
 | ✅ | E02-T05 | FCM token-lərinin idarəsi | backend | p1 | XS |
 | ✅ | E02-T06 | İstifadəçi bloklama | backend | p1 | S |
-| ⬜ | E02-T07 | Partial unique index-lər və email təkrar istifadəsi | backend | p1 | XS |
+| ✅ | E02-T07 | Partial unique index-lər və email təkrar istifadəsi | backend | p1 | XS |
 
 ## E03 — Files, email & notifications
 
