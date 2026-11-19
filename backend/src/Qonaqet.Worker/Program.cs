@@ -1,3 +1,4 @@
+using Qonaqet.Application.Features.Verification.Jobs;
 using Qonaqet.Infrastructure;
 using Qonaqet.Infrastructure.Documents.Pdf;
 using Qonaqet.Infrastructure.Observability;
@@ -29,6 +30,9 @@ public static class Program
         builder.Services.AddPdfRenderer(builder.Configuration);
 
         builder.Services.AddJobScheduler();
+
+        // Saatda bir yoxlayır; hər təsdiq üçün xatırlatma bir dəfə gedir (idempotent), ona görə tez-tez işləmək təhlükəsizdir.
+        builder.Services.AddScheduledJob<VerificationRemindersJob>(VerificationRemindersJob.Name, TimeSpan.FromHours(1));
 
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Services.AddHostedService<WorkerHeartbeat>();

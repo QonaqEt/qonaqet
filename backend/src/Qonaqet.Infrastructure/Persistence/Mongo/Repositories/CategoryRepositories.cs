@@ -109,6 +109,65 @@ public sealed class IdentityHashRepository(MongoContext context, IAggregateTrack
 }
 
 /// <summary>
+/// Xatırlatmalar <c>users</c> kolleksiyasında birbaşa (sənədi əvəz etmədən) işləyir: <c>$elemMatch</c> ilə tapılır, mövqe operatoru
+/// (<c>verifiedCategories.$.reminderSentFor</c>) ilə atomik qeyd olunur ki, paralel profil dəyişiklikləri itməsin.
+/// </summary>
+public sealed class MongoVerificationReminderStore(MongoContext context) : IVerificationReminderStore
+{
+    private static readonly FilterDefinitionBuilder<BsonDocument> F = Builders<BsonDocument>.Filter;
+
+    private IMongoCollection<BsonDocument> Users => context.Collection<BsonDocument>(CategoryCollectionNames.Users);
+
+    public async Task<IReadOnlyList<DueVerificationReminder>> FindDueAsync(DateTimeOffset now, DateTimeOffset until, int limit, CancellationToken cancellationToken)
+    {
+        var window = new BsonDocument { { "$gt", new BsonDateTime(now.UtcDateTime) }, { "$lte", new BsonDateTime(until.UtcDateTime) } };
+        var filter = F.And(
+            F.Eq("isDeleted", false),
+            F.ElemMatch<BsonValue>("verifiedCategories", new BsonDocument("validUntil", window)));
+        var users = await Users.Find(filter).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        var due = new List<DueVerificationReminder>();
+        foreach (var user in users)
+        {
+            foreach (var entry in user.GetValue("verifiedCategories", new BsonArray()).AsBsonArray.Select(v => v.AsBsonDocument))
+            {
+                if (entry.GetValue("validUntil", BsonNull.Value) is not BsonDateTime validUntil)
+                {
+                    continue;
+                }
+
+                var at = new DateTimeOffset(validUntil.ToUniversalTime(), TimeSpan.Zero);
+                var sentFor = entry.GetValue("reminderSentFor", BsonNull.Value);
+                if (at > now && at <= until && !(sentFor is BsonDateTime sent && sent.ToUniversalTime() == validUntil.ToUniversalTime()))
+                {
+                    due.Add(new DueVerificationReminder(user["_id"].AsGuid, entry["categoryId"].AsGuid, at));
+                }
+            }
+        }
+
+        return due;
+    }
+
+    public async Task<bool> TryMarkSentAsync(DueVerificationReminder reminder, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(reminder);
+        var validUntil = new BsonDateTime(reminder.ValidUntil.UtcDateTime);
+        var filter = F.And(
+            F.Eq("_id", new BsonBinaryData(reminder.UserId, GuidRepresentation.Standard)),
+            F.Eq("isDeleted", false),
+            F.ElemMatch<BsonValue>("verifiedCategories", new BsonDocument
+            {
+                { "categoryId", new BsonBinaryData(reminder.CategoryId, GuidRepresentation.Standard) },
+                { "validUntil", validUntil },
+                { "reminderSentFor", new BsonDocument("$ne", validUntil) },
+            }));
+        var update = Builders<BsonDocument>.Update.Set("verifiedCategories.$.reminderSentFor", validUntil);
+        var result = await Users.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount == 1;
+    }
+}
+
+/// <summary>
 /// Başqa kolleksiyaların kateqoriyaya istinadları. Sənədlər xam BSON kimi oxunur (təkliflər və kampaniyalar öz epic-lərində
 /// gəlir); hər sorğu <c>isDeleted: false</c> daşıyır və partial indekslərə düşür.
 /// </summary>
@@ -180,6 +239,7 @@ public static class CategoryRegistration
         services.AddScoped<IVerificationRequestRepository, VerificationRequestRepository>();
         services.AddScoped<IIdentityHashRepository, IdentityHashRepository>();
         services.AddScoped<Application.Features.Admin.Commands.ReviewVerification.VerificationReview>();
+        services.AddScoped<IVerificationReminderStore, MongoVerificationReminderStore>();
         services.AddScoped<CategoryIconCheck>();
         return services;
     }

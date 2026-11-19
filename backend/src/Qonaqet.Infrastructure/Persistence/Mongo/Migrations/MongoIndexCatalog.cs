@@ -54,6 +54,7 @@ public static class MongoIndexCatalog
             Query("businessMemberships", ("userId", 1), ("createdAt", 1)),
             Query("categories", ("isActive", 1), ("sortOrder", 1)),
             Query("users", ("verifiedCategories.categoryId", 1)),
+            Query("users", ("verifiedCategories.validUntil", 1)),
             Query("campaigns", ("categoryId", 1), ("status", 1)),
             Query("catalogItems", ("businessId", 1), ("isActive", 1)),
             Query("claims", ("recipientUserId", 1), ("status", 1), ("createdAt", 1)),
