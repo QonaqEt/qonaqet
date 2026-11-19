@@ -158,6 +158,36 @@ public sealed class User : AggregateRoot<UserId>
         return true;
     }
 
+    /// <summary>
+    /// Biznes rollarını bizneslərdəki üzvlüklərə uyğunlaşdırır: sahib olduğu biznes varsa <see cref="Role.BusinessOwner"/>,
+    /// işçi olduğu biznes varsa <see cref="Role.BusinessStaff"/>, yoxdursa rol götürülür. <see cref="BusinessId"/> ilk
+    /// (əsas) biznesdir — yalnız köhnə tək-biznes klientləri üçün; giriş yoxlamaları üzvlüklərlə aparılır.
+    /// </summary>
+    public bool SyncBusinessRoles(bool isOwner, bool isStaff, Guid? primaryBusinessId, DateTimeOffset at, Guid? by)
+    {
+        var roles = _roles.Where(r => r is not (Role.BusinessOwner or Role.BusinessStaff)).ToList();
+        if (isOwner)
+        {
+            roles.Add(Role.BusinessOwner);
+        }
+
+        if (isStaff)
+        {
+            roles.Add(Role.BusinessStaff);
+        }
+
+        var ordered = roles.Distinct().Order().ToList();
+        if (ordered.SequenceEqual(_roles.Order()) && BusinessId == primaryBusinessId)
+        {
+            return false;
+        }
+
+        _roles = ordered;
+        BusinessId = primaryBusinessId;
+        MarkUpdated(at, by);
+        return true;
+    }
+
     /// <summary>Rolları əvəz edir. <see cref="Role.User"/> həmişə qalır, təkrarlar atılır.</summary>
     public void SetRoles(IEnumerable<Role> roles, DateTimeOffset at, Guid? by)
     {

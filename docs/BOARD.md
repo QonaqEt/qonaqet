@@ -11,7 +11,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E01](epics/E01.md) | Backend foundation | ✅ done | @Tapdiq49 | 17/17 | — |
 | [E02](epics/E02.md) | Identity & users | ✅ done | @Tapdiq49 | 7/7 | — |
 | [E03](epics/E03.md) | Files, email & notifications | ✅ done | @Tapdiq49 | 5/5 | — |
-| [E04](epics/E04.md) | Businesses & catalog | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
+| [E04](epics/E04.md) | Businesses & catalog | 🔄 in-progress | @Tapdiq49 | 1/6 | — |
 | [E05](epics/E05.md) | Categories & verification | ⬜ todo · 🟢 götürülə bilər | — | 0/7 | — |
 | [E06](epics/E06.md) | Social treating | ⬜ todo | — | 0/8 | E04, E05 |
 | [E07](epics/E07.md) | Payments & ledger | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
@@ -111,11 +111,11 @@ Yoxdur.
 
 ## E04 — Businesses & catalog
 
-⬜ todo · 0/6 task
+🔄 in-progress · @Tapdiq49 · 1/6 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
-| ⬜ | E04-T01 | Biznes müraciəti və admin aktivləşdirmə | backend | p0 | M |
+| ✅ | E04-T01 | Biznes müraciəti və admin aktivləşdirmə | backend | p0 | M |
 | ⬜ | E04-T02 | Staff membership-lər | backend | p0 | M |
 | ⬜ | E04-T03 | Kataloq CRUD | backend | p0 | M |
 | ⬜ | E04-T04 | Biznes parametrləri | backend | p0 | S |
