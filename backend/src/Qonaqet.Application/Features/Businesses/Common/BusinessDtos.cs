@@ -138,3 +138,35 @@ public sealed class BusinessImageCheck(IStoredFileRepository files, ICurrentUser
         return file is not null && file.Purpose == purpose && Files.Common.FileAccessRules.CanManage(currentUser, file);
     }
 }
+
+/// <summary>İctimai görünüş (axtarış, biznes səhifəsi): VÖEN, IBAN, email və sahib yoxdur.</summary>
+public sealed record PublicBusinessDto(
+    BusinessId Id,
+    string Name,
+    string Slug,
+    BusinessType Type,
+    string Address,
+    double Latitude,
+    double Longitude,
+    string Phone,
+    IReadOnlyList<DailyHoursDto> WorkingHours,
+    Guid? LogoFileId,
+    Guid? CoverFileId,
+    bool AcceptsPool,
+    bool AcceptsNetworkVouchers,
+    long VoucherMinQepik,
+    long VoucherMaxQepik,
+    double? DistanceMeters);
+
+public static class PublicBusinessMapping
+{
+    public static PublicBusinessDto ToPublicDto(this Business business, double? distanceMeters)
+    {
+        ArgumentNullException.ThrowIfNull(business);
+        return new PublicBusinessDto(
+            business.Id, business.Name, business.Slug, business.Type, business.Address, business.Location.Latitude, business.Location.Longitude,
+            business.Phone, [.. business.WorkingHours.Select(h => new DailyHoursDto(h.Day, h.Opens, h.Closes))], business.LogoFileId, business.CoverFileId,
+            business.AcceptsPool, business.AcceptsNetworkVouchers, business.VoucherMinQepik, business.VoucherMaxQepik,
+            distanceMeters is { } d ? Math.Round(d, 1) : null);
+    }
+}

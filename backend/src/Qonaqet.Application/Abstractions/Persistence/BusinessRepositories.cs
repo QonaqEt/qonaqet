@@ -52,3 +52,16 @@ public interface ICatalogItemRepository : IRepository<CatalogItem, CatalogItemId
     /// <summary>Kaskadla silinmiş elementləri bərpa edir (sahibin ayrıca sildikləri silinmiş qalır).</summary>
     Task<long> CascadeRestoreForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken);
 }
+
+/// <summary>İctimai biznes axtarışının şərtləri. Koordinat verilibsə yaxınlıq üzrə (2dsphere), yoxsa ad üzrə sıralanır.</summary>
+public sealed record BusinessSearchCriteria(
+    double? Latitude, double? Longitude, double RadiusKm, BusinessType? Type, bool? AcceptsPool, bool? AcceptsNetworkVouchers);
+
+/// <summary>Axtarış nəticəsi: biznes və (koordinatla axtarışda) məsafə, metrlə.</summary>
+public sealed record BusinessSearchHit(Business Business, double? DistanceMeters);
+
+/// <summary>İctimai axtarış: yalnız <see cref="BusinessStatus.Active"/> və silinməmiş bizneslər.</summary>
+public interface IBusinessSearch
+{
+    Task<PagedResult<BusinessSearchHit>> SearchAsync(BusinessSearchCriteria criteria, PageRequest page, CancellationToken cancellationToken);
+}
