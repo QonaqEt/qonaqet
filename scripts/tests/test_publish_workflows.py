@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PUBLISH = (ROOT / ".github/workflows/docker-publish.yml").read_text(encoding="utf-8")
 RELEASE = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
-MATRIX = re.findall(r"- \{ image: ([\w-]+),\s+dockerfile: ([\w/.-]+),\s+arg: \"(\w+)=([\w.-]+)\" \}", PUBLISH)
+MATRIX = re.findall(r"- \{ image: ([\w-]+),\s+dockerfile: ([\w/.-]+),\s+arg: \"(\w+)=([\w.-]+)\"(?:, target: ([\w-]+))? \}", PUBLISH)
 
 
 class DockerPublishTests(unittest.TestCase):
@@ -37,9 +37,11 @@ class DockerPublishTests(unittest.TestCase):
             check=True, capture_output=True, text=True).stdout)["services"]
         built = {name: svc["build"] for name, svc in cfg.items() if "build" in svc}
         self.assertEqual({m[0] for m in MATRIX}, set(built))
-        for image, dockerfile, key, value in MATRIX:
+        for image, dockerfile, key, value, target in MATRIX:
             self.assertTrue(built[image]["dockerfile"].endswith(dockerfile), image)
             self.assertEqual(built[image]["args"][key], value, image)
+            # Worker Chromium-lu ayrıca stage-dən qurulur; publish və compose eyni target-i işlətməlidir.
+            self.assertEqual(built[image].get("target", ""), target, image)
 
 
 class ReleaseTests(unittest.TestCase):

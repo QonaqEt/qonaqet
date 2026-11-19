@@ -41,7 +41,8 @@ FROM ${WORKER_RUNTIME_IMAGE} AS worker
 WORKDIR /app
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 COPY --from=build --chown=app:app /app ./
-RUN ["/app/host", "--install-chromium"]
+# Playwright-ın node driver-i libatomic1 tələb edir; qalan Chromium asılılıqlarını `install --with-deps` qoyur.
+RUN apt-get update     && apt-get install -y --no-install-recommends libatomic1     && /app/host --install-chromium     && rm -rf /var/lib/apt/lists/*
 USER app
 ENV ASPNETCORE_HTTP_PORTS=8080     DOTNET_RUNNING_IN_CONTAINER=true
 EXPOSE 8080
