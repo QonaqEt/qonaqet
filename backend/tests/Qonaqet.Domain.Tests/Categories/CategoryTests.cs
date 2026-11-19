@@ -121,3 +121,18 @@ public sealed class CategoryTests
         Assert.False(field.Accepts("Harvard"));
     }
 }
+
+public sealed class PoolTests
+{
+    [Fact]
+    public void Default_pool_is_empty_and_has_no_campaign()
+    {
+        var categoryId = Qonaqet.SharedKernel.StronglyTypedId.New<CategoryId>();
+        var pool = Qonaqet.Domain.Social.Pool.CreateDefault(categoryId, DateTimeOffset.UtcNow, null);
+
+        Assert.True(pool.IsDefault);
+        Assert.Equal(categoryId, pool.CategoryId);
+        Assert.Equal(0, pool.BalanceQepik);
+        Assert.Equal(0, pool.ReservedQepik);
+    }
+}

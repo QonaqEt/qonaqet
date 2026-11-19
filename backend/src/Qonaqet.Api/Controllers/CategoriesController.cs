@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Qonaqet.Application.Features.Admin.Queries.GetCategoryForAdmin;
 using Qonaqet.Application.Features.Admin.Queries.ListCategories;
 using Qonaqet.Application.Features.Categories.Commands.CreateCategory;
+using Qonaqet.Application.Features.Categories.Commands.DeleteCategory;
+using Qonaqet.Application.Features.Categories.Commands.RestoreCategory;
 using Qonaqet.Application.Features.Categories.Commands.UpdateCategory;
 using Qonaqet.Application.Features.Categories.Common;
 using Qonaqet.Application.Features.Categories.Queries.ListCategories;
@@ -57,6 +59,15 @@ public sealed class AdminCategoriesController(ISender sender) : ControllerBase
                 request.IsOpen, request.PrivacyLevel, request.Verification, request.Limits),
             cancellationToken)).ToActionResult();
     }
+
+    /// <summary>Soft delete; istifadədə olan kateqoriya yalnız deaktiv edilə bilər (<c>409 category_in_use</c>).</summary>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, [FromQuery] string reason, CancellationToken cancellationToken) =>
+        (await sender.Send(new DeleteCategoryCommand(CategoryId.From(id), reason), cancellationToken)).ToActionResult();
+
+    [HttpPost("{id:guid}/restore")]
+    public async Task<IActionResult> Restore(Guid id, CancellationToken cancellationToken) =>
+        (await sender.Send(new RestoreCategoryCommand(CategoryId.From(id)), cancellationToken)).ToActionResult();
 
     public sealed record CategoryRequest(
         string Code,

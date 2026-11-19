@@ -5,6 +5,7 @@ using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Common;
 using Qonaqet.Application.Features.Categories.Common;
 using Qonaqet.Domain.Categories;
+using Qonaqet.Domain.Social;
 using Qonaqet.SharedKernel;
 
 namespace Qonaqet.Infrastructure.Persistence.Mongo.Repositories;
@@ -33,6 +34,29 @@ public sealed class CategoryRepository(MongoContext context, IAggregateTracker t
         var items = await find.SortBy(x => x.SortOrder).ThenBy(x => x.Name).Skip(page.Skip).Limit(page.PageSize).ToListAsync(cancellationToken).ConfigureAwait(false);
         return new PagedResult<Category>(items, total);
     }
+
+    public async Task<Category?> GetDeletedAsync(CategoryId id, CancellationToken cancellationToken)
+    {
+        var found = await IncludeDeleted().FindAsync(Filter.And(ById(id), Filter.Eq(x => x.IsDeleted, true)), cancellationToken).ConfigureAwait(false);
+        return found.Count == 0 ? null : found[0];
+    }
+}
+
+public sealed class PoolRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<Pool, PoolId>(context, tracker, outbox, clock, CategoryCollectionNames.Pools), IPoolRepository
+{
+    public async Task<Pool?> GetDefaultForCategoryAsync(CategoryId categoryId, CancellationToken cancellationToken)
+    {
+        var found = await FindAsync(Filter.And(Filter.Eq(x => x.CategoryId, categoryId), Filter.Eq(x => x.CampaignId, null)), cancellationToken)
+            .ConfigureAwait(false);
+        return found.Count == 0 ? null : found[0];
+    }
+
+    public Task<long> CascadeDeleteForCategoryAsync(CategoryId categoryId, Guid? userId, CancellationToken cancellationToken) =>
+        CascadeSoftDeleteAsync(Filter.Eq(x => x.CategoryId, categoryId), categoryId.Value, userId, CategoryCascade.DeleteReason, cancellationToken);
+
+    public Task<long> CascadeRestoreForCategoryAsync(CategoryId categoryId, Guid? userId, CancellationToken cancellationToken) =>
+        CascadeRestoreAsync(Filter.Eq(x => x.CategoryId, categoryId), categoryId.Value, userId, CategoryCascade.DeleteReason, cancellationToken);
 }
 
 /// <summary>
@@ -53,6 +77,28 @@ public sealed class MongoCategoryUsageReader(MongoContext context) : ICategoryUs
             || await AnyAsync(CategoryCollectionNames.Campaigns, byCategory, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<CategoryDeleteBlockers> GetDeleteBlockersAsync(CategoryId categoryId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var id = new BsonBinaryData(categoryId.Value, GuidRepresentation.Standard);
+        var byCategory = F.Eq("categoryId", id);
+        var activeOffers = F.And(byCategory, F.Or(F.Eq("isActive", true), F.Gt("remaining", 0)));
+        var activeCampaigns = F.And(byCategory, F.In("status", new BsonValue[] { "Draft", "Active" }));
+        var poolBalance = F.And(byCategory, F.Or(F.Gt("balanceQepik", 0L), F.Gt("reservedQepik", 0L)));
+        var validVerification = F.ElemMatch<BsonValue>(
+            "verifiedCategories",
+            new BsonDocument
+            {
+                { "categoryId", id },
+                { "$or", new BsonArray { new BsonDocument("validUntil", BsonNull.Value), new BsonDocument("validUntil", new BsonDocument("$gt", new BsonDateTime(now.UtcDateTime))) } },
+            });
+
+        return new CategoryDeleteBlockers(
+            await AnyAsync(CategoryCollectionNames.Offers, activeOffers, cancellationToken).ConfigureAwait(false),
+            await AnyAsync(CategoryCollectionNames.Campaigns, activeCampaigns, cancellationToken).ConfigureAwait(false),
+            await AnyAsync(CategoryCollectionNames.Pools, poolBalance, cancellationToken).ConfigureAwait(false),
+            await AnyAsync(CategoryCollectionNames.Users, validVerification, cancellationToken).ConfigureAwait(false));
+    }
+
     private async Task<bool> AnyAsync(string collectionName, FilterDefinition<BsonDocument> filter, CancellationToken cancellationToken)
     {
         var collection = context.Collection<BsonDocument>(collectionName);
@@ -69,6 +115,7 @@ public static class CategoryCollectionNames
     public const string Users = "users";
     public const string Offers = "offers";
     public const string Campaigns = "campaigns";
+    public const string Pools = "pools";
 }
 
 /// <summary>Kateqoriya və təsdiq sahəsinin DI qeydiyyatı.</summary>
@@ -79,6 +126,7 @@ public static class CategoryRegistration
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<ICategoryUsageReader, MongoCategoryUsageReader>();
+        services.AddScoped<IPoolRepository, PoolRepository>();
         services.AddScoped<CategoryIconCheck>();
         return services;
     }

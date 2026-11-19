@@ -4,6 +4,7 @@ using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Common.Errors;
 using Qonaqet.Application.Features.Categories.Common;
 using Qonaqet.Domain.Categories;
+using Qonaqet.Domain.Social;
 using Qonaqet.Domain.Users;
 using Qonaqet.SharedKernel;
 using Qonaqet.SharedKernel.Messaging;
@@ -12,7 +13,7 @@ namespace Qonaqet.Application.Features.Categories.Commands.CreateCategory;
 
 /// <summary>
 /// <c>POST admin/categories</c>: admin kod dəyişmədən yeni kateqoriya əlavə edir; mobil və veb onu dərhal <c>GET categories</c>-dən
-/// görür. Kod silinməmiş kateqoriyalar arasında unikaldır.
+/// görür. Kod silinməmiş kateqoriyalar arasında unikaldır. Eyni tranzaksiyada kateqoriyanın boş default hovuzu yaranır.
 /// </summary>
 [RequiresRole(RoleNames.Admin)]
 public sealed record CreateCategoryCommand(
@@ -31,7 +32,7 @@ public sealed record CreateCategoryCommand(
 public sealed class CreateCategoryValidator : CategoryValidator<CreateCategoryCommand>;
 
 public sealed class CreateCategoryHandler(
-    ICategoryRepository categories, CategoryIconCheck icons, ICurrentUser currentUser, IOutbox outbox, IClock clock)
+    ICategoryRepository categories, IPoolRepository pools, CategoryIconCheck icons, ICurrentUser currentUser, IOutbox outbox, IClock clock)
     : ICommandHandler<CreateCategoryCommand, CategoryDto>
 {
     public async Task<Result<CategoryDto>> Handle(CreateCategoryCommand request, CancellationToken cancellationToken)
@@ -50,6 +51,7 @@ public sealed class CreateCategoryHandler(
         var now = clock.UtcNow;
         var category = Category.Create(request.Code, request.ToDetails(), now, currentUser.ActorId);
         await categories.AddAsync(category, cancellationToken).ConfigureAwait(false);
+        await pools.AddAsync(Pool.CreateDefault(category.Id, now, currentUser.ActorId), cancellationToken).ConfigureAwait(false);
         await outbox.AddAsync(
             [new AuditRecorded(now, currentUser.ActorId, "User", CategoryAuditActions.Create, nameof(Category), category.Id.Value, CategoryAudit.Data(category))],
             cancellationToken).ConfigureAwait(false);
