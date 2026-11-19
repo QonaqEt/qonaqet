@@ -6,6 +6,12 @@ public interface IUserRepository : IRepository<User, UserId>
 {
     /// <summary>Silinməmiş hesab (email normallaşdırılmış olmalıdır). Silinmiş hesabın email-i yenidən istifadə oluna bilər.</summary>
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Push provayderinin etibarsız saydığı token-ləri atomik silir (<c>$pullAll</c>): bütün sənədi əvəz etmir, ona görə
+    /// paralel profil dəyişiklikləri ilə toqquşmur.
+    /// </summary>
+    Task RemoveFcmTokensAsync(UserId userId, IReadOnlyCollection<string> tokens, CancellationToken cancellationToken);
 }
 
 public interface IOtpCodeRepository : IRepository<OtpCode, OtpCodeId>

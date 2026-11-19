@@ -23,6 +23,8 @@ public static class IdentityRegistration
         services.AddSingleton<JwtSigningKey>();
         services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         services.AddScoped<SessionIssuer>();
+        services.AddSingleton<IPushSender, Push.NoopPushSender>();
+        services.AddScoped<Application.Features.Users.Common.UserPushNotifier>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Qonaqet.Application.Features.Users.Commands.DeleteMe;
+using Qonaqet.Application.Features.Users.Commands.RegisterFcmToken;
+using Qonaqet.Application.Features.Users.Commands.RemoveFcmToken;
 using Qonaqet.Application.Features.Users.Commands.UpdateProfile;
 using Qonaqet.Application.Features.Users.Queries.GetMe;
 using Qonaqet.Infrastructure.Web;
@@ -18,6 +20,14 @@ public sealed class MeController(ISender sender) : ControllerBase
 
     [HttpPatch]
     public async Task<IActionResult> Update(UpdateProfileCommand command, CancellationToken cancellationToken) =>
+        (await sender.Send(command, cancellationToken)).ToActionResult();
+
+    [HttpPost("fcm-token")]
+    public async Task<IActionResult> RegisterFcmToken(RegisterFcmTokenCommand command, CancellationToken cancellationToken) =>
+        (await sender.Send(command, cancellationToken)).ToActionResult();
+
+    [HttpDelete("fcm-token")]
+    public async Task<IActionResult> RemoveFcmToken(RemoveFcmTokenCommand command, CancellationToken cancellationToken) =>
         (await sender.Send(command, cancellationToken)).ToActionResult();
 
     [HttpDelete]
