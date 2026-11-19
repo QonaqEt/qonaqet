@@ -17,6 +17,7 @@ public static class IdentityRegistration
 
         services.Configure<SecurityOptions>(configuration.GetSection(SecurityOptions.SectionName));
         services.AddSingleton<ISecretHasher, HmacSecretHasher>();
+        services.AddSingleton<IFinHasher, HmacFinHasher>();
         services.AddSingleton<ISecureRandom, SecureRandom>();
         services.AddSingleton<IOtpSender, Email.EmailOtpSender>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));

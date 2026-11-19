@@ -15,5 +15,8 @@ public static class VerificationErrors
     public static readonly Error AlreadyVerified =
         Error.Conflict("already_verified", "Statusunuz artıq təsdiqlənib. Yeniləmə müddətin bitməsinə 14 gün qalmış mümkündür.");
 
+    public static readonly Error IdentityAlreadyUsed =
+        Error.Conflict("identity_already_used", "Bu FIN ilə bu kateqoriyada artıq başqa hesab təsdiqlənib və ya sorğu göndərib.");
+
     public static readonly Error TooManyFiles = Error.Validation("files_count_invalid", "Çox sayda fayl göndərilib.");
 }

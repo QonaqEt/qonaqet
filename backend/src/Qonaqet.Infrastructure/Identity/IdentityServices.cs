@@ -14,6 +14,9 @@ public sealed class SecurityOptions
 
     /// <summary>OTP kodlarının və refresh token-lərin HMAC açarı (<c>Security__TokenHashSecret</c>).</summary>
     public string? TokenHashSecret { get; set; }
+
+    /// <summary>FIN hash-inin ayrıca HMAC açarı (<c>Security__FinHashSecret</c>); token açarı ilə paylaşılmır.</summary>
+    public string? FinHashSecret { get; set; }
 }
 
 /// <summary>
@@ -56,6 +59,23 @@ public sealed class HmacSecretHasher(IOptions<SecurityOptions> options, IHostEnv
         ArgumentNullException.ThrowIfNull(hash);
         var expected = Encoding.ASCII.GetBytes(Hash(purpose, value));
         return CryptographicOperations.FixedTimeEquals(expected, Encoding.ASCII.GetBytes(hash));
+    }
+}
+
+/// <summary>
+/// FIN → <c>HMAC-SHA256(FinHashSecret, UPPER(FIN))</c>, kiçik hərfli hex. Xam FIN heç yerdə saxlanılmır; eyni FIN eyni hash verir,
+/// ona görə bir FIN bir kateqoriyada yalnız bir hesaba bağlana bilir.
+/// </summary>
+public sealed class HmacFinHasher(IOptions<SecurityOptions> options, IHostEnvironment environment) : IFinHasher
+{
+    private readonly Lazy<byte[]> _key = new(() =>
+        DevelopmentSecrets.Resolve(options.Value.FinHashSecret, environment, "Security:FinHashSecret"));
+
+    public string Hash(string fin)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fin);
+        var mac = HMACSHA256.HashData(_key.Value, Encoding.UTF8.GetBytes(fin.Trim().ToUpperInvariant()));
+        return Convert.ToHexStringLower(mac);
     }
 }
 
