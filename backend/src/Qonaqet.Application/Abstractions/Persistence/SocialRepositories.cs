@@ -63,6 +63,9 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
     /// <summary>Biznesdə qısa kodun hash-inə uyğun ən son claim (istənilən statusda, ki təkrar təhvil <c>already_redeemed</c> alsın).</summary>
     Task<Claim?> FindByShortCodeAsync(BusinessId businessId, string shortCodeHash, CancellationToken cancellationToken);
 
+    /// <summary>İstifadəçinin bütün <c>Reserved</c> claim-ləri (bloklama zamanı ləğv üçün).</summary>
+    Task<IReadOnlyList<Claim>> ListReservedForUserAsync(Guid userId, CancellationToken cancellationToken);
+
     /// <summary>Müddəti keçmiş, hələ <c>Reserved</c> qalan claim-lər (ən köhnələr əvvəl), ən çox <paramref name="limit"/>.</summary>
     Task<IReadOnlyList<Claim>> ListStaleReservedAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken);
 

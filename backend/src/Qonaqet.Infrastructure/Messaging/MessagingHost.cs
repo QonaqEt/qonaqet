@@ -37,6 +37,7 @@ public static class MessagingHostRegistration
 
         services.AddScoped<InboxProcessor>();
         services.AddSingleton<IIntegrationEventConsumer, AuditRecordedConsumer>();
+        services.AddSingleton<IIntegrationEventConsumer, SocialEventsConsumer>();
         services.AddHostedService<RabbitMqConsumerHost>();
         return services;
     }
