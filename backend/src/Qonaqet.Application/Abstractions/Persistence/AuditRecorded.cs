@@ -48,3 +48,11 @@ public static class AuditActions
     public const string SoftDelete = "SoftDelete";
     public const string Restore = "Restore";
 }
+
+/// <summary>İstifadəçi hesabı üzrə audit əməliyyatları.</summary>
+public static class UserAuditActions
+{
+    public const string SetRoles = "SetRoles";
+    public const string Block = "Block";
+    public const string Unblock = "Unblock";
+}

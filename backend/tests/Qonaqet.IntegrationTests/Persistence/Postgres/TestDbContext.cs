@@ -81,4 +81,8 @@ public sealed class TestUser(Guid id) : ICurrentUser
     public Guid? ActorId { get; } = id;
 
     public IReadOnlySet<string> Roles { get; } = new HashSet<string>();
+
+    public Guid? BusinessId => null;
+
+    public Guid? CorporateId => null;
 }

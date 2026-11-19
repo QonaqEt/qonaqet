@@ -11,6 +11,12 @@ public static class AuthErrors
     public static readonly Error OtpInvalid =
         Error.Validation("otp_invalid", "Kod yanlışdır və ya vaxtı bitib.");
 
+    public static readonly Error UserNotFound =
+        Error.NotFound("user_not_found", "İstifadəçi tapılmadı.");
+
+    public static readonly Error CannotRemoveOwnAdmin =
+        Error.Conflict("cannot_remove_own_admin", "Öz admin rolunuzu silə bilməzsiniz.");
+
     public static readonly Error RefreshTokenInvalid =
         Error.Unauthorized("refresh_token_invalid", "Sessiya etibarsızdır. Yenidən daxil olun.");
 
