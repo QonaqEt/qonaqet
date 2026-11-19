@@ -55,6 +55,11 @@ public sealed class VerifyOtpHandler(
         }
 
         var user = await users.GetByEmailAsync(email, cancellationToken).ConfigureAwait(false);
+        if (user is { IsBlocked: true })
+        {
+            return AuthErrors.UserBlocked;
+        }
+
         var isNew = user is null;
         if (user is null)
         {

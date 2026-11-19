@@ -1,5 +1,6 @@
 using MongoDB.Driver;
 using Qonaqet.Application.Abstractions.Persistence;
+using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Domain.Users;
 using Qonaqet.SharedKernel;
 
@@ -106,6 +107,24 @@ public sealed class RefreshTokenRepository(MongoContext context, IAggregateTrack
             (false, null) => await Collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false),
         };
         return result.ModifiedCount;
+    }
+}
+
+/// <summary>Hesab vəziyyətini yalnız lazım olan sahə ilə oxuyur (hər <c>[RequiresActiveAccount]</c> sorğusunda).</summary>
+public sealed class AccountStatusReader(MongoContext context) : IAccountStatusReader
+{
+    public async Task<AccountStatus> GetAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var collection = context.Collection<User>(CollectionNames.Users);
+        var filter = SoftDeleteRepository<User, UserId>.Active(Builders<User>.Filter.Eq(x => x.Id, UserId.From(userId)));
+        var find = context.Session is { } session ? collection.Find(session, filter) : collection.Find(filter);
+        var blocked = await find.Project(x => (bool?)x.IsBlocked).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        return blocked switch
+        {
+            null => AccountStatus.Missing,
+            true => AccountStatus.Blocked,
+            false => AccountStatus.Active,
+        };
     }
 }
 

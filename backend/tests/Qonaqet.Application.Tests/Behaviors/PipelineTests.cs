@@ -24,7 +24,22 @@ public sealed class PipelineTests
         typeof(GetGift), typeof(GetGiftHandler),
         typeof(VerifyOtp), typeof(VerifyOtpHandler),
         typeof(RevokeSessionsCommand), typeof(RevokeSessionsHandler),
+        typeof(ClaimOfferCommand), typeof(ClaimOfferHandler),
     ];
+
+    [Theory]
+    [InlineData(AccountStatus.Active, null)]
+    [InlineData(AccountStatus.Blocked, "user_blocked")]
+    [InlineData(AccountStatus.Missing, "unauthorized")]
+    public async Task Active_account_requests_stop_blocked_and_missing_accounts_before_the_handler(AccountStatus status, string? expected)
+    {
+        await using var app = TestApp.Create(account: status);
+
+        var result = await app.Send(new ClaimOfferCommand());
+
+        Assert.Equal(expected, result.IsSuccess ? null : result.Error.Code);
+        Assert.Equal(expected is null, app.Trace.Contains("handler"));
+    }
 
     [Fact]
     public async Task Commits_on_failure_command_persists_its_side_effects_with_the_failure()
@@ -227,7 +242,8 @@ public sealed class PipelineTests
 
         public ConcurrentQueue<string> Logs { get; }
 
-        public static TestApp Create(bool authenticated = true, string[]? roles = null, string? idempotencyKey = null, InMemoryIdempotencyStore? store = null)
+        public static TestApp Create(
+            bool authenticated = true, string[]? roles = null, string? idempotencyKey = null, InMemoryIdempotencyStore? store = null, AccountStatus account = AccountStatus.Active)
         {
             var trace = new List<string>();
             var outbox = new FakeOutbox(trace);
@@ -240,6 +256,7 @@ public sealed class PipelineTests
             services.AddSingleton<IClock, SystemClock>();
             services.AddSingleton<ICurrentUser>(new FakeCurrentUser(authenticated, roles ?? ["User"]));
             services.AddSingleton<IRequestContext>(new FakeRequestContext(idempotencyKey));
+            services.AddSingleton<IAccountStatusReader>(new FakeAccountStatus(account));
             services.AddSingleton<IIdempotencyStore>(store);
             services.AddSingleton<IOutbox>(outbox);
             services.AddScoped<IUnitOfWork, FakeUnitOfWork>();
@@ -271,6 +288,11 @@ public sealed class PipelineTests
         public Guid? BusinessId => null;
 
         public Guid? CorporateId => null;
+    }
+
+    private sealed class FakeAccountStatus(AccountStatus status) : IAccountStatusReader
+    {
+        public Task<AccountStatus> GetAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult(status);
     }
 
     private sealed class FakeRequestContext(string? key) : IRequestContext
@@ -426,6 +448,18 @@ public sealed class PipelineTests
         {
             trace.Add("handler");
             return Task.FromResult(Result<int>.Success(request.Id));
+        }
+    }
+
+    [RequiresActiveAccount]
+    public sealed record ClaimOfferCommand : ICommand;
+
+    public sealed class ClaimOfferHandler(List<string> trace) : ICommandHandler<ClaimOfferCommand>
+    {
+        public Task<Result> Handle(ClaimOfferCommand request, CancellationToken cancellationToken)
+        {
+            trace.Add("handler");
+            return Task.FromResult(Result.Success());
         }
     }
 

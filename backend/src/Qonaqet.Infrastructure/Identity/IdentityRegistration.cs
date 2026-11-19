@@ -29,6 +29,7 @@ public static class IdentityRegistration
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IAccountStatusReader, AccountStatusReader>();
         return services;
     }
 }
