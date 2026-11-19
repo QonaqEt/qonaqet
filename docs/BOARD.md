@@ -10,7 +10,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 18/18 | — |
 | [E01](epics/E01.md) | Backend foundation | ✅ done | @Tapdiq49 | 17/17 | — |
 | [E02](epics/E02.md) | Identity & users | ✅ done | @Tapdiq49 | 7/7 | — |
-| [E03](epics/E03.md) | Files, email & notifications | ⬜ todo · 🟢 götürülə bilər | — | 0/5 | — |
+| [E03](epics/E03.md) | Files, email & notifications | 🔄 in-progress | @Tapdiq49 | 1/5 | — |
 | [E04](epics/E04.md) | Businesses & catalog | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E05](epics/E05.md) | Categories & verification | ⬜ todo | — | 0/7 | E03 |
 | [E06](epics/E06.md) | Social treating | ⬜ todo | — | 0/8 | E04, E05 |
@@ -99,11 +99,11 @@ Yoxdur.
 
 ## E03 — Files, email & notifications
 
-⬜ todo · 0/5 task
+🔄 in-progress · @Tapdiq49 · 1/5 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
-| ⬜ | E03-T01 | S3 fayl saxlama (AWSSDK.S3 → RustFS) | backend | p0 | M |
+| ✅ | E03-T01 | S3 fayl saxlama (AWSSDK.S3 → RustFS) | backend | p0 | M |
 | ⬜ | E03-T02 | files kolleksiyası və yükləmə axını | backend | p0 | M |
 | ⬜ | E03-T03 | Email: MailKit + öz şablon mühərrikimiz | backend | p0 | M |
 | ⬜ | E03-T04 | Playwright PDF renderer | backend | p1 | M |
