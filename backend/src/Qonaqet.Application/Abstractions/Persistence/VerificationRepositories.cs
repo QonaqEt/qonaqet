@@ -24,3 +24,19 @@ public interface IIdentityHashRepository : IRepository<IdentityHash, IdentityHas
     /// <summary>Bu kateqoriyada bu FIN hash-inə bağlanmış silinməmiş qeyd.</summary>
     Task<IdentityHash?> FindAsync(string finHash, CategoryId categoryId, CancellationToken cancellationToken);
 }
+
+/// <summary>Müddəti yaxınlaşan təsdiq: istifadəçi, kateqoriya, bitmə anı.</summary>
+public sealed record DueVerificationReminder(Guid UserId, Guid CategoryId, DateTimeOffset ValidUntil);
+
+/// <summary>Etibarlılıq xatırlatmaları üçün <c>users.verifiedCategories[]</c> üzərində atomik əməliyyatlar.</summary>
+public interface IVerificationReminderStore
+{
+    /// <summary>Müddəti (<paramref name="now"/>, <paramref name="until"/>] aralığında bitən və bu müddət üçün hələ xatırladılmamış təsdiqlər.</summary>
+    Task<IReadOnlyList<DueVerificationReminder>> FindDueAsync(DateTimeOffset now, DateTimeOffset until, int limit, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Xatırlatmanı bu <c>validUntil</c> üçün göndərilmiş kimi atomik qeyd edir (<c>reminderSentFor</c>). Başqa instans artıq qeyd edibsə və ya
+    /// müddət dəyişibsə <c>false</c> — göndərmə yalnız <c>true</c> olanda olur (eyni dövr üçün təkrar yoxdur).
+    /// </summary>
+    Task<bool> TryMarkSentAsync(DueVerificationReminder reminder, CancellationToken cancellationToken);
+}

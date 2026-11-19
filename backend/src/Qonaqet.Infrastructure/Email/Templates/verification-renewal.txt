@@ -1,0 +1,4 @@
+Salam, {{firstName}}!
+
+"{{categoryName}}" statusunuz {{validUntil}} tarixində bitir.
+Ismarlamalardan fasiləsiz yararlanmaq üçün tətbiqdə "Status" bölməsindən yeni sənədinizi göndərin. Təşəkkür edirik ki, bizimləsiniz.

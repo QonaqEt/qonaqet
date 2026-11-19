@@ -99,11 +99,23 @@ digər mühitlərdə məcburidir.
 - **İctimai:** `GET /api/v1/businesses?lat=&lng=&radiusKm=&type=&acceptsPool=&acceptsNetworkVouchers=` (2dsphere, yalnız aktivlər)
   və `GET /api/v1/businesses/{idOrSlug}` (aktiv kataloq ilə).
 
+### Kateqoriyalar və təsdiq (E05)
+
+- **Kateqoriyalar datadır:** `GET /api/v1/categories` (anonim) — mobil/veb sihirbazı, filtrləri bundan qurur. Admin
+  `/api/v1/admin/categories` ilə yaradır/redaktə edir (deaktivasiya = `isActive: false`); yaradılanda default hovuz yaranır.
+  İstifadədə olan kateqoriyanın kodu dəyişmir, aktiv təklif/kampaniya/hovuz balansı/etibarlı təsdiqi olan kateqoriya silinmir
+  (`409 category_in_use`). Startup 4 kateqoriyanı (`everyone`, `student`, `veteran-family`, `in-need`) idempotent seed edir.
+- **Təsdiq:** `POST /api/v1/verification` (multipart: `categoryId`, `subtype`, `fields` JSON, `fin`, `files[]`), `GET /api/v1/verification/me`.
+  FIN yalnız `HMAC-SHA256(Security__FinHashSecret, UPPER(FIN))` kimi saxlanılır, bir kateqoriyada bir hesaba bağlanır
+  (`identity_already_used`). Admin `/api/v1/admin/verifications` ilə təsdiqləyir/rədd edir; `validUntil` kateqoriyanın qaydasından
+  (Bakı təqvimi) hesablanır və əl ilə dəyişdirilə bilər. Müddət məntiqidir; Worker bitməyə 14 gün qalmış bir dəfə push + email göndərir.
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
 fayllar/email/bildirişlər (E03: RustFS saxlama, yükləmə axını, MailKit + şablonlar, Playwright PDF, FCM push + seçimlər) və
-bizneslər/kataloq (E04: müraciət + aktivləşdirmə, işçilər, kataloq, parametrlər, coğrafi axtarış, şəbəkələr) hazırdır.
+bizneslər/kataloq (E04: müraciət + aktivləşdirmə, işçilər, kataloq, parametrlər, coğrafi axtarış, şəbəkələr) və
+kateqoriyalar/təsdiq (E05: dinamik kateqoriyalar + default hovuz, seed, təsdiq sihirbazı, FIN hash, admin baxışı, xatırlatmalar) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 
