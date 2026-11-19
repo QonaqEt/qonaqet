@@ -78,30 +78,3 @@ public sealed class SecureRandom : ISecureRandom
     internal static string Base64Url(byte[] data) =>
         Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }
-
-/// <summary>
-/// OTP çatdırılması. Email göndərici (MailKit + şablonlar) E03-T03 ilə gəlir; o vaxta qədər kod yalnız
-/// Development-də loga yazılır. Digər mühitlərdə kod <b>heç vaxt</b> loglanmır.
-/// </summary>
-public sealed partial class LoggingOtpSender(IHostEnvironment environment, ILogger<LoggingOtpSender> logger) : IOtpSender
-{
-    public Task SendAsync(string email, string code, DateTimeOffset expiresAt, CancellationToken cancellationToken)
-    {
-        if (environment.IsDevelopment())
-        {
-            LogDevelopmentCode(logger, email, code, expiresAt);
-        }
-        else
-        {
-            LogNotDelivered(logger);
-        }
-
-        return Task.CompletedTask;
-    }
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "DEV giriş kodu {DevLoginCode} ({Email}, bitir {ExpiresAt:O})")]
-    private static partial void LogDevelopmentCode(ILogger logger, string email, string devLoginCode, DateTimeOffset expiresAt);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "OTP email göndəricisi hələ konfiqurasiya olunmayıb (E03-T03).")]
-    private static partial void LogNotDelivered(ILogger logger);
-}

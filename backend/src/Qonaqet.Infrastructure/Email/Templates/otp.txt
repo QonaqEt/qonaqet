@@ -1,0 +1,8 @@
+Salam!
+
+QONAQET-ə giriş kodunuz: {{code}}
+
+Kod {{validMinutes}} dəqiqə etibarlıdır (saat {{expiresAtBaku}}-dək, Bakı vaxtı).
+Bu kodu siz istəməmisinizsə, bu məktubu nəzərə almayın. Kodu heç kimlə paylaşmayın.
+
+Qonaq et, xoşbəxt et · QONAQET
