@@ -32,5 +32,18 @@ public static class MongoConventions
         BsonSerializer.TryRegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
         BsonSerializer.TryRegisterSerializer(new DateTimeOffsetSerializer(BsonType.DateTime));
         StronglyTypedIdSerializationProvider.Register();
+        BsonSerializer.RegisterSerializationProvider(new StringEnumSerializationProvider());
+    }
+
+    /// <summary>
+    /// Kolleksiya elementləri olan enum-lar da (məs. <c>roles[]</c>) sətir kimi yazılsın: konvensiya yalnız
+    /// birbaşa enum xüsusiyyətlərinə tətbiq olunur, bu provider isə hər Qonaqet enum-u üçün serializer verir.
+    /// </summary>
+    private sealed class StringEnumSerializationProvider : IBsonSerializationProvider
+    {
+        public IBsonSerializer? GetSerializer(Type type) =>
+            type.IsEnum && type.Namespace?.StartsWith("Qonaqet", StringComparison.Ordinal) == true
+                ? (IBsonSerializer?)Activator.CreateInstance(typeof(EnumSerializer<>).MakeGenericType(type), BsonType.String)
+                : null;
     }
 }

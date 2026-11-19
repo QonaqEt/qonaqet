@@ -22,6 +22,11 @@ public static class WebHostExtensions
             .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new StronglyTypedIdJsonConverterFactory()))
             .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = InvalidModelState);
 
+        services.AddHttpContextAccessor();
+        services.AddScoped<Application.Abstractions.Services.ICurrentUser, HttpCurrentUser>();
+        services.AddScoped<Application.Abstractions.Services.IRequestContext, HttpRequestContext>();
+        services.AddQonaqetRateLimits();
+
         services.AddProblemDetails();
         services.AddExceptionHandler<UnhandledExceptionHandler>();
 
@@ -57,6 +62,7 @@ public static class WebHostExtensions
             ResponseWriter = HealthResponseWriter.WriteAsync,
         });
 
+        app.UseRateLimiter();
         app.MapControllers();
         return app;
     }

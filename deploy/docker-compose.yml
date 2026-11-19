@@ -35,6 +35,7 @@ x-backend-env: &backend-env
   # Boş AppKey → Fake ödəniş gateway-i (Development).
   Payriff__AppKey: ${PAYRIFF_APP_KEY:-}
   Jwt__SigningKey: ${JWT_SIGNING_KEY:-qonaqet-dev-only-signing-key-change-me-0123456789}
+  Security__TokenHashSecret: ${TOKEN_HASH_SECRET:-qonaqet-dev-only-token-hash-secret}
   Security__FinHashSecret: ${FIN_HASH_SECRET:-qonaqet-dev-only-fin-secret}
   Security__QrSigningSecret: ${QR_SIGNING_SECRET:-qonaqet-dev-only-qr-secret}
   OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
