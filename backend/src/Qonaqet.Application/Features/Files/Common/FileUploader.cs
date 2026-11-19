@@ -21,6 +21,32 @@ public sealed class FileUploader(IFileStorage storage, IStoredFileRepository fil
     public async Task<Result<StoredFile>> UploadAsync(
         FileUpload upload, FileOwnerType ownerType, Guid ownerId, Guid? uploadedBy, CancellationToken cancellationToken)
     {
+        var checkedType = Check(upload);
+        if (checkedType.IsFailure)
+        {
+            return checkedType.Error;
+        }
+
+        var detected = checkedType.Value;
+        var now = clock.UtcNow;
+        var objectKey = ObjectKeys.New(upload.Purpose.ToString(), now);
+        var sha256 = Convert.ToHexStringLower(SHA256.HashData(upload.Content.Span));
+        using (var stream = new MemoryStream(upload.Content.ToArray(), writable: false))
+        {
+            await storage.PutAsync(objectKey, stream, detected, cancellationToken).ConfigureAwait(false);
+        }
+
+        var file = StoredFile.Create(storage.Bucket, objectKey, detected, upload.Content.Length, sha256, ownerType, ownerId, upload.Purpose, now, uploadedBy);
+        await files.AddAsync(file, cancellationToken).ConfigureAwait(false);
+        return file;
+    }
+
+    /// <summary>
+    /// Yükləmədən əvvəl yoxlama (ölçü, magic bayt üzrə tip); uğurda aşkarlanan MIME tipi. Bir neçə fayl qəbul edən axınlar
+    /// (təsdiq sənədləri) hamısını əvvəlcə bununla yoxlayır ki, biri səhv olanda heç biri saxlamaya yazılmasın.
+    /// </summary>
+    public static Result<string> Check(FileUpload upload)
+    {
         ArgumentNullException.ThrowIfNull(upload);
         var policy = FilePolicy.For(upload.Purpose);
         if (upload.Content.IsEmpty)
@@ -40,17 +66,7 @@ public sealed class FileUploader(IFileStorage storage, IStoredFileRepository fil
             return FileErrors.TypeNotAllowed;
         }
 
-        var now = clock.UtcNow;
-        var objectKey = ObjectKeys.New(upload.Purpose.ToString(), now);
-        var sha256 = Convert.ToHexStringLower(SHA256.HashData(upload.Content.Span));
-        using (var stream = new MemoryStream(upload.Content.ToArray(), writable: false))
-        {
-            await storage.PutAsync(objectKey, stream, detected, cancellationToken).ConfigureAwait(false);
-        }
-
-        var file = StoredFile.Create(storage.Bucket, objectKey, detected, upload.Content.Length, sha256, ownerType, ownerId, upload.Purpose, now, uploadedBy);
-        await files.AddAsync(file, cancellationToken).ConfigureAwait(false);
-        return file;
+        return detected;
     }
 
     private static string NormalizeContentType(string? contentType)

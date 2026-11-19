@@ -12,7 +12,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E02](epics/E02.md) | Identity & users | ✅ done | @Tapdiq49 | 7/7 | — |
 | [E03](epics/E03.md) | Files, email & notifications | ✅ done | @Tapdiq49 | 5/5 | — |
 | [E04](epics/E04.md) | Businesses & catalog | ✅ done | @Tapdiq49 | 6/6 | — |
-| [E05](epics/E05.md) | Categories & verification | 🔄 in-progress | @Tapdiq49 | 3/7 | — |
+| [E05](epics/E05.md) | Categories & verification | 🔄 in-progress | @Tapdiq49 | 4/7 | — |
 | [E06](epics/E06.md) | Social treating | ⬜ todo | — | 0/9 | E05 |
 | [E07](epics/E07.md) | Payments & ledger | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ⬜ todo | — | 0/6 | E06, E07 |
@@ -124,14 +124,14 @@ Yoxdur.
 
 ## E05 — Categories & verification
 
-🔄 in-progress · @Tapdiq49 · 3/7 task
+🔄 in-progress · @Tapdiq49 · 4/7 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
 | ✅ | E05-T01 | Kateqoriya aqreqatı və CRUD | backend | p0 | L |
 | ✅ | E05-T02 | Avtomatik default hovuz və silmə qoruması | backend | p0 | M |
 | ✅ | E05-T03 | Seed: 4 kateqoriya və universitet siyahısı | backend | p0 | S |
-| ⬜ | E05-T04 | Təsdiq sorğusu API-si (dinamik sihirbaz) | backend | p0 | L |
+| ✅ | E05-T04 | Təsdiq sorğusu API-si (dinamik sihirbaz) | backend | p0 | L |
 | ⬜ | E05-T05 | FIN hash və təkrar istifadənin qarşısının alınması | backend | p0 | M |
 | ⬜ | E05-T06 | Admin təsdiq/rədd və etibarlılıq müddəti | backend | p0 | M |
 | ⬜ | E05-T07 | Etibarlılıq müddəti xatırlatmaları | backend | p1 | S |

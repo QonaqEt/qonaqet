@@ -6,6 +6,7 @@ using Qonaqet.Application.Common;
 using Qonaqet.Application.Features.Categories.Common;
 using Qonaqet.Domain.Categories;
 using Qonaqet.Domain.Social;
+using Qonaqet.Domain.Verification;
 using Qonaqet.SharedKernel;
 
 namespace Qonaqet.Infrastructure.Persistence.Mongo.Repositories;
@@ -57,6 +58,22 @@ public sealed class PoolRepository(MongoContext context, IAggregateTracker track
 
     public Task<long> CascadeRestoreForCategoryAsync(CategoryId categoryId, Guid? userId, CancellationToken cancellationToken) =>
         CascadeRestoreAsync(Filter.Eq(x => x.CategoryId, categoryId), categoryId.Value, userId, CategoryCascade.DeleteReason, cancellationToken);
+}
+
+public sealed class VerificationRequestRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<VerificationRequest, VerificationRequestId>(context, tracker, outbox, clock, CategoryCollectionNames.VerificationRequests),
+        IVerificationRequestRepository
+{
+    public async Task<bool> HasPendingAsync(Guid userId, CategoryId categoryId, CancellationToken cancellationToken)
+    {
+        var filter = Active(Filter.And(
+            Filter.Eq(x => x.UserId, userId), Filter.Eq(x => x.CategoryId, categoryId), Filter.Eq(x => x.Status, VerificationStatus.Pending)));
+        var find = Context.Session is { } session ? Collection.Find(session, filter) : Collection.Find(filter);
+        return await find.Limit(1).AnyAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<VerificationRequest>> ListForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        [.. (await FindAsync(Filter.Eq(x => x.UserId, userId), cancellationToken).ConfigureAwait(false)).OrderByDescending(r => r.CreatedAt)];
 }
 
 /// <summary>
@@ -127,6 +144,7 @@ public static class CategoryRegistration
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<ICategoryUsageReader, MongoCategoryUsageReader>();
         services.AddScoped<IPoolRepository, PoolRepository>();
+        services.AddScoped<IVerificationRequestRepository, VerificationRequestRepository>();
         services.AddScoped<CategoryIconCheck>();
         return services;
     }
