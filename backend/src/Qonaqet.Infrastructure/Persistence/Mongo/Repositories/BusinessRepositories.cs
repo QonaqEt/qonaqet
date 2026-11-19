@@ -109,6 +109,7 @@ public static class BusinessRegistration
         services.AddScoped<IBusinessRepository, BusinessRepository>();
         services.AddScoped<IBusinessMembershipRepository, BusinessMembershipRepository>();
         services.AddScoped<BusinessAccess>();
+        services.AddScoped<IBusinessSearch, MongoBusinessSearch>();
         services.AddScoped<ICatalogItemRepository, CatalogItemRepository>();
         services.AddScoped<BusinessImageCheck>();
         services.AddScoped<BusinessAccessSync>();
