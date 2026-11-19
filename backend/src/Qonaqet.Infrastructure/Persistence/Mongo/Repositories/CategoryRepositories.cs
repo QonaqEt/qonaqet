@@ -74,6 +74,27 @@ public sealed class VerificationRequestRepository(MongoContext context, IAggrega
 
     public async Task<IReadOnlyList<VerificationRequest>> ListForUserAsync(Guid userId, CancellationToken cancellationToken) =>
         [.. (await FindAsync(Filter.Eq(x => x.UserId, userId), cancellationToken).ConfigureAwait(false)).OrderByDescending(r => r.CreatedAt)];
+
+    public async Task<PagedResult<VerificationRequest>> ListForAdminAsync(
+        VerificationStatus? status, CategoryId? categoryId, PageRequest page, CancellationToken cancellationToken)
+    {
+        var filter = Filter.Empty;
+        if (status is { } st)
+        {
+            filter = Filter.And(filter, Filter.Eq(x => x.Status, st));
+        }
+
+        if (categoryId is { } category)
+        {
+            filter = Filter.And(filter, Filter.Eq(x => x.CategoryId, category));
+        }
+
+        var active = Active(filter);
+        var find = Context.Session is { } session ? Collection.Find(session, active) : Collection.Find(active);
+        var total = await find.CountDocumentsAsync(cancellationToken).ConfigureAwait(false);
+        var items = await find.SortBy(x => x.CreatedAt).Skip(page.Skip).Limit(page.PageSize).ToListAsync(cancellationToken).ConfigureAwait(false);
+        return new PagedResult<VerificationRequest>(items, total);
+    }
 }
 
 public sealed class IdentityHashRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
@@ -158,6 +179,7 @@ public static class CategoryRegistration
         services.AddScoped<IPoolRepository, PoolRepository>();
         services.AddScoped<IVerificationRequestRepository, VerificationRequestRepository>();
         services.AddScoped<IIdentityHashRepository, IdentityHashRepository>();
+        services.AddScoped<Application.Features.Admin.Commands.ReviewVerification.VerificationReview>();
         services.AddScoped<CategoryIconCheck>();
         return services;
     }

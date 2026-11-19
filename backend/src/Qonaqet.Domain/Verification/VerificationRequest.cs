@@ -72,7 +72,52 @@ public sealed class VerificationRequest : AggregateRoot<VerificationRequestId>
 
     public DateTimeOffset? ReviewedAt { get; private set; }
 
+    /// <summary>Təsdiqdə hesablanan (və ya admin tərəfindən dəyişdirilən) etibarlılıq sonu; <c>null</c> müddətsizdir.</summary>
+    public DateTimeOffset? ValidUntil { get; private set; }
+
     public bool IsPending => Status == VerificationStatus.Pending;
+
+    public void Approve(DateTimeOffset? validUntil, DateTimeOffset at, Guid by)
+    {
+        EnsurePending();
+        Status = VerificationStatus.Approved;
+        ValidUntil = validUntil;
+        ReviewedBy = by;
+        ReviewedAt = Guard.Utc(at);
+        MarkUpdated(at, by);
+        Raise(new VerificationApproved(Id, CategoryId, UserId, validUntil, at));
+    }
+
+    public void Reject(string reason, DateTimeOffset at, Guid by)
+    {
+        EnsurePending();
+        Status = VerificationStatus.Rejected;
+        RejectReason = Guard.NotNullOrWhiteSpace(reason).Trim();
+        ReviewedBy = by;
+        ReviewedAt = Guard.Utc(at);
+        MarkUpdated(at, by);
+        Raise(new VerificationRejected(Id, CategoryId, UserId, at));
+    }
+
+    /// <summary>Təsdiqlənmiş sorğunun müddətini admin əl ilə dəyişir.</summary>
+    public void OverrideValidUntil(DateTimeOffset? validUntil, DateTimeOffset at, Guid by)
+    {
+        if (Status != VerificationStatus.Approved)
+        {
+            throw new InvalidOperationException("Yalnız təsdiqlənmiş sorğunun müddəti dəyişdirilir.");
+        }
+
+        ValidUntil = validUntil;
+        MarkUpdated(at, by);
+    }
+
+    private void EnsurePending()
+    {
+        if (!IsPending)
+        {
+            throw new InvalidOperationException("Sorğuya artıq baxılıb.");
+        }
+    }
 
     /// <summary>Yeni ID: sənədlər sorğu yaradılmamışdan əvvəl bu ID-nin sahibliyi ilə yüklənir.</summary>
     public static VerificationRequestId NewId() => StronglyTypedId.New<VerificationRequestId>();
@@ -93,3 +138,10 @@ public sealed class VerificationRequest : AggregateRoot<VerificationRequestId>
 
 /// <summary>Təsdiq sorğusu göndərildi (admin növbəsi).</summary>
 public sealed record VerificationSubmitted(VerificationRequestId RequestId, CategoryId CategoryId, Guid UserId, DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>Təsdiq verildi: istifadəçiyə bildiriş.</summary>
+public sealed record VerificationApproved(
+    VerificationRequestId RequestId, CategoryId CategoryId, Guid UserId, DateTimeOffset? ValidUntil, DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>Təsdiq rədd olundu.</summary>
+public sealed record VerificationRejected(VerificationRequestId RequestId, CategoryId CategoryId, Guid UserId, DateTimeOffset At) : DomainEvent(At);

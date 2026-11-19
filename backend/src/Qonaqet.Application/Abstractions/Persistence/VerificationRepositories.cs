@@ -1,3 +1,4 @@
+using Qonaqet.Application.Common;
 using Qonaqet.Domain.Categories;
 using Qonaqet.Domain.Verification;
 
@@ -11,6 +12,10 @@ public interface IVerificationRequestRepository : IRepository<VerificationReques
 
     /// <summary>İstifadəçinin bütün sorğuları, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<VerificationRequest>> ListForUserAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>Admin növbəsi: status/kateqoriya filtri, ən köhnələr əvvəl (növbə ədalətli olsun).</summary>
+    Task<PagedResult<VerificationRequest>> ListForAdminAsync(
+        VerificationStatus? status, CategoryId? categoryId, PageRequest page, CancellationToken cancellationToken);
 }
 
 /// <summary><c>identityHashes</c>: FIN hash-i ↔ kateqoriya ↔ hesab.</summary>

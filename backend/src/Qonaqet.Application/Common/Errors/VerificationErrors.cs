@@ -18,5 +18,11 @@ public static class VerificationErrors
     public static readonly Error IdentityAlreadyUsed =
         Error.Conflict("identity_already_used", "Bu FIN ilə bu kateqoriyada artıq başqa hesab təsdiqlənib və ya sorğu göndərib.");
 
+    public static readonly Error AlreadyReviewed = Error.Conflict("verification_already_reviewed", "Bu sorğuya artıq baxılıb.");
+
+    public static readonly Error NotApproved = Error.Conflict("verification_not_approved", "Müddət yalnız təsdiqlənmiş sorğuda dəyişdirilir.");
+
+    public static readonly Error UserNotFound = Error.NotFound("user_not_found", "Sorğunun sahibi olan hesab tapılmadı.");
+
     public static readonly Error TooManyFiles = Error.Validation("files_count_invalid", "Çox sayda fayl göndərilib.");
 }
