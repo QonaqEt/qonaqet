@@ -75,6 +75,19 @@ public sealed class BusinessAccessSync(IUserRepository users, IBusinessMembershi
         await RecomputeAsync(owner, at, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Bir neçə istifadəçi üçün <see cref="RecomputeAsync"/> (biznes silinəndə/bərpa olunanda).</summary>
+    public async Task RecomputeManyAsync(IEnumerable<Guid> userIds, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(userIds);
+        foreach (var userId in userIds.Distinct())
+        {
+            if (await users.GetAsync(UserId.From(userId), cancellationToken).ConfigureAwait(false) is { } user)
+            {
+                await RecomputeAsync(user, at, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
     /// <summary>
     /// Rolları üzvlüklərdən yenidən hesablayır: sahib olduğu biznes → <c>BusinessOwner</c>, işçi olduğu → <c>BusinessStaff</c>.
     /// Əsas biznes (<c>users.businessId</c>) hələ üzvü olduğu biznesdirsə qalır, yoxsa ən köhnə üzvlüyə keçir.

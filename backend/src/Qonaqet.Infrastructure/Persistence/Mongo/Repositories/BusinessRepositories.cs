@@ -4,6 +4,7 @@ using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Common;
 using Qonaqet.Application.Features.Businesses.Common;
 using Qonaqet.Domain.Businesses;
+using Qonaqet.Domain.Catalog;
 using Qonaqet.SharedKernel;
 
 namespace Qonaqet.Infrastructure.Persistence.Mongo.Repositories;
@@ -62,12 +63,41 @@ public sealed class BusinessMembershipRepository(MongoContext context, IAggregat
 
     public async Task<IReadOnlyList<BusinessMembership>> ListForUserAsync(Guid userId, CancellationToken cancellationToken) =>
         [.. (await FindAsync(Filter.Eq(x => x.UserId, userId), cancellationToken).ConfigureAwait(false)).OrderBy(m => m.CreatedAt)];
+
+    public Task<long> CascadeDeleteForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken) =>
+        CascadeSoftDeleteAsync(Filter.Eq(x => x.BusinessId, businessId), businessId.Value, userId, BusinessCascade.DeleteReason, cancellationToken);
+
+    public Task<long> CascadeRestoreForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken) =>
+        CascadeRestoreAsync(Filter.Eq(x => x.BusinessId, businessId), businessId.Value, userId, BusinessCascade.DeleteReason, cancellationToken);
+}
+
+public sealed class CatalogItemRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<CatalogItem, CatalogItemId>(context, tracker, outbox, clock, BusinessCollectionNames.CatalogItems), ICatalogItemRepository
+{
+    public async Task<IReadOnlyList<CatalogItem>> ListForBusinessAsync(BusinessId businessId, bool activeOnly, CancellationToken cancellationToken)
+    {
+        var filter = Filter.Eq(x => x.BusinessId, businessId);
+        if (activeOnly)
+        {
+            filter = Filter.And(filter, Filter.Eq(x => x.IsActive, true));
+        }
+
+        var items = await FindAsync(filter, cancellationToken).ConfigureAwait(false);
+        return [.. items.OrderBy(i => i.Group ?? string.Empty, StringComparer.Ordinal).ThenBy(i => i.Title, StringComparer.Ordinal)];
+    }
+
+    public Task<long> CascadeDeleteForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken) =>
+        CascadeSoftDeleteAsync(Filter.Eq(x => x.BusinessId, businessId), businessId.Value, userId, BusinessCascade.DeleteReason, cancellationToken);
+
+    public Task<long> CascadeRestoreForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken) =>
+        CascadeRestoreAsync(Filter.Eq(x => x.BusinessId, businessId), businessId.Value, userId, BusinessCascade.DeleteReason, cancellationToken);
 }
 
 public static class BusinessCollectionNames
 {
     public const string Businesses = "businesses";
     public const string Memberships = "businessMemberships";
+    public const string CatalogItems = "catalogItems";
 }
 
 /// <summary>Biznes və kataloq sahəsinin DI qeydiyyatı.</summary>
@@ -79,6 +109,7 @@ public static class BusinessRegistration
         services.AddScoped<IBusinessRepository, BusinessRepository>();
         services.AddScoped<IBusinessMembershipRepository, BusinessMembershipRepository>();
         services.AddScoped<BusinessAccess>();
+        services.AddScoped<ICatalogItemRepository, CatalogItemRepository>();
         services.AddScoped<BusinessImageCheck>();
         services.AddScoped<BusinessAccessSync>();
         return services;

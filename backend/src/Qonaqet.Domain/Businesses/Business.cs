@@ -273,3 +273,18 @@ public sealed record BusinessActivated(BusinessId BusinessId, Guid OwnerUserId, 
 /// lövhələrdən gizlənir (E11).
 /// </summary>
 public sealed record BusinessSuspended(BusinessId BusinessId, DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>
+/// Biznes (admin tərəfindən) soft delete olundu. Kataloq və üzvlüklər eyni tranzaksiyada kaskad silinir; təkliflər və aktiv
+/// claim-lər bu hadisənin consumer-indədir (E06-T09).
+/// </summary>
+public sealed record BusinessDeleted(BusinessId BusinessId, DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>Silinmiş biznes bərpa olundu; kaskadla silinənlər də geri qaytarılır.</summary>
+public sealed record BusinessRestored(BusinessId BusinessId, DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>Kaskad soft delete-in sabit səbəbi: bərpa yalnız bu səbəblə silinənləri geri qaytarır.</summary>
+public static class BusinessCascade
+{
+    public const string DeleteReason = "business_deleted";
+}
