@@ -216,6 +216,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/dockerfiles/backend.Dockerfile
+      # PDF (Playwright) üçün headless Chromium-lu stage.
+      target: worker
       args:
         PROJECT: Qonaqet.Worker
     environment: *backend-env

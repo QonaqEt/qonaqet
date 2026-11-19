@@ -404,6 +404,11 @@
         "resolved": "1.3.1",
         "contentHash": "DOdDQiO8YZ5rBtVLY+6CmR1yp9WYoJRgEEktPBrR0tEj9QO2djA/zv0O3DX0OZpEAfosbY8pytQ9tQUogwQsEA=="
       },
+      "System.ComponentModel.Annotations": {
+        "type": "Transitive",
+        "resolved": "5.0.0",
+        "contentHash": "dMkqfy2el8A8/I76n2Hi1oBFEbG1SfxD2l5nhwXV3XjlnOmwxJlQbYpJH4W51odnU9sARCSAgv7S3CyAFMkpYg=="
+      },
       "System.IdentityModel.Tokens.Jwt": {
         "type": "Transitive",
         "resolved": "8.19.2",
@@ -536,6 +541,7 @@
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.15, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.15, )",
           "Microsoft.EntityFrameworkCore": "[10.0.15, )",
+          "Microsoft.Playwright": "[1.65.0, )",
           "MongoDB.Driver": "[3.14.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "OpenTelemetry.Exporter.OpenTelemetryProtocol": "[1.20.1, )",
@@ -606,6 +612,16 @@
           "Microsoft.EntityFrameworkCore.Analyzers": "10.0.15",
           "Microsoft.Extensions.Caching.Memory": "10.0.15",
           "Microsoft.Extensions.Logging": "10.0.15"
+        }
+      },
+      "Microsoft.Playwright": {
+        "type": "CentralTransitive",
+        "requested": "[1.65.0, )",
+        "resolved": "1.65.0",
+        "contentHash": "xzxOg/X6NHNGfG4ctVtnp/d2vGEi01mWE7Nq0s8yIHtAd9Kfx7ZWe0xjpDprpOs0CYcaGhRgKCDYQX9UxXEXCQ==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "6.0.0",
+          "System.ComponentModel.Annotations": "5.0.0"
         }
       },
       "MongoDB.Driver": {

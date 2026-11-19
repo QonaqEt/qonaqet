@@ -33,7 +33,7 @@ jobs:
         include:
           - { image: api,             dockerfile: deploy/dockerfiles/backend.Dockerfile, arg: "PROJECT=Qonaqet.Api" }
           - { image: integration-api, dockerfile: deploy/dockerfiles/backend.Dockerfile, arg: "PROJECT=Qonaqet.Integration.Api" }
-          - { image: worker,          dockerfile: deploy/dockerfiles/backend.Dockerfile, arg: "PROJECT=Qonaqet.Worker" }
+          - { image: worker,          dockerfile: deploy/dockerfiles/backend.Dockerfile, arg: "PROJECT=Qonaqet.Worker", target: worker }
           - { image: landing,         dockerfile: deploy/dockerfiles/web.Dockerfile,     arg: "APP=landing" }
           - { image: business-portal, dockerfile: deploy/dockerfiles/web.Dockerfile,     arg: "APP=business-portal" }
           - { image: admin,           dockerfile: deploy/dockerfiles/web.Dockerfile,     arg: "APP=admin" }
@@ -87,6 +87,8 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           build-args: ${{ matrix.arg }}
+          # Worker PDF üçün Chromium-lu ayrıca stage-dir; qalanları Dockerfile-ın son (default) stage-i.
+          target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -109,3 +109,17 @@ public sealed class EmailTemplateTests
         }
     }
 }
+
+public sealed class PdfTableTests
+{
+    [Fact]
+    public void Table_cells_and_headers_are_html_encoded()
+    {
+        var html = Infrastructure.Documents.Pdf.PlaywrightPdfRenderer.TableHtml(
+            new PdfTable(["<th>"], [["<b>qalın</b> & ş"]]));
+
+        Assert.DoesNotContain("<b>", html, StringComparison.Ordinal);
+        Assert.Contains("&lt;b&gt;qalın&lt;/b&gt; &amp; ş", html, StringComparison.Ordinal);
+        Assert.Contains("&lt;th&gt;", html, StringComparison.Ordinal);
+    }
+}

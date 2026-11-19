@@ -44,16 +44,23 @@ public sealed class EmailTemplateRenderer : IEmailTemplateRenderer
         ArgumentException.ThrowIfNullOrWhiteSpace(templateName);
         ArgumentNullException.ThrowIfNull(model);
 
-        string? Resolve(string key) =>
-            key.StartsWith("token.", StringComparison.Ordinal) ? _tokens.GetValueOrDefault(key[6..])
-            : model.TryGetValue(key, out var value) ? value ?? string.Empty
-            : null;
+        string? Resolve(string key) => this.Resolve(key, model);
 
         var subject = TemplateEngine.Render(Read($"{templateName}.subject.txt").Trim(), Resolve, htmlEncode: false);
         var content = TemplateEngine.Render(Read($"{templateName}.html"), Resolve, htmlEncode: true);
         var layout = TemplateEngine.Render(Read("_layout.html"), key => key == "subject" ? subject : Resolve(key), htmlEncode: true);
         var text = TemplateEngine.Render(Read($"{templateName}.txt"), Resolve, htmlEncode: false);
         return new RenderedEmail(subject, layout.Replace(ContentMarker, content, StringComparison.Ordinal), text);
+    }
+
+    /// <summary>Model dəyəri və ya <c>token.*</c> dizayn token-i; tapılmasa <c>null</c> (PDF şablonları da işlədir).</summary>
+    public string? Resolve(string key, IReadOnlyDictionary<string, string?> model)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(model);
+        return key.StartsWith("token.", StringComparison.Ordinal) ? _tokens.GetValueOrDefault(key[6..])
+            : model.TryGetValue(key, out var value) ? value ?? string.Empty
+            : null;
     }
 
     private static string Read(string file)
