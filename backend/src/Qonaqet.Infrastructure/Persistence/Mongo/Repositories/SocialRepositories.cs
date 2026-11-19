@@ -88,6 +88,12 @@ public sealed class OfferRepository(MongoContext context, IAggregateTracker trac
             Builders<Offer>.Update.Inc(x => x.Remaining, 1), cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<Offer>> ListDonatedByAsync(Guid donorUserId, int limit, CancellationToken cancellationToken)
+    {
+        var filter = Active(Filter.Eq(x => x.DonorUserId, donorUserId));
+        return await Collection.Find(filter).SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task<bool> TakeAsync(FilterDefinition<Offer> filter, UpdateDefinition<Offer> update, CancellationToken cancellationToken)
     {
         var updated = await Collection.FindOneAndUpdateAsync(
@@ -177,6 +183,10 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
 
         return claim;
     }
+
+    public Task<long> CountRedeemedForOfferAsync(OfferId offerId, CancellationToken cancellationToken) =>
+        Collection.CountDocumentsAsync(
+            Active(Filter.And(Filter.Eq(x => x.OfferId, offerId), Filter.Eq(x => x.Status, ClaimStatus.Redeemed))), cancellationToken: cancellationToken);
 
     public async Task<IReadOnlyList<Claim>> ListStaleReservedAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken)
     {
