@@ -7,7 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
+using Qonaqet.Application.Features.Files.Common;
+using Qonaqet.Infrastructure.Persistence.Mongo.Repositories;
 
 namespace Qonaqet.Infrastructure.Storage;
 
@@ -136,6 +139,8 @@ public static class StorageRegistration
         services.AddSingleton<S3FileStorage>();
         services.AddSingleton<IFileStorage>(sp => sp.GetRequiredService<S3FileStorage>());
         services.AddHostedService<StorageBucketInitializer>();
+        services.AddScoped<IStoredFileRepository, StoredFileRepository>();
+        services.AddScoped<FileUploader>();
         return services;
     }
 
