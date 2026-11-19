@@ -14,6 +14,7 @@ using Qonaqet.Infrastructure.Storage;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.Infrastructure.Persistence;
 using Qonaqet.Infrastructure.Persistence.Mongo;
+using Qonaqet.Infrastructure.Persistence.Mongo.Repositories;
 using Qonaqet.Infrastructure.Persistence.Postgres;
 using Qonaqet.SharedKernel;
 using Qonaqet.Infrastructure.Messaging;
@@ -45,6 +46,7 @@ public static class DependencyInjection
         services.AddEmail(configuration);
         services.AddPush(configuration);
         services.AddIdentityServices(configuration);
+        services.AddBusinesses();
 
         // HTTP host-ları (AddQonaqetWeb) öz aktorlarını əvvəlcədən qeyd edir; Worker anonim aktor alır.
         services.TryAddSingleton<AnonymousActor>();

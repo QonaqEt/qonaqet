@@ -56,3 +56,14 @@ public static class UserAuditActions
     public const string Block = "Block";
     public const string Unblock = "Unblock";
 }
+
+/// <summary>Biznes üzrə audit əməliyyatları.</summary>
+public static class BusinessAuditActions
+{
+    public const string Activate = "BusinessActivate";
+    public const string Suspend = "BusinessSuspend";
+    public const string ChangeSettings = "BusinessChangeSettings";
+    public const string UpdateProfile = "BusinessUpdateProfile";
+    public const string AddMember = "BusinessAddMember";
+    public const string RemoveMember = "BusinessRemoveMember";
+}
