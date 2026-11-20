@@ -32,6 +32,23 @@ public interface IPoolRepository : IRepository<Pool, PoolId>
     /// <summary>Kaskadla silinmiş hovuzları bərpa edir.</summary>
     Task<long> CascadeRestoreForCategoryAsync(CategoryId categoryId, Guid? userId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Hovuzdan məbləğ rezerv edir: <b>tək şərtli atomik</b> yeniləmə (tranzaksiyadan kənarda, ona görə paralel claim-lər toqquşmur, gözləyir) —
+    /// yalnız <c>balance − reserved ≥ məbləğ</c> olduqda <c>reserved += məbləğ</c>. Balans heç vaxt mənfiyə düşmür.
+    /// </summary>
+    Task<bool> TryReserveAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
+
+    /// <summary>Rezervi buraxır (atomik, <c>reserved ≥ məbləğ</c> şərti ilə).</summary>
+    Task<bool> ReleaseReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
+
+    /// <summary>Təhvildə rezervi xərcləyir: <c>balance −= məbləğ</c>, <c>reserved −= məbləğ</c> (cari tranzaksiyada, şərtli).</summary>
+    Task<bool> ConsumeReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Claim üçün hovuzlar, seçilmə sırası ilə: verilən kateqoriyaların aktiv kampaniya hovuzları (ən tez bitən əvvəl), sonra default hovuzlar.
+    /// </summary>
+    Task<IReadOnlyList<Pool>> ListClaimablePoolsAsync(IReadOnlyCollection<CategoryId> categoryIds, DateTimeOffset now, CancellationToken cancellationToken);
+
     /// <summary>Bütün (silinməmiş) hovuzların balansları — gecəlik ledger uzlaşdırması üçün.</summary>
     Task<IReadOnlyList<PoolBalance>> ListBalancesAsync(CancellationToken cancellationToken);
 }

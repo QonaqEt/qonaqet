@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Qonaqet.Application.Features.Social.Commands.CancelClaim;
+using Qonaqet.Application.Features.Social.Commands.ClaimFromPool;
 using Qonaqet.Application.Features.Social.Commands.ClaimOffer;
 using Qonaqet.Application.Features.Social.Queries.GetMyClaims;
 using Qonaqet.Application.Features.Social.Queries.GetMyDonations;
@@ -32,6 +33,17 @@ public sealed class SocialController(ISender sender) : ControllerBase
         var result = await sender.Send(new ClaimOfferCommand(OfferId.From(offerId)), cancellationToken);
         return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : result.ToActionResult();
     }
+
+    /// <summary>"Hovuzdan al": acceptsPool biznesin kataloq məhsulu hovuz hesabına rezerv edilir.</summary>
+    [HttpPost("pool-claims")]
+    [EnableRateLimiting(RateLimitPolicies.Claim)]
+    public async Task<IActionResult> ClaimFromPool(PoolClaimRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ClaimFromPoolCommand(BusinessId.From(request.BusinessId), Domain.Catalog.CatalogItemId.From(request.CatalogItemId)), cancellationToken);
+        return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : result.ToActionResult();
+    }
+
+    public sealed record PoolClaimRequest(Guid BusinessId, Guid CatalogItemId);
 
     [HttpPost("claims/{claimId:guid}/cancel")]
     public async Task<IActionResult> CancelClaim(Guid claimId, CancellationToken cancellationToken) =>

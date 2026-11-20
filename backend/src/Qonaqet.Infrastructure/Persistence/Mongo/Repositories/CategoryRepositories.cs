@@ -59,6 +59,66 @@ public sealed class PoolRepository(MongoContext context, IAggregateTracker track
     public Task<long> CascadeRestoreForCategoryAsync(CategoryId categoryId, Guid? userId, CancellationToken cancellationToken) =>
         CascadeRestoreAsync(Filter.Eq(x => x.CategoryId, categoryId), categoryId.Value, userId, CategoryCascade.DeleteReason, cancellationToken);
 
+    public async Task<bool> TryReserveAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken)
+    {
+        var available = new BsonDocumentFilterDefinition<Pool>(new BsonDocument("$expr", new BsonDocument("$gte", new BsonArray
+        {
+            new BsonDocument("$subtract", new BsonArray { "$balanceQepik", "$reservedQepik" }), amountQepik,
+        })));
+        var result = await Collection.UpdateOneAsync(
+            Active(Filter.And(ById(poolId), available)),
+            Builders<Pool>.Update.Inc(x => x.ReservedQepik, amountQepik).Set(x => x.UpdatedAt, Clock.UtcNow),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount == 1;
+    }
+
+    public async Task<bool> ReleaseReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken)
+    {
+        var result = await Collection.UpdateOneAsync(
+            Filter.And(ById(poolId), Filter.Gte(x => x.ReservedQepik, amountQepik)),
+            Builders<Pool>.Update.Inc(x => x.ReservedQepik, -amountQepik).Set(x => x.UpdatedAt, Clock.UtcNow),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount == 1;
+    }
+
+    public async Task<bool> ConsumeReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken)
+    {
+        var filter = Filter.And(ById(poolId), Filter.Gte(x => x.ReservedQepik, amountQepik), Filter.Gte(x => x.BalanceQepik, amountQepik));
+        var update = Builders<Pool>.Update.Inc(x => x.ReservedQepik, -amountQepik).Inc(x => x.BalanceQepik, -amountQepik).Set(x => x.UpdatedAt, Clock.UtcNow);
+        var result = Context.Session is { } session
+            ? await Collection.UpdateOneAsync(session, filter, update, cancellationToken: cancellationToken).ConfigureAwait(false)
+            : await Collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount == 1;
+    }
+
+    public async Task<IReadOnlyList<Pool>> ListClaimablePoolsAsync(IReadOnlyCollection<CategoryId> categoryIds, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        if (categoryIds.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = categoryIds.Select(c => new BsonBinaryData(c.Value, GuidRepresentation.Standard)).ToArray();
+        // Aktiv kampaniyalar (sənədin özü E08-T05-dədir): status Active, indi [startsAt, endsAt) arasında.
+        var campaigns = await Context.Collection<BsonDocument>("campaigns").Find(new BsonDocument
+            {
+                { "isDeleted", false },
+                { "status", "Active" },
+                { "categoryId", new BsonDocument("$in", new BsonArray(ids)) },
+                { "startsAt", new BsonDocument("$lte", now.UtcDateTime) },
+                { "endsAt", new BsonDocument("$gt", now.UtcDateTime) },
+            })
+            .Sort(new BsonDocument("endsAt", 1))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        var campaignOrder = campaigns.Where(c => c.Contains("poolId") && !c["poolId"].IsBsonNull).Select(c => c["poolId"].AsGuid).ToList();
+
+        var pools = await FindAsync(Filter.In(x => x.CategoryId, categoryIds), cancellationToken).ConfigureAwait(false);
+        var byId = pools.ToDictionary(p => p.Id.Value);
+        var ordered = campaignOrder.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+        ordered.AddRange(pools.Where(p => p.IsDefault));
+        return ordered;
+    }
+
     public async Task<IReadOnlyList<PoolBalance>> ListBalancesAsync(CancellationToken cancellationToken)
     {
         var pools = await FindAsync(Filter.Empty, cancellationToken).ConfigureAwait(false);

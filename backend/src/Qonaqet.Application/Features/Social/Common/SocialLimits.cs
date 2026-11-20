@@ -50,4 +50,31 @@ public sealed class SocialLimits(IClaimRepository claims)
 
         return Result.Success();
     }
+
+    /// <summary>
+    /// Hovuz claim-i: gündəlik/aylıq say (təkliflərlə ortaq) və gündəlik hovuz xərci — ən səxavətli <c>poolSpendPerDayQepik</c>
+    /// (yalnız <c>poolAccess</c> olan kateqoriyalar arasında).
+    /// </summary>
+    public async Task<Result> CheckPoolAsync(Guid userId, long priceQepik, IReadOnlyList<Category> eligible, IReadOnlyList<Category> poolCategories, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(poolCategories);
+        var today = BakuTime.ToBakuDate(now);
+        var startOfDay = BakuTime.StartOfDayUtc(today);
+        var startOfMonth = BakuTime.StartOfDayUtc(new DateOnly(today.Year, today.Month, 1));
+
+        var (perDay, perMonth) = MostGenerous(eligible);
+        if (await claims.CountCountedSinceAsync(userId, startOfDay, null, cancellationToken).ConfigureAwait(false) >= perDay)
+        {
+            return SocialErrors.DailyLimitReached;
+        }
+
+        if (await claims.CountCountedSinceAsync(userId, startOfMonth, null, cancellationToken).ConfigureAwait(false) >= perMonth)
+        {
+            return SocialErrors.MonthlyLimitReached;
+        }
+
+        var spendLimit = poolCategories.Count == 0 ? 0 : poolCategories.Max(c => c.Limits.PoolSpendPerDayQepik);
+        var spent = await claims.SumPoolSpendSinceAsync(userId, startOfDay, cancellationToken).ConfigureAwait(false);
+        return spent + priceQepik > spendLimit ? SocialErrors.PoolSpendLimitReached : Result.Success();
+    }
 }

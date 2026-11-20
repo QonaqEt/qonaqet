@@ -120,6 +120,38 @@ public sealed class Claim : AggregateRoot<ClaimId>
         };
     }
 
+    /// <summary>
+    /// Hovuzdan rezerv: məbləğ hovuzda artıq atomik rezerv edilib (<c>balance − reserved ≥ qiymət</c>). Məhsul <c>acceptsPool</c> biznesin
+    /// kataloqundandır; qiymət serverdə kataloqdan götürülür. <see cref="PoolClaimReserved"/> ledger-ə <c>PoolReserve</c> yazdırır.
+    /// </summary>
+    public static Claim ReserveFromPool(
+        Pool pool, BusinessId businessId, CatalogItemId catalogItemId, string title, long priceQepik, Guid recipientUserId, string donorDisplayText,
+        Guid? fundingDonationId, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(pool);
+        Guard.Utc(now);
+        var claim = new Claim(StronglyTypedId.New<ClaimId>(), now, recipientUserId)
+        {
+            RecipientUserId = Guard.NotEmpty(recipientUserId),
+            BusinessId = businessId,
+            Source = ClaimSource.Pool,
+            PoolId = pool.Id,
+            CatalogItemId = catalogItemId,
+            AmountQepik = Guard.Positive(priceQepik),
+            CategoryId = pool.CategoryId,
+            Title = Guard.NotNullOrWhiteSpace(title),
+            DonorDisplayText = Guard.NotNullOrWhiteSpace(donorDisplayText),
+            FundingDonationId = fundingDonationId,
+            Status = ClaimStatus.Reserved,
+            ExpiresAt = now + ReservationTtl,
+        };
+        claim.Raise(new PoolClaimReserved(claim.Id, pool.Id, priceQepik, now));
+        return claim;
+    }
+
+    /// <summary>Hovuz claim-ində alıcıya adı göstərilən (atribusiya olunan) ianə; yoxdursa anonim/hovuzun öz pulu.</summary>
+    public Guid? FundingDonationId { get; private set; }
+
     /// <summary>Qısa kodun hash-ini bağlayır (yaradılandan dərhal sonra, yazılmazdan əvvəl; bir dəfə).</summary>
     public void AttachShortCode(string shortCodeHash)
     {
@@ -192,3 +224,9 @@ public sealed record ClaimRedeemed(
     bool Commissionable,
     Guid StaffUserId,
     DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>Hovuzdan məbləğ rezerv edildi → ledger-də hovuz hesabından <c>PoolReserve</c> (−məbləğ).</summary>
+public sealed record PoolClaimReserved(ClaimId ClaimId, PoolId PoolId, long AmountQepik, DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>Hovuz rezervi buraxıldı (müddət, ləğv) → ledger-də <c>PoolRelease</c> (+məbləğ).</summary>
+public sealed record PoolReservationReleased(ClaimId ClaimId, PoolId PoolId, long AmountQepik, DateTimeOffset At) : DomainEvent(At);

@@ -197,6 +197,17 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
             : await Collection.CountDocumentsAsync(Active(filter), cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<long> SumPoolSpendSinceAsync(Guid userId, DateTimeOffset since, CancellationToken cancellationToken)
+    {
+        var filter = Active(Filter.And(
+            Filter.Eq(x => x.RecipientUserId, userId),
+            Filter.Eq(x => x.Source, ClaimSource.Pool),
+            Filter.In(x => x.Status, [ClaimStatus.Reserved, ClaimStatus.Redeemed]),
+            Filter.Gte(x => x.CreatedAt, since)));
+        var claims = await Collection.Find(filter).ToListAsync(cancellationToken).ConfigureAwait(false);
+        return claims.Sum(c => c.AmountQepik ?? 0);
+    }
+
     public async Task<Claim?> FindByShortCodeAsync(BusinessId businessId, string shortCodeHash, CancellationToken cancellationToken)
     {
         var filter = Active(Filter.And(Filter.Eq(x => x.BusinessId, businessId), Filter.Eq(x => x.ShortCodeHash, shortCodeHash)));
@@ -259,6 +270,7 @@ public static class SocialRegistration
         services.AddScoped<ClaimPresenter>();
         services.AddScoped<RedemptionCodeResolver>();
         services.AddScoped<SocialCascade>();
+        services.AddScoped<PoolAttribution>();
         services.AddScoped<Application.Features.Donations.Events.PaymentFulfillment>();
         return services;
     }
