@@ -68,3 +68,31 @@ public sealed class PaymentGatewayException : Exception
     /// <summary>Provayderin cavab kodu (Payriff: <c>code</c>), varsa.</summary>
     public string? ProviderCode { get; }
 }
+
+/// <summary>
+/// Provayderlərin seçimi. <see cref="Default"/> yeni ödənişlər üçündür (Payriff; Development-də Fake), <see cref="Sandbox"/> sandbox
+/// partnyorları üçün həmişə Fake-dir. Mövcud ödənişin statusu onu yaradan provayderdən (<c>payments.provider</c>) oxunur.
+/// </summary>
+public interface IPaymentGatewayRegistry
+{
+    IPaymentGateway Default { get; }
+
+    IPaymentGateway Sandbox { get; }
+
+    /// <summary>Ada görə provayder; tanınmayan ad <see cref="InvalidOperationException"/> atır.</summary>
+    IPaymentGateway Get(string providerName);
+}
+
+/// <summary>Fake gateway-in ödəniş səhifəsi (yalnız Development-də aktiv; başqa mühitdə <see cref="IsEnabled"/> = false).</summary>
+public interface IFakeCheckout
+{
+    bool IsEnabled { get; }
+
+    /// <summary>Fake sifarişin vəziyyəti; tapılmasa <c>null</c>.</summary>
+    Task<FakeOrderView?> FindAsync(string providerOrderId, CancellationToken cancellationToken);
+
+    /// <summary>Gözləyən sifarişi ödənilmiş və ya uğursuz edir; artıq yekunlaşmışsa <c>false</c>.</summary>
+    Task<bool> CompleteAsync(string providerOrderId, bool paid, CancellationToken cancellationToken);
+}
+
+public sealed record FakeOrderView(string ProviderOrderId, long AmountQepik, string Description, GatewayPaymentState State, long RefundedQepik);
