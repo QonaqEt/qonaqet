@@ -1,0 +1,1 @@
+Hədiyyənizin müddəti {{expiresAt}} tarixində bitir

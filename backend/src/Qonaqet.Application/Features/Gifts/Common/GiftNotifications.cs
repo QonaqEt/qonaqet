@@ -19,6 +19,8 @@ public sealed class GiftNotifications(
 
     public const string RedeemedTemplate = "gift-redeemed";
 
+    public const string ExpiringTemplate = "gift-expiring";
+
     /// <summary>Çatdırılma: alıcıya temalı email (link ilə) və hesabı varsa push; göndərənə "Hədiyyəniz çatdırıldı".</summary>
     public async Task DeliveredAsync(Gift gift, string? token, CancellationToken cancellationToken)
     {
@@ -74,9 +76,7 @@ public sealed class GiftNotifications(
     {
         ArgumentNullException.ThrowIfNull(gift);
         var redeemed = Money.FromQepik(valueQepik).ToString();
-        var remaining = gift.Kind == GiftKind.Items
-            ? (gift.RemainingUnits == 0 ? "hamısı istifadə olunub" : string.Join(", ", gift.Items.Where(i => i.RemainingQty > 0).Select(i => $"{i.RemainingQty} × {i.Title}")))
-            : Money.FromQepik(gift.RemainingQepik).ToString();
+        var remaining = Remaining(gift);
 
         if (gift.SenderUserId is { } sender)
         {
@@ -102,6 +102,40 @@ public sealed class GiftNotifications(
             };
             await emails.EnqueueAsync(templates.Render(RedeemedTemplate, model).To(email), RedeemedTemplate, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>Müddətin bitməsinə 7 gün qalmış alıcıya xatırlatma: hesabı varsa push, yoxdursa email.</summary>
+    public async Task ExpiringAsync(Gift gift, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(gift);
+        var expiresAt = BakuDate(gift.ExpiresAt);
+        if (gift.RecipientUserId is { } recipient)
+        {
+            await push.NotifyAsync(
+                UserId.From(recipient), NotificationType.GiftExpiring,
+                new PushMessage("Hədiyyənizin müddəti bitir", $"{Remaining(gift)} — {expiresAt} tarixinədək istifadə edin.", Data(gift)), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else if (gift.RecipientEmail is { } email)
+        {
+            var model = new Dictionary<string, string?>
+            {
+                ["recipientName"] = gift.RecipientName,
+                ["senderName"] = gift.SenderDisplayName,
+                ["remaining"] = Remaining(gift),
+                ["expiresAt"] = expiresAt,
+            };
+            await emails.EnqueueAsync(templates.Render(ExpiringTemplate, model).To(email), ExpiringTemplate, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Qalığın mətni: məhsullarda qalan sətirlər, vauçerdə məbləğ.</summary>
+    public static string Remaining(Gift gift)
+    {
+        ArgumentNullException.ThrowIfNull(gift);
+        return gift.Kind == GiftKind.Items
+            ? (gift.RemainingUnits == 0 ? "hamısı istifadə olunub" : string.Join(", ", gift.Items.Where(i => i.RemainingQty > 0).Select(i => $"{i.RemainingQty} × {i.Title}")))
+            : Money.FromQepik(gift.RemainingQepik).ToString();
     }
 
     /// <summary>Məzmunun qısa təsviri: "2 × Kofe, 1 × Paxlava" və ya "50.00 AZN vauçer".</summary>

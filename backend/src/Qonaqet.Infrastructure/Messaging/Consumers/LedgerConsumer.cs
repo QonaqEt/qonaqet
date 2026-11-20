@@ -29,6 +29,7 @@ public sealed class LedgerOptions
 /// </list>
 /// <item><see cref="GiftRedeemed"/>: hədiyyə həmişə onlayn ödənilib → təhvil verən biznesə <c>RedemptionCredit</c> + 7% <c>Commission</c>
 /// (şəbəkə vauçerində kredit vauçerin alındığı yerə yox, təhvil verən biznesə düşür).</item>
+/// <item><see cref="GiftExpiryDonated"/>: müddəti bitən hədiyyənin qalığı hovuza <c>GiftExpiryDonation</c> (+).</item>
 /// </summary>
 public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrationEventConsumer
 {
@@ -44,9 +45,11 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
 
     public static readonly string GiftRedeemedType = typeof(GiftRedeemed).FullName!;
 
+    public static readonly string GiftExpiryDonatedType = typeof(GiftExpiryDonated).FullName!;
+
     public string Name => "ledger";
 
-    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType, GiftRedeemedType];
+    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType, GiftRedeemedType, GiftExpiryDonatedType];
 
     public Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
     {
@@ -67,6 +70,14 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
             entries = LedgerPostings.Redemption(
                 gift.BusinessId, gift.ValueQepik, commissionable: true, "GiftRedemption", gift.RedemptionId, message.MessageId,
                 new CommissionPolicy(options.Value.CommissionPercent), gift.At);
+        }
+        else if (message.Type == GiftExpiryDonatedType)
+        {
+            // Mənbə hədiyyədir: bir hədiyyənin qalığı hovuza ən çox bir dəfə bağışlanır.
+            var donated = Read<GiftExpiryDonatedPayload>(message);
+            entries = [LedgerEntry.Post(
+                LedgerAccount.Pool(donated.PoolId), LedgerEntryType.GiftExpiryDonation, donated.AmountQepik, "Gift", donated.GiftId, donated.GiftId,
+                "gift-expiry-donation", donated.At)];
         }
         else if (message.Type == PaymentRefundedType)
         {
@@ -103,6 +114,8 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
     private static T Read<T>(IntegrationMessage message) =>
         JsonSerializer.Deserialize<T>(message.Payload, OutboxSerializer.JsonOptions)
         ?? throw new InvalidOperationException($"Boş {message.Type} mesajı.");
+
+    private sealed record GiftExpiryDonatedPayload(Guid GiftId, Guid PoolId, long AmountQepik, DateTimeOffset At);
 
     private sealed record GiftRedeemedPayload(Guid GiftId, Guid RedemptionId, Guid BusinessId, long ValueQepik, DateTimeOffset At);
 

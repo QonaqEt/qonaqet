@@ -44,6 +44,9 @@ public interface IPoolRepository : IRepository<Pool, PoolId>
     /// <summary>Rezervi buraxır (atomik, <c>reserved ≥ məbləğ</c> şərti ilə).</summary>
     Task<bool> ReleaseReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
 
+    /// <summary>Hovuz balansını artırır (cari tranzaksiyada): müddəti bitən hədiyyənin bağışlanan qalığı.</summary>
+    Task<bool> CreditAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
+
     /// <summary>Təhvildə rezervi xərcləyir: <c>balance −= məbləğ</c>, <c>reserved −= məbləğ</c> (cari tranzaksiyada, şərtli).</summary>
     Task<bool> ConsumeReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
 

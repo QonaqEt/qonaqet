@@ -57,6 +57,9 @@ public static class Program
         // Ləğv/müddət refundları provayder əlçatmaz olanda burada təkrarlanır (idempotent).
         builder.Services.AddScheduledJob<RetryGiftRefundsJob>(RetryGiftRefundsJob.Name, RetryGiftRefundsJob.Interval);
 
+        // Müddəti bitən hədiyyələr: 7 gün qalmış xatırlatma, sonra qalığın refundu və ya hovuza bağışlanması.
+        builder.Services.AddScheduledJob<ExpireGiftsJob>(ExpireGiftsJob.Name, ExpireGiftsJob.Interval);
+
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Services.AddHostedService<WorkerHeartbeat>();
         builder.Build().Run();
