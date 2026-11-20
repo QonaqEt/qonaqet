@@ -1,13 +1,16 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Qonaqet.Application.Features.Social.Commands.ClaimOffer;
 using Qonaqet.Application.Features.Social.Queries.ListOffers;
 using Qonaqet.Domain.Businesses;
 using Qonaqet.Domain.Categories;
+using Qonaqet.Domain.Social;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.SharedKernel.Messaging;
 
 namespace Qonaqet.Api.Controllers;
 
-/// <summary>Sosial qonaqlıq ("İsmarla"): təkliflər.</summary>
+/// <summary>Sosial qonaqlıq ("İsmarla"): təkliflər və claim-lər.</summary>
 [ApiController]
 [Route("api/v1")]
 public sealed class SocialController(ISender sender) : ControllerBase
@@ -17,4 +20,11 @@ public sealed class SocialController(ISender sender) : ControllerBase
         (await sender.Send(
             new ListOffersQuery(categoryId is { } c ? CategoryId.From(c) : null, businessId is { } b ? BusinessId.From(b) : null),
             cancellationToken)).ToActionResult();
+
+    [HttpPost("offers/{offerId:guid}/claim")]
+    public async Task<IActionResult> ClaimOffer(Guid offerId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ClaimOfferCommand(OfferId.From(offerId)), cancellationToken);
+        return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : result.ToActionResult();
+    }
 }

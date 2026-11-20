@@ -3,9 +3,16 @@ using MongoDB.Bson;
 namespace Qonaqet.Infrastructure.Persistence.Mongo.Migrations;
 
 /// <summary>İstənilən Mongo indeksi. <see cref="Partial"/> = <c>partialFilterExpression: { isDeleted: false }</c>.</summary>
-public sealed record MongoIndexDefinition(string Collection, string Name, BsonDocument Keys, bool Unique = false, bool Partial = true)
+public sealed record MongoIndexDefinition(
+    string Collection, string Name, BsonDocument Keys, bool Unique = false, bool Partial = true, BsonDocument? ExtraFilter = null)
 {
     public static readonly BsonDocument NotDeletedFilter = new("isDeleted", false);
+
+    /// <summary>
+    /// Partial filtr: həmişə <c>isDeleted: false</c>, üstəlik (varsa) <see cref="ExtraFilter"/> şərtləri — məs. "istifadəçinin yalnız bir
+    /// <c>Reserved</c> claim-i" kimi status üzrə unikallıq.
+    /// </summary>
+    public BsonDocument? PartialFilter => !Partial ? null : ExtraFilter is null ? NotDeletedFilter : new BsonDocument(NotDeletedFilter).AddRange(ExtraFilter);
 }
 
 /// <summary>
@@ -58,6 +65,11 @@ public static class MongoIndexCatalog
             Query("campaigns", ("categoryId", 1), ("status", 1)),
             Query("catalogItems", ("businessId", 1), ("isActive", 1)),
             Query("claims", ("recipientUserId", 1), ("status", 1), ("createdAt", 1)),
+            Query("claims", ("recipientUserId", 1), ("offerId", 1), ("createdAt", 1)),
+
+            // Bir istifadəçinin eyni anda yalnız bir aktiv (Reserved) claim-i: paralel claim-lərdə də (E06-T03).
+            new("claims", "ux_claims_recipientUserId_reserved", new BsonDocument("recipientUserId", 1), Unique: true,
+                ExtraFilter: new BsonDocument("status", "Reserved")),
             Query("claims", ("businessId", 1), ("status", 1)),
             Query("claims", ("status", 1), ("expiresAt", 1)),
             Query("gifts", ("recipientUserId", 1), ("status", 1)),

@@ -1,4 +1,6 @@
 using System.Text.Json;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using Qonaqet.IntegrationTests.Businesses;
 using Qonaqet.IntegrationTests.Identity;
 using Qonaqet.IntegrationTests.Verification;
@@ -48,6 +50,38 @@ internal static class SocialTestData
     }
 
     public static string Id(JsonElement element) => element.GetProperty("id").GetString()!;
+
+    public static BsonBinaryData Bin(string id) => new(Guid.Parse(id), GuidRepresentation.Standard);
+
+    /// <summary>İstifadəçiyə kateqoriya təsdiqi yazır (birbaşa DB-də; admin axını E05 testlərindədir).</summary>
+    public static Task VerifyAsync(ApiTestHost host, string email, string categoryId, DateTimeOffset? validUntil = null) =>
+        host.Database.GetCollection<BsonDocument>("users").UpdateOneAsync(
+            new BsonDocument("email", email),
+            new BsonDocument("$push", new BsonDocument("verifiedCategories", new BsonDocument
+            {
+                { "categoryId", Bin(categoryId) },
+                { "validUntil", (validUntil ?? host.Clock.UtcNow.AddDays(30)).UtcDateTime },
+                { "verificationId", new BsonBinaryData(Guid.CreateVersion7(), GuidRepresentation.Standard) },
+                { "verifiedAt", DateTime.UtcNow },
+            })),
+            cancellationToken: Ct);
+
+    public static Task<HttpResponseMessage> ClaimAsync(ApiTestHost host, JsonElement login, string offerId) =>
+        host.SendAsync(HttpMethod.Post, $"/api/v1/offers/{offerId}/claim", Access(login));
+
+    /// <summary>Uğurlu claim; cavabın JSON-u.</summary>
+    public static async Task<JsonElement> ClaimOkAsync(ApiTestHost host, JsonElement login, string offerId)
+    {
+        using var response = await ClaimAsync(host, login, offerId);
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync(Ct));
+        return await host.JsonAsync(response);
+    }
+
+    public static async Task<string?> CodeAsync(ApiTestHost host, HttpResponseMessage response) =>
+        (await host.JsonAsync(response)).TryGetProperty("code", out var code) ? code.GetString() : null;
+
+    public static async Task<BsonDocument> OfferDocAsync(ApiTestHost host, string offerId) =>
+        await host.Database.GetCollection<BsonDocument>("offers").Find(new BsonDocument("_id", Bin(offerId))).SingleAsync(Ct);
 }
 
 internal sealed record Shop(JsonElement Admin, JsonElement Owner, JsonElement Staff, string BusinessId);

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Features.Social.Common;
@@ -34,6 +35,101 @@ public sealed class OfferRepository(MongoContext context, IAggregateTracker trac
         var find = Context.Session is { } session ? Collection.Find(session, Active(filter)) : Collection.Find(Active(filter));
         return await find.SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    // Vahid götürmə/qaytarma qəsdən sessiyasızdır (cari tranzaksiyadan kənarda): tək sənədli şərtli yeniləmə Mongo-da atomikdir,
+    // paralel yazılar bir-birini gözləyir. Tranzaksiya daxilində isti sənəd hər paralel claim-də WriteConflict verərdi.
+    public async Task<bool> TryTakeUnitAsync(Offer offer, string bakuDateKey, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(offer);
+        var open = Active(Filter.And(ById(offer.Id), Filter.Eq(x => x.IsActive, true), Filter.Eq(x => x.Type, offer.Type)));
+        if (offer.Type != OfferType.BusinessDaily)
+        {
+            return await TakeAsync(
+                Filter.And(open, Filter.Gt(x => x.Remaining, 0)), Builders<Offer>.Update.Inc(x => x.Remaining, -1), cancellationToken).ConfigureAwait(false);
+        }
+
+        // Bu gün üçün sayğac varsa: usedToday < dailyQuota → +1.
+        var sameDay = Filter.And(
+            open, Filter.Eq(x => x.QuotaDate, bakuDateKey),
+            new BsonDocumentFilterDefinition<Offer>(new BsonDocument("$expr", new BsonDocument("$lt", new BsonArray { "$usedToday", "$dailyQuota" }))));
+        var increment = Builders<Offer>.Update.Inc(x => x.UsedToday, 1);
+        if (await TakeAsync(sameDay, increment, cancellationToken).ConfigureAwait(false))
+        {
+            return true;
+        }
+
+        // Lazy sıfırlama: sayğac köhnə gündədir → bu günə keçir və 1 olur. Paralel sıfırlamalardan yalnız biri uyğun gəlir,
+        // qalanları yenidən bugünkü sayğacı yoxlayır.
+        var newDay = Filter.And(open, Filter.Ne(x => x.QuotaDate, bakuDateKey), Filter.Gte(x => x.DailyQuota, 1));
+        var reset = Builders<Offer>.Update.Set(x => x.QuotaDate, bakuDateKey).Set(x => x.UsedToday, 1);
+        return await TakeAsync(newDay, reset, cancellationToken).ConfigureAwait(false)
+            || await TakeAsync(sameDay, increment, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ReleaseUnitAsync(OfferId offerId, OfferType type, string? quotaDate, CancellationToken cancellationToken)
+    {
+        if (type == OfferType.BusinessDaily)
+        {
+            if (quotaDate is null)
+            {
+                return;
+            }
+
+            await TakeAsync(
+                Active(Filter.And(ById(offerId), Filter.Eq(x => x.QuotaDate, quotaDate), Filter.Gt(x => x.UsedToday, 0))),
+                Builders<Offer>.Update.Inc(x => x.UsedToday, -1), cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        await TakeAsync(
+            Active(Filter.And(
+                ById(offerId),
+                new BsonDocumentFilterDefinition<Offer>(new BsonDocument("$expr", new BsonDocument("$lt", new BsonArray { "$remaining", "$totalQuantity" }))))),
+            Builders<Offer>.Update.Inc(x => x.Remaining, 1), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<bool> TakeAsync(FilterDefinition<Offer> filter, UpdateDefinition<Offer> update, CancellationToken cancellationToken)
+    {
+        var updated = await Collection.FindOneAndUpdateAsync(
+            filter, update.Set(x => x.UpdatedAt, Clock.UtcNow), new FindOneAndUpdateOptions<Offer> { ReturnDocument = ReturnDocument.After },
+            cancellationToken).ConfigureAwait(false);
+        return updated is not null;
+    }
+}
+
+public sealed class ClaimRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<Claim, ClaimId>(context, tracker, outbox, clock, SocialCollectionNames.Claims), IClaimRepository
+{
+    public const string OneReservedIndex = "ux_claims_recipientUserId_reserved";
+
+    public async Task<bool> TryAddReservedAsync(Claim claim, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await AddAsync(claim, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey
+            && ex.WriteError.Message.Contains(OneReservedIndex, StringComparison.Ordinal))
+        {
+            return false;
+        }
+        catch (MongoException ex) when (ex.HasErrorLabel("TransientTransactionError"))
+        {
+            // Eyni istifadəçinin paralel tranzaksiyası eyni unikal açarı yazır (hələ commit olunmayıb): WriteConflict.
+            return false;
+        }
+    }
+
+    public Task<bool> TryTransitionAsync(Claim claim, ClaimStatus expected, CancellationToken cancellationToken) =>
+        TryReplaceAsync(claim, Filter.Eq(x => x.Status, expected), cancellationToken);
+
+    public async Task<Claim?> FindReservedForUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var found = await FindAsync(
+            Filter.And(Filter.Eq(x => x.RecipientUserId, userId), Filter.Eq(x => x.Status, ClaimStatus.Reserved)), cancellationToken).ConfigureAwait(false);
+        return found.Count == 0 ? null : found[0];
+    }
 }
 
 public static class SocialCollectionNames
@@ -49,7 +145,9 @@ public static class SocialRegistration
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IOfferRepository, OfferRepository>();
+        services.AddScoped<IClaimRepository, ClaimRepository>();
         services.AddScoped<OfferReferenceCheck>();
+        services.AddScoped<SocialEligibility>();
         return services;
     }
 }

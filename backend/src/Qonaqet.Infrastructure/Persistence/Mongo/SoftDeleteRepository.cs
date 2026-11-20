@@ -100,6 +100,23 @@ public abstract class SoftDeleteRepository<TAggregate, TId> : IRepository<TAggre
         Tracker.Track(aggregate);
     }
 
+    /// <summary>
+    /// Silinməmiş aqreqatı yalnız <paramref name="condition"/> (məs. gözlənilən status) hələ doğrudursa əvəz edir — optimistik keçid.
+    /// Uğurda aqreqat hadisələri üçün izlənir.
+    /// </summary>
+    protected async Task<bool> TryReplaceAsync(TAggregate aggregate, FilterDefinition<TAggregate> condition, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(aggregate);
+        ArgumentNullException.ThrowIfNull(condition);
+        if (!await ReplaceAsync(Active(Filter.And(ById(aggregate.Id), condition)), aggregate, cancellationToken).ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        Tracker.Track(aggregate);
+        return true;
+    }
+
     public Task<bool> SoftDeleteAsync(TId id, Guid? userId, string? reason, CancellationToken cancellationToken) =>
         Context.InTransactionAsync(
             async ct =>
