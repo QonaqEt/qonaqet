@@ -84,6 +84,15 @@ public sealed class PoolRepository(MongoContext context, IAggregateTracker track
         return result.ModifiedCount == 1;
     }
 
+    public async Task<bool> CreditAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken)
+    {
+        var update = Builders<Pool>.Update.Inc(x => x.BalanceQepik, Guard.Positive(amountQepik)).Set(x => x.UpdatedAt, Clock.UtcNow);
+        var result = Context.Session is { } session
+            ? await Collection.UpdateOneAsync(session, ById(poolId), update, cancellationToken: cancellationToken).ConfigureAwait(false)
+            : await Collection.UpdateOneAsync(ById(poolId), update, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount == 1;
+    }
+
     public async Task<bool> ConsumeReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken)
     {
         var filter = Filter.And(ById(poolId), Filter.Gte(x => x.ReservedQepik, amountQepik), Filter.Gte(x => x.BalanceQepik, amountQepik));

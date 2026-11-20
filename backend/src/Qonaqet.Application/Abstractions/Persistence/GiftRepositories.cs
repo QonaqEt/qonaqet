@@ -23,6 +23,12 @@ public interface IGiftRepository : IRepository<Gift, GiftId>
     /// <summary>Refundu hələ tamamlanmamış hədiyyələr (<c>refundDueQepik &gt; 0</c>), ən köhnələr əvvəl.</summary>
     Task<IReadOnlyList<Gift>> ListRefundDueAsync(int limit, CancellationToken cancellationToken);
 
+    /// <summary>Müddəti bitmiş, hələ yekunlaşmamış (Scheduled və ya alıcının əlində olan) hədiyyələr, ən köhnə <c>expiresAt</c> əvvəl.</summary>
+    Task<IReadOnlyList<Gift>> ListDueForExpiryAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken);
+
+    /// <summary>Müddətinin bitməsinə <paramref name="until"/>-ə qədər qalan, xatırlatması hələ getməmiş, alıcının əlində olan hədiyyələr.</summary>
+    Task<IReadOnlyList<Gift>> ListDueForReminderAsync(DateTimeOffset now, DateTimeOffset until, int limit, CancellationToken cancellationToken);
+
     /// <summary>Göndərənin hədiyyələri, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<Gift>> ListSentAsync(Guid senderUserId, int limit, CancellationToken cancellationToken);
 

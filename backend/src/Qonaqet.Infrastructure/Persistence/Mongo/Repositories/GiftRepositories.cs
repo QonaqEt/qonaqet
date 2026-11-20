@@ -46,6 +46,18 @@ public sealed class GiftRepository(MongoContext context, IAggregateTracker track
         await Collection.Find(Active(Filter.Gt(x => x.RefundDueQepik, 0))).SortBy(x => x.UpdatedAt).Limit(limit)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
+    private static readonly GiftStatus[] LiveStatuses = [GiftStatus.Delivered, GiftStatus.Opened, GiftStatus.PartiallyRedeemed];
+
+    public async Task<IReadOnlyList<Gift>> ListDueForExpiryAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.And(Filter.In(x => x.Status, [GiftStatus.Scheduled, .. LiveStatuses]), Filter.Lte(x => x.ExpiresAt, now))))
+            .SortBy(x => x.ExpiresAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<Gift>> ListDueForReminderAsync(DateTimeOffset now, DateTimeOffset until, int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.And(
+                Filter.In(x => x.Status, LiveStatuses), Filter.Gt(x => x.ExpiresAt, now), Filter.Lte(x => x.ExpiresAt, until),
+                Filter.Eq(x => x.ExpiryReminderSentAt, null))))
+            .SortBy(x => x.ExpiresAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public async Task<IReadOnlyList<Gift>> ListReceivedAsync(Guid recipientUserId, int limit, CancellationToken cancellationToken)
     {
         var delivered = new[]

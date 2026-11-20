@@ -1,0 +1,4 @@
+Salam, {{recipientName}}!
+
+{{senderName}} göndərdiyi hədiyyədən hələ istifadə etməmisiniz: {{remaining}}.
+Hədiyyə {{expiresAt}} tarixinədək qüvvədədir. Linki açıb QR kodu məkanda göstərin.
