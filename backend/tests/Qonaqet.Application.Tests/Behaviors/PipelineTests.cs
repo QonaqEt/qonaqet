@@ -20,6 +20,7 @@ public sealed class PipelineTests
         typeof(CreateGift), typeof(CreateGiftHandler), typeof(CreateGiftValidator),
         typeof(Charge), typeof(ChargeHandler),
         typeof(AdminOnly), typeof(AdminOnlyHandler),
+        typeof(RecordPayout), typeof(RecordPayoutHandler),
         typeof(PublicPing), typeof(PublicPingHandler),
         typeof(GetGift), typeof(GetGiftHandler),
         typeof(VerifyOtp), typeof(VerifyOtpHandler),
@@ -114,6 +115,20 @@ public sealed class PipelineTests
         Assert.Equal(["begin", "handler", "outbox:1", "commit"], app.Trace);
         var giftCreated = Assert.IsType<GiftCreated>(Assert.Single(app.Outbox.Events));
         Assert.Equal(result.Value, giftCreated.GiftId);
+    }
+
+    [Fact]
+    public async Task Postgres_commands_use_the_postgres_transaction_and_never_the_mongo_outbox()
+    {
+        await using var app = TestApp.Create();
+
+        Assert.True((await app.Send(new RecordPayout(false))).IsSuccess);
+        Assert.Equal(["pg-begin", "handler", "pg-commit"], app.Trace);
+
+        app.Trace.Clear();
+        Assert.True((await app.Send(new RecordPayout(true))).IsFailure);
+        Assert.Equal(["pg-begin", "handler", "pg-rollback"], app.Trace);
+        Assert.Empty(app.Outbox.Events);
     }
 
     [Fact]
@@ -274,6 +289,7 @@ public sealed class PipelineTests
             services.AddSingleton<IIdempotencyStore>(store);
             services.AddSingleton<IOutbox>(outbox);
             services.AddScoped<IUnitOfWork, FakeUnitOfWork>();
+            services.AddScoped<IPostgresUnitOfWork, FakePostgresUnitOfWork>();
             services.AddScoped<IAggregateTracker, AggregateTracker>();
             services.AddMessaging(RequestTypes);
             services.AddApplicationPipeline();
@@ -321,6 +337,15 @@ public sealed class PipelineTests
         public Task CommitAsync(CancellationToken cancellationToken) { trace.Add("commit"); return Task.CompletedTask; }
 
         public Task RollbackAsync(CancellationToken cancellationToken) { trace.Add("rollback"); return Task.CompletedTask; }
+    }
+
+    private sealed class FakePostgresUnitOfWork(List<string> trace) : IPostgresUnitOfWork
+    {
+        public Task BeginAsync(CancellationToken cancellationToken) { trace.Add("pg-begin"); return Task.CompletedTask; }
+
+        public Task CommitAsync(CancellationToken cancellationToken) { trace.Add("pg-commit"); return Task.CompletedTask; }
+
+        public Task RollbackAsync(CancellationToken cancellationToken) { trace.Add("pg-rollback"); return Task.CompletedTask; }
     }
 
     public sealed class FakeOutbox(List<string> trace) : IOutbox
@@ -435,6 +460,17 @@ public sealed class PipelineTests
             return Task.FromResult(request.AmountQepik < 0
                 ? Result<Guid>.Failure(Error.Failure("payment_declined", "Ödəniş rədd edildi."))
                 : Result<Guid>.Success(Guid.CreateVersion7()));
+        }
+    }
+
+    public sealed record RecordPayout(bool Fail) : ICommand, IPostgresCommand;
+
+    public sealed class RecordPayoutHandler(List<string> trace) : ICommandHandler<RecordPayout>
+    {
+        public Task<Result> Handle(RecordPayout request, CancellationToken cancellationToken)
+        {
+            trace.Add("handler");
+            return Task.FromResult(request.Fail ? Result.Failure(Error.Conflict("x", "x")) : Result.Success());
         }
     }
 

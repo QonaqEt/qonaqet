@@ -21,7 +21,7 @@ public sealed class ApiTestHost : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Api.Program> _factory;
 
-    public ApiTestHost(MongoFixture mongo, string environment = "Development", Action<IServiceCollection>? configure = null)
+    public ApiTestHost(MongoFixture mongo, string environment = "Development", Action<IServiceCollection>? configure = null, string? postgres = null)
     {
         ArgumentNullException.ThrowIfNull(mongo);
         DatabaseName = "t_" + Guid.NewGuid().ToString("N")[..12];
@@ -32,7 +32,13 @@ public sealed class ApiTestHost : IAsyncDisposable
             b.UseSetting("Mongo:ConnectionString", mongo.ConnectionString);
             b.UseSetting("Mongo:Database", DatabaseName);
             b.UseSetting("Mongo:ApplyMigrationsOnStartup", "true");
-            b.UseSetting("Postgres:ApplyMigrationsOnStartup", "false");
+            // Postgres yalnız ötürüləndə (ödəniş, ledger testləri): host startda migrasiyaları tətbiq edir.
+            b.UseSetting("Postgres:ApplyMigrationsOnStartup", postgres is null ? "false" : "true");
+            if (postgres is not null)
+            {
+                b.UseSetting("ConnectionStrings:Postgres", postgres);
+            }
+
             b.UseSetting("Security:TokenHashSecret", "test-token-hash-secret-0123456789abcdef");
             b.UseSetting("Jwt:SigningKey", "test-jwt-signing-key-0123456789abcdef0123456789");
             b.ConfigureServices(s =>

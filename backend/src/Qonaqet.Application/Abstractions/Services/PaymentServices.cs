@@ -96,3 +96,10 @@ public interface IFakeCheckout
 }
 
 public sealed record FakeOrderView(string ProviderOrderId, long AmountQepik, string Description, GatewayPaymentState State, long RefundedQepik);
+
+/// <summary>İctimai URL-lər (<c>App:PublicBaseUrl</c> əsasında).</summary>
+public interface IAppUrls
+{
+    /// <summary>Payriff callback-i: <c>{PublicBaseUrl}/api/v1/payments/payriff/callback</c>.</summary>
+    Uri PaymentCallback { get; }
+}

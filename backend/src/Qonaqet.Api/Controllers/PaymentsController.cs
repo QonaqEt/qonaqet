@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Features.Payments.Commands.CompleteFakePayment;
 using Qonaqet.Application.Features.Payments.Queries.GetFakeCheckout;
+using Qonaqet.Application.Features.Payments.Queries.GetPayment;
+using Qonaqet.Domain.Payments;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.SharedKernel.Messaging;
 
@@ -14,6 +16,11 @@ namespace Qonaqet.Api.Controllers;
 [Route("api/v1/payments")]
 public sealed class PaymentsController(ISender sender) : ControllerBase
 {
+    /// <summary>Ödəyicinin öz ödənişi: tətbiq ödəniş səhifəsindən sonra statusu buradan sorğulayır.</summary>
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken) =>
+        (await sender.Send(new GetPaymentQuery(PaymentId.From(id)), cancellationToken)).ToActionResult();
+
     /// <summary>
     /// Fake ödəniş səhifəsi (yalnız Development; başqa mühitdə 404). <c>?result=paid</c> ödənişi uğurlu, <c>?result=failed</c>
     /// uğursuz edir; parametrsiz sadə səhifə göstərir.

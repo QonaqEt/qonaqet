@@ -33,6 +33,7 @@ public static class PostgresRegistration
 
         // Default IUnitOfWork/IOutbox Mongo-dur; Postgres əmrləri bunları konkret tip kimi alır.
         services.AddScoped<PostgresUnitOfWork>();
+        services.AddScoped<IPostgresUnitOfWork>(sp => sp.GetRequiredService<PostgresUnitOfWork>());
         services.AddScoped<PostgresOutbox>();
         services.AddScoped<IIdempotencyStore, PostgresIdempotencyStore>();
 

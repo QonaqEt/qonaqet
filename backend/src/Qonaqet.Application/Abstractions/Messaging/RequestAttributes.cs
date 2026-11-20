@@ -41,3 +41,9 @@ public interface INonTransactionalCommand;
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class RequiresActiveAccountAttribute : Attribute;
+
+/// <summary>
+/// Vəziyyəti Postgres-də olan əmr (ödəniş, ledger, payout). UnitOfWork Mongo əvəzinə Postgres tranzaksiyası açır; domen hadisələri
+/// Postgres outbox-una düşür. <see cref="INonTransactionalCommand"/> ilə birlikdə tranzaksiya açılmır, handler özü yazır.
+/// </summary>
+public interface IPostgresCommand;
