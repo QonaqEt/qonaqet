@@ -156,6 +156,21 @@ digər mühitlərdə məcburidir.
   `campaign-end` (5 dəqiqə) bitmiş kampaniyanı `Ended` edir və qalığı default hovuza köçürür (`CampaignRollover`).
 - **İctimai:** `GET /api/v1/public/stats` (60 s keş), `GET /api/v1/pools/summary`, `GET /api/v1/campaigns/active` — yalnız aqreqatlar.
 
+### Hədiyyələr (E09)
+
+- **Yaratma:** `POST /api/v1/gifts` (`Idempotency-Key`): məhsullar (bir biznesin 1–10 `isGiftable` vahidi), biznes vauçeri
+  (`voucherMinQepik`–`voucherMaxQepik`) və ya şəbəkə vauçeri (2–200 AZN); qiymət yalnız serverdə. Alıcı email və ya "linki özüm göndərəcəm",
+  tema, mesaj, adlı/anonim, `deliverAt` (≤90 gün), `expiryAction`. Ödənişdən sonra `Scheduled` + link token-i; göndərən linki bir dəfə
+  `POST .../gifts/{id}/share-link` ilə götürür, `reissue-link` köhnəni etibarsız edir. Token yalnız hash kimi (+ müvəqqəti şifrəli nüsxə,
+  ADR 0007) saxlanılır, log və trace-lərdə maskalanır.
+- **Çatdırılma və açılış:** Worker `gift-delivery` (dəqiqədə bir) temalı email + push; `GET /api/v1/public/gifts/{token}` (anonim,
+  rate-limitli) kartı, kodları və biznes(lər)i göstərir, ilk açılış göndərənə bildirilir; `POST .../public/gifts/{token}/claim` hədiyyəni
+  hesaba bağlayır (link işləməyə davam edir). `GET .../gifts/sent|received|{id}`.
+- **Təhvil:** `POST /api/v1/business/{id}/redeem[/preview]` hədiyyə kodlarını da qəbul edir (`lines` və ya `amountQepik`, qismən);
+  bir Mongo tranzaksiyası + optimistik `version`, toqquşmada bir təkrar, sonra `gift_changed`. Ledger: təhvil verən biznesə kredit − 7%.
+- **Ləğv və müddət:** `POST .../gifts/{id}/cancel` (yalnız `Scheduled`, tam refund, idempotent); Worker `gift-expiry` (15 dəqiqə) 7 gün
+  qalmış xatırladır, sonra qalığı refund edir və ya hovuza bağışlayır (`GiftExpiryDonation`); `gift-refunds` gözləyən refundları təkrarlayır.
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
@@ -164,7 +179,8 @@ bizneslər/kataloq (E04: müraciət + aktivləşdirmə, işçilər, kataloq, par
 kateqoriyalar/təsdiq (E05: dinamik kateqoriyalar + default hovuz, seed, təsdiq sihirbazı, FIN hash, admin baxışı, xatırlatmalar) və
 sosial qonaqlıq (E06: gündəlik/askıda təkliflər, atomik claim, limitlər, QR/qısa kod, təhvil, müddət job-u, məxfilik testləri) və
 ödənişlər/ledger (E07: Payriff + Fake gateway, payments/refunds, callback + yenidən yoxlama, ledger + komissiya, payout-lar, uzlaşdırma) və
-hovuzlar/kampaniyalar (E08: remote/hovuz/kampaniya ianələri, hovuz claim-ləri, donor atribusiyası, kampaniya qalığının köçməsi, ictimai statistika) hazırdır.
+hovuzlar/kampaniyalar (E08: remote/hovuz/kampaniya ianələri, hovuz claim-ləri, donor atribusiyası, kampaniya qalığının köçməsi, ictimai statistika) və
+hədiyyələr (E09: məhsul/vauçer/şəbəkə hədiyyələri, ödəniş, link token-ləri, ictimai səhifə, çatdırılma, qismən təhvil, ləğv, müddət bitməsi) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 
