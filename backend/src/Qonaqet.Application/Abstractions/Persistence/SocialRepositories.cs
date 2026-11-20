@@ -110,6 +110,15 @@ public interface IPoolDonationRepository : IRepository<PoolDonation, PoolDonatio
     /// <summary>Ödənilməyən ianəni bağlayır (yalnız <c>Pending</c>-dən, atomik).</summary>
     Task<bool> TryCancelPendingAsync(PoolDonationId id, CancellationToken cancellationToken);
 
+    /// <summary>Hovuzun hələ xərclənməmiş hissəsi olan ən köhnə təsdiqlənmiş ianəsi (atribusiya); yoxdursa <c>null</c>.</summary>
+    Task<PoolDonation?> FindOldestUnusedAsync(PoolId poolId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Təhvil olunan məbləği hovuzun ianələrindən FIFO ilə (ən köhnə istifadə olunmamışdan) xərcləyir, cari tranzaksiyada; hər ianə şərtli
+    /// azaldılır. Ianələrlə örtülməyən hissə (məs. kampaniya qalığı) sadəcə buraxılır.
+    /// </summary>
+    Task ConsumeAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
+
     /// <summary>Ianəçinin ianələri, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<PoolDonation>> ListForDonorAsync(Guid donorUserId, int limit, CancellationToken cancellationToken);
 }

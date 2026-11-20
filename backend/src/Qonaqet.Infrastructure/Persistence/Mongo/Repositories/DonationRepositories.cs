@@ -35,6 +35,39 @@ public sealed class PoolDonationRepository(MongoContext context, IAggregateTrack
         return result.ModifiedCount == 1;
     }
 
+    public async Task<PoolDonation?> FindOldestUnusedAsync(PoolId poolId, CancellationToken cancellationToken)
+    {
+        var find = Context.Session is { } session ? Collection.Find(session, Unused(poolId)) : Collection.Find(Unused(poolId));
+        return await find.SortBy(x => x.ConfirmedAt).ThenBy(x => x.Id).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ConsumeAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken)
+    {
+        var left = amountQepik;
+        while (left > 0)
+        {
+            var oldest = await FindOldestUnusedAsync(poolId, cancellationToken).ConfigureAwait(false);
+            if (oldest is null)
+            {
+                return;
+            }
+
+            var take = Math.Min(left, oldest.RemainingQepik);
+            var filter = Filter.And(ById(oldest.Id), Filter.Eq(x => x.RemainingQepik, oldest.RemainingQepik));
+            var update = Builders<PoolDonation>.Update.Inc(x => x.RemainingQepik, -take).Set(x => x.UpdatedAt, Clock.UtcNow);
+            var result = Context.Session is { } session
+                ? await Collection.UpdateOneAsync(session, filter, update, cancellationToken: cancellationToken).ConfigureAwait(false)
+                : await Collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (result.ModifiedCount == 1)
+            {
+                left -= take;
+            }
+        }
+    }
+
+    private static FilterDefinition<PoolDonation> Unused(PoolId poolId) => Active(Filter.And(
+        Filter.Eq(x => x.PoolId, poolId), Filter.Eq(x => x.Status, PoolDonationStatus.Confirmed), Filter.Gt(x => x.RemainingQepik, 0)));
+
     public async Task<IReadOnlyList<PoolDonation>> ListForDonorAsync(Guid donorUserId, int limit, CancellationToken cancellationToken) =>
         await Collection.Find(Active(Filter.Eq(x => x.DonorUserId, donorUserId)))
             .SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);

@@ -29,7 +29,7 @@ public sealed class RedeemCodeValidator : Validator<RedeemCodeCommand>
 }
 
 public sealed class RedeemCodeHandler(
-    BusinessAccess access, RedemptionCodeResolver resolver, IClaimRepository claims, IPoolRepository pools, ICurrentUser currentUser, IClock clock)
+    BusinessAccess access, RedemptionCodeResolver resolver, IClaimRepository claims, IPoolRepository pools, IPoolDonationRepository donations, ICurrentUser currentUser, IClock clock)
     : ICommandHandler<RedeemCodeCommand, RedemptionPreviewDto>
 {
     public async Task<Result<RedemptionPreviewDto>> Handle(RedeemCodeCommand request, CancellationToken cancellationToken)
@@ -72,6 +72,12 @@ public sealed class RedeemCodeHandler(
             && !await pools.ConsumeReservationAsync(poolId, amount, cancellationToken).ConfigureAwait(false))
         {
             throw new InvalidOperationException($"Hovuz {poolId.Value} rezervi tapılmadı.");
+        }
+
+        if (claim.Source == ClaimSource.Pool && claim.PoolId is { } fundedPool && claim.AmountQepik is { } spent)
+        {
+            // Proporsional atribusiya: xərclənən məbləğ ianələrdən FIFO ilə çıxılır.
+            await donations.ConsumeAsync(fundedPool, spent, cancellationToken).ConfigureAwait(false);
         }
 
         return await resolver.PreviewAsync(claim, now, cancellationToken).ConfigureAwait(false);
