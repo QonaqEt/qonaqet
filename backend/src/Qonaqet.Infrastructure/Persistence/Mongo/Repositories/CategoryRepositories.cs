@@ -21,6 +21,9 @@ public sealed class CategoryRepository(MongoContext context, IAggregateTracker t
         return await find.Limit(1).AnyAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<Category?> GetByCodeAsync(string code, CancellationToken cancellationToken) =>
+        (await FindAsync(Filter.Eq(x => x.Code, code), cancellationToken).ConfigureAwait(false)).FirstOrDefault();
+
     public async Task<IReadOnlyList<Category>> ListActiveAsync(CancellationToken cancellationToken)
     {
         var items = await FindAsync(Filter.Eq(x => x.IsActive, true), cancellationToken).ConfigureAwait(false);

@@ -38,6 +38,7 @@ x-backend-env: &backend-env
   Security__TokenHashSecret: ${TOKEN_HASH_SECRET:-qonaqet-dev-only-token-hash-secret}
   Security__FinHashSecret: ${FIN_HASH_SECRET:-qonaqet-dev-only-fin-secret}
   Security__QrSigningSecret: ${QR_SIGNING_SECRET:-qonaqet-dev-only-qr-secret}
+  Security__GiftLinkSealSecret: ${GIFT_LINK_SEAL_SECRET:-qonaqet-dev-only-gift-link-secret}
   OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
   OTEL_EXPORTER_OTLP_PROTOCOL: grpc
 
