@@ -25,6 +25,31 @@ public sealed class CorporateRepository(MongoContext context, IAggregateTracker 
         await Collection.Find(Active()).SortBy(x => x.Name).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
 }
 
+public sealed class CorporateGiftOrderRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<CorporateGiftOrder, CorporateGiftOrderId>(context, tracker, outbox, clock, CorporateCollectionNames.Orders), ICorporateGiftOrderRepository
+{
+    public async Task<bool> TryReplaceAsync(CorporateGiftOrder order, CorporateOrderStatus expected, int expectedSent, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await TryReplaceAsync(order, Filter.And(Filter.Eq(x => x.Status, expected), Filter.Eq(x => x.SentCount, expectedSent)), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (MongoException ex) when (Context.Session is not null && ex.HasErrorLabel("TransientTransactionError"))
+        {
+            return false;
+        }
+    }
+
+    public async Task<IReadOnlyList<CorporateGiftOrder>> ListForCorporateAsync(CorporateId corporateId, int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.Eq(x => x.CorporateId, corporateId))).SortByDescending(x => x.CreatedAt).Limit(limit)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<CorporateGiftOrder>> ListToFanOutAsync(int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.In(x => x.Status, [CorporateOrderStatus.Paid, CorporateOrderStatus.Sending])))
+            .SortBy(x => x.PaidAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+}
+
 public static class CorporateCollectionNames
 {
     public const string Corporates = "corporates";
@@ -39,6 +64,7 @@ public static class CorporateRegistration
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<ICorporateRepository, CorporateRepository>();
+        services.AddScoped<ICorporateGiftOrderRepository, CorporateGiftOrderRepository>();
         services.AddScoped<CorporateAccess>();
         return services;
     }
