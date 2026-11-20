@@ -223,6 +223,30 @@ public sealed class User : AggregateRoot<UserId>
         return true;
     }
 
+    /// <summary>
+    /// İstifadəçini şirkətə bağlayır və <see cref="Role.CorporateUser"/> rolu verir; <c>null</c> bağlılığı və rolu götürür. Dəyişiklik yoxdursa
+    /// <c>false</c>.
+    /// </summary>
+    public bool AssignCorporate(Guid? corporateId, DateTimeOffset at, Guid? by)
+    {
+        var roles = _roles.Where(r => r != Role.CorporateUser).ToList();
+        if (corporateId is not null)
+        {
+            roles.Add(Role.CorporateUser);
+        }
+
+        var ordered = roles.Distinct().Order().ToList();
+        if (ordered.SequenceEqual(_roles.Order()) && CorporateId == corporateId)
+        {
+            return false;
+        }
+
+        _roles = ordered;
+        CorporateId = corporateId;
+        MarkUpdated(at, by);
+        return true;
+    }
+
     /// <summary>Rolları əvəz edir. <see cref="Role.User"/> həmişə qalır, təkrarlar atılır.</summary>
     public void SetRoles(IEnumerable<Role> roles, DateTimeOffset at, Guid? by)
     {

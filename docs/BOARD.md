@@ -17,7 +17,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E07](epics/E07.md) | Payments & ledger | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E09](epics/E09.md) | Gifting | ✅ done | @Tapdiq49 | 10/10 | — |
-| [E10](epics/E10.md) | Corporate & CSR | ⬜ todo · 🟢 götürülə bilər | — | 0/5 | — |
+| [E10](epics/E10.md) | Corporate & CSR | 🔄 in-progress | @Tapdiq49 | 1/5 | — |
 | [E11](epics/E11.md) | Leaderboard & gamification | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo · 🟢 götürülə bilər | — | 0/4 | — |
 | [E13](epics/E13.md) | Integration platform | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
@@ -197,11 +197,11 @@ Yoxdur.
 
 ## E10 — Corporate & CSR
 
-⬜ todo · 0/5 task
+🔄 in-progress · @Tapdiq49 · 1/5 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
-| ⬜ | E10-T01 | Korporativ hesablar | backend | p1 | S |
+| ✅ | E10-T01 | Korporativ hesablar | backend | p1 | S |
 | ⬜ | E10-T02 | Hədiyyə sifarişi və CSV validasiyası | backend | p1 | L |
 | ⬜ | E10-T03 | Ödəniş: kart və bank köçürməsi | backend | p1 | M |
 | ⬜ | E10-T04 | Fan-out job-u | backend | p1 | M |
