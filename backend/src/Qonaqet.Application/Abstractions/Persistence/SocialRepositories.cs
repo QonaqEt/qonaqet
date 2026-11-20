@@ -93,3 +93,20 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
     /// <summary>Alıcının claim-ləri, ən yenilər əvvəl, ən çox <paramref name="limit"/>.</summary>
     Task<IReadOnlyList<Claim>> ListForRecipientAsync(Guid userId, int limit, CancellationToken cancellationToken);
 }
+
+/// <summary><c>poolDonations</c>: hovuz və kampaniya ianələri.</summary>
+public interface IPoolDonationRepository : IRepository<PoolDonation, PoolDonationId>
+{
+    /// <summary>
+    /// Ödəniş təsdiqi: bir Mongo tranzaksiyasında ianə <c>Pending</c> → <c>Confirmed</c> və hovuzun balansı (kampaniya ianəsində kampaniyanın
+    /// <c>raisedQepik</c>-i də) artır. Paralel tranzaksiya toqquşmasında təkrarlanır. Ianə artıq təsdiqlənibsə heç nə dəyişmir. Ianə (sonrakı
+    /// vəziyyəti ilə) qaytarılır; tapılmasa <c>null</c>.
+    /// </summary>
+    Task<PoolDonation?> ConfirmAsync(PoolDonationId id, DateTimeOffset at, CancellationToken cancellationToken);
+
+    /// <summary>Ödənilməyən ianəni bağlayır (yalnız <c>Pending</c>-dən, atomik).</summary>
+    Task<bool> TryCancelPendingAsync(PoolDonationId id, CancellationToken cancellationToken);
+
+    /// <summary>Ianəçinin ianələri, ən yenilər əvvəl.</summary>
+    Task<IReadOnlyList<PoolDonation>> ListForDonorAsync(Guid donorUserId, int limit, CancellationToken cancellationToken);
+}

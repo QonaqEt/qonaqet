@@ -250,6 +250,8 @@ public static class SocialRegistration
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IOfferRepository, OfferRepository>();
         services.AddScoped<IClaimRepository, ClaimRepository>();
+        services.AddScoped<IPoolDonationRepository, PoolDonationRepository>();
+        services.AddScoped<Application.Features.Donations.Commands.DonatePool.PoolDonationStarter>();
         services.AddScoped<OfferReferenceCheck>();
         services.AddScoped<SocialEligibility>();
         services.AddScoped<ClaimRelease>();
