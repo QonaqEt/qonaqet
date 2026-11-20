@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Qonaqet.Domain.Gifts;
 using Qonaqet.Domain.Ledger;
 using Qonaqet.Domain.Payments;
 using Qonaqet.Domain.Social;
@@ -26,7 +27,8 @@ public sealed class LedgerOptions
 /// <item><see cref="PaymentRefunded"/>: platforma hesabından <c>Refund</c>.</item>
 /// <item><see cref="PoolClaimReserved"/> / <see cref="PoolReservationReleased"/>: hovuz hesabında <c>PoolReserve</c> (−) / <c>PoolRelease</c> (+).</item>
 /// </list>
-/// Hədiyyə təhvili (<c>GiftRedeemed</c>) E09 ilə eyni <see cref="LedgerPostings.Redemption"/> qaydasına qoşulur.
+/// <item><see cref="GiftRedeemed"/>: hədiyyə həmişə onlayn ödənilib → təhvil verən biznesə <c>RedemptionCredit</c> + 7% <c>Commission</c>
+/// (şəbəkə vauçerində kredit vauçerin alındığı yerə yox, təhvil verən biznesə düşür).</item>
 /// </summary>
 public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrationEventConsumer
 {
@@ -40,9 +42,11 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
 
     public static readonly string CampaignRolledOverType = typeof(CampaignRolledOver).FullName!;
 
+    public static readonly string GiftRedeemedType = typeof(GiftRedeemed).FullName!;
+
     public string Name => "ledger";
 
-    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType];
+    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType, GiftRedeemedType];
 
     public Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
     {
@@ -56,6 +60,13 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
             entries = LedgerPostings.Redemption(
                 claim.BusinessId, claim.AmountQepik ?? 0, claim.Commissionable, "Claim", claim.ClaimId, message.MessageId,
                 new CommissionPolicy(options.Value.CommissionPercent), claim.At);
+        }
+        else if (message.Type == GiftRedeemedType)
+        {
+            var gift = Read<GiftRedeemedPayload>(message);
+            entries = LedgerPostings.Redemption(
+                gift.BusinessId, gift.ValueQepik, commissionable: true, "GiftRedemption", gift.RedemptionId, message.MessageId,
+                new CommissionPolicy(options.Value.CommissionPercent), gift.At);
         }
         else if (message.Type == PaymentRefundedType)
         {
@@ -92,6 +103,8 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
     private static T Read<T>(IntegrationMessage message) =>
         JsonSerializer.Deserialize<T>(message.Payload, OutboxSerializer.JsonOptions)
         ?? throw new InvalidOperationException($"Boş {message.Type} mesajı.");
+
+    private sealed record GiftRedeemedPayload(Guid GiftId, Guid RedemptionId, Guid BusinessId, long ValueQepik, DateTimeOffset At);
 
     private sealed record ClaimRedeemedPayload(Guid ClaimId, Guid BusinessId, long? AmountQepik, bool Commissionable, DateTimeOffset At);
 

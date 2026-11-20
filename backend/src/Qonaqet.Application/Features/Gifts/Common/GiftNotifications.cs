@@ -17,6 +17,8 @@ public sealed class GiftNotifications(
 {
     public const string DeliveredTemplate = "gift-delivered";
 
+    public const string RedeemedTemplate = "gift-redeemed";
+
     /// <summary>Çatdırılma: alıcıya temalı email (link ilə) və hesabı varsa push; göndərənə "Hədiyyəniz çatdırıldı".</summary>
     public async Task DeliveredAsync(Gift gift, string? token, CancellationToken cancellationToken)
     {
@@ -61,6 +63,44 @@ public sealed class GiftNotifications(
             await push.NotifyAsync(
                 UserId.From(sender), NotificationType.GiftStatus,
                 new PushMessage("Hədiyyənizə baxıldı 🎉", $"{gift.RecipientName} hədiyyənizi açdı.", Data(gift)), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Təhvil ("Hədiyyə istifadə edildi"): göndərənə (anonim olsa da) push; alıcıya hesabı varsa push, yoxdursa email. Biznesin adı və alıcının
+    /// kimliyi göndərənə verilmir — yalnız alıcının (göndərənin özünün yazdığı) adı.
+    /// </summary>
+    public async Task RedeemedAsync(Gift gift, long valueQepik, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(gift);
+        var redeemed = Money.FromQepik(valueQepik).ToString();
+        var remaining = gift.Kind == GiftKind.Items
+            ? (gift.RemainingUnits == 0 ? "hamısı istifadə olunub" : string.Join(", ", gift.Items.Where(i => i.RemainingQty > 0).Select(i => $"{i.RemainingQty} × {i.Title}")))
+            : Money.FromQepik(gift.RemainingQepik).ToString();
+
+        if (gift.SenderUserId is { } sender)
+        {
+            await push.NotifyAsync(
+                UserId.From(sender), NotificationType.GiftStatus,
+                new PushMessage("Hədiyyə istifadə edildi", $"{gift.RecipientName} hədiyyənizdən istifadə etdi 💚", Data(gift)), cancellationToken).ConfigureAwait(false);
+        }
+
+        if (gift.RecipientUserId is { } recipient)
+        {
+            await push.NotifyAsync(
+                UserId.From(recipient), NotificationType.GiftStatus,
+                new PushMessage("Hədiyyə istifadə edildi", $"{redeemed} istifadə olundu. Qalıq: {remaining}.", Data(gift)), cancellationToken).ConfigureAwait(false);
+        }
+        else if (gift.RecipientEmail is { } email)
+        {
+            var model = new Dictionary<string, string?>
+            {
+                ["recipientName"] = gift.RecipientName,
+                ["senderName"] = gift.SenderDisplayName,
+                ["redeemed"] = redeemed,
+                ["remaining"] = remaining,
+            };
+            await emails.EnqueueAsync(templates.Render(RedeemedTemplate, model).To(email), RedeemedTemplate, cancellationToken).ConfigureAwait(false);
         }
     }
 
