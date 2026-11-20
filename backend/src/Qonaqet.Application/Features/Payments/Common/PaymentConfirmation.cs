@@ -31,7 +31,7 @@ public sealed partial class PaymentConfirmation(
     IPaymentRepository payments, IPaymentGatewayRegistry gateways, IClock clock, ILogger<PaymentConfirmation> logger)
 {
     /// <summary>Bu müddətdən köhnə <c>Pending</c> ödəniş (provayder hələ də ödənilmədi deyirsə) <c>Expired</c> olur.</summary>
-    public static readonly TimeSpan ExpireAfter = TimeSpan.FromMinutes(30);
+    public static readonly TimeSpan PendingLifetime = TimeSpan.FromMinutes(30);
 
     private const int MaxAttempts = 3;
 
@@ -100,7 +100,7 @@ public sealed partial class PaymentConfirmation(
             return payment.MarkFailed(now, status.ProviderStatus) ? PaymentCheckOutcome.Failed : PaymentCheckOutcome.Unchanged;
         }
 
-        return expireIfStale && now - payment.CreatedAt >= ExpireAfter && payment.MarkExpired(now, status.ProviderStatus)
+        return expireIfStale && now - payment.CreatedAt >= PendingLifetime && payment.MarkExpired(now, status.ProviderStatus)
             ? PaymentCheckOutcome.Expired
             : PaymentCheckOutcome.Unchanged;
     }
