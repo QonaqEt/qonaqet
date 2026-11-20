@@ -40,7 +40,11 @@ public sealed class ClaimCodeTests(MongoFixture mongo)
             .TrimEnd('=').Replace('+', '-').Replace('/', '_');
         Assert.Null(codes.ParseQr(forged));
         Assert.Null(Codes("another-secret-0123456789abcdef").ParseQr(payload));
-        Assert.Null(codes.ParseQr(payload[..^2] + (payload[^2] == 'A' ? "B" : "A") + payload[^1]));
+        // İmzanın İLK simvolu dəyişdirilir: 16 baytlıq imzanın base64url-ində son simvolun 4 biti istifadə olunmur, ona görə sonda
+        // (və ya xarici base64-də) bit çevirmək bəzən heç nəyi dəyişməzdi və test təsadüfən uğursuz olardı.
+        var signatureStart = raw.LastIndexOf('.') + 1;
+        var tamperedRaw = raw[..signatureStart] + (raw[signatureStart] == 'A' ? 'B' : 'A') + raw[(signatureStart + 1)..];
+        Assert.Null(codes.ParseQr(Convert.ToBase64String(Encoding.ASCII.GetBytes(tamperedRaw)).TrimEnd('=').Replace('+', '-').Replace('/', '_')));
         Assert.Null(codes.ParseQr(""));
         Assert.Null(codes.ParseQr("not a code"));
     }
