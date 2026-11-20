@@ -147,6 +147,10 @@ public sealed class CampaignRepository(MongoContext context, IAggregateTracker t
         return result.ModifiedCount == 1;
     }
 
+    public async Task<IReadOnlyList<Campaign>> ListForCorporateAsync(Guid corporateId, int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.Eq(x => x.CorporateId, corporateId))).SortByDescending(x => x.CreatedAt).Limit(limit)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public async Task<IReadOnlyList<Campaign>> ListEndedAsync(int limit, CancellationToken cancellationToken) =>
         await Collection.Find(Active(Filter.Eq(x => x.Status, CampaignStatus.Ended))).SortByDescending(x => x.EndedAt).Limit(limit)
             .ToListAsync(cancellationToken).ConfigureAwait(false);

@@ -29,7 +29,7 @@ public static class MongoIndexCatalog
     [
         "users", "otpCodes", "refreshTokens", "files", "categories", "identityHashes", "verificationRequests",
         "businesses", "businessMemberships", "catalogItems", "offers", "pools", "poolDonations", "campaigns", "claims", "gifts",
-        "corporates", "corporateGiftOrders", "brands", "coupons", "couponCodes", "reports",
+        "corporates", "corporateGiftOrders", "corporateReports", "brands", "coupons", "couponCodes", "reports",
     ];
 
     /// <summary>Append-only kolleksiyalar: soft delete olunmur, amma <c>isDeleted</c> sahəsi yenə də var.</summary>
@@ -97,6 +97,8 @@ public static class MongoIndexCatalog
             Unique("corporates", ("voen", 1)),
             Query("corporateGiftOrders", ("corporateId", 1), ("createdAt", 1)),
             Query("corporateGiftOrders", ("status", 1), ("paidAt", 1)),
+            Query("corporateReports", ("corporateId", 1), ("createdAt", 1)),
+            Query("campaigns", ("corporateId", 1), ("createdAt", 1)),
             Query("gifts", ("refundDueQepik", 1), ("updatedAt", 1)),
             Query("verificationRequests", ("status", 1), ("createdAt", 1)),
             Query("verificationRequests", ("userId", 1), ("categoryId", 1)),

@@ -32,7 +32,7 @@ public sealed class CreateCampaignHandler(ICampaignRepository campaigns, ICatego
             return references.Error;
         }
 
-        var campaign = Campaign.CreateDraft(request.Input.ToDetails(), corporateId: null, clock.UtcNow, currentUser.ActorId);
+        var campaign = Campaign.CreateDraft(request.Input.ToDetails(), request.Input.CorporateId, clock.UtcNow, currentUser.ActorId);
         await campaigns.AddAsync(campaign, cancellationToken).ConfigureAwait(false);
         return campaign.ToDto();
     }

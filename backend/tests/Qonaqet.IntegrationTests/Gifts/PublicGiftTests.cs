@@ -64,7 +64,7 @@ public sealed class PublicGiftTests(PaymentsFixture fixture)
         Assert.Equal("Opened", doc["status"].AsString);
 
         // Saxta/qısaldılmış token eyni cavabı alır.
-        Assert.Equal("gift_not_found", await GiftTestData.ErrorCodeAsync(await host.GetAsync($"/api/v1/public/gifts/{token[..^1]}A", null)));
+        Assert.Equal("gift_not_found", await GiftTestData.ErrorCodeAsync(await host.GetAsync($"/api/v1/public/gifts/{token[..^1]}{(token[^1] == 'A' ? 'B' : 'A')}", null)));
         Assert.Equal("gift_not_found", await GiftTestData.ErrorCodeAsync(await host.GetAsync("/api/v1/public/gifts/short", null)));
     }
 
@@ -84,7 +84,7 @@ public sealed class PublicGiftTests(PaymentsFixture fixture)
         }
 
         // Uğursuz sorğu da xəbərdarlıq loglayır (RequestPath scope-u ilə) — token maskalanmalıdır.
-        Assert.Equal("gift_not_found", await GiftTestData.ErrorCodeAsync(await host.GetAsync($"/api/v1/public/gifts/{token[..^2]}AA", null)));
+        Assert.Equal("gift_not_found", await GiftTestData.ErrorCodeAsync(await host.GetAsync($"/api/v1/public/gifts/{token[..^2]}{(token[^2..] == "AA" ? "BB" : "AA")}", null)));
         Assert.Contains(logs.Lines, l => l.Contains("/api/v1/public/gifts/***", StringComparison.Ordinal));
 
         Assert.Matches("^[A-Za-z0-9_-]{43}$", token);

@@ -144,6 +144,9 @@ public interface ICampaignRepository : IRepository<Campaign, CampaignId>
     Task<bool> TryEndAsync(CampaignId id, DateTimeOffset now, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<Campaign>> ListEndedAsync(int limit, CancellationToken cancellationToken);
+
+    /// <summary>Şirkətin (CSR) kampaniyaları, ən yenilər əvvəl.</summary>
+    Task<IReadOnlyList<Campaign>> ListForCorporateAsync(Guid corporateId, int limit, CancellationToken cancellationToken);
 }
 
 /// <summary>Anonim aqreqat statistikası (ictimai sayt, hovuz xülasəsi). Heç bir şəxs, alıcı və ya ianəçi siyahısı qaytarmır.</summary>
