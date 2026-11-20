@@ -103,6 +103,17 @@ public sealed class Offer : AggregateRoot<OfferId>
     /// <summary>Askıda qeydini kassada daxil edən işçi.</summary>
     public Guid? CreatedByStaffId { get; private set; }
 
+    // ── Remote ──
+
+    /// <summary>Remote: bir vahidin onlayn ödənilmiş qiyməti (qəpik, snapshot) — təhvildə biznesə kredit bu qədərdir.</summary>
+    public long UnitPriceQepik { get; private set; }
+
+    /// <summary>Remote: təklifi maliyyələşdirən ödəniş (Postgres <c>payments.id</c>).</summary>
+    public Guid? PaymentId { get; private set; }
+
+    /// <summary>Remote: ödəniş hələ təsdiqlənməyib — təklif görünmür və claim olunmur.</summary>
+    public bool AwaitingPayment { get; private set; }
+
     /// <summary>Bakı günü açarı (<see cref="QuotaDate"/> formatı).</summary>
     public static string DateKey(DateOnly bakuDate) => bakuDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
@@ -142,6 +153,47 @@ public sealed class Offer : AggregateRoot<OfferId>
         offer.ApplyCommon(details.Title, details.CatalogItemId, details.DonorDisplay, details.DonorName);
         return offer;
     }
+
+    /// <summary>
+    /// Remote: ianəçi kataloq məhsulunu kateqoriya üçün onlayn alır. Ödəniş təsdiqlənənə qədər təklif qeyri-aktivdir
+    /// (<see cref="AwaitingPayment"/>); consumer onu idempotent aktivləşdirir. Qiymət kataloqdan serverdə götürülür.
+    /// </summary>
+    public static Offer CreateRemote(
+        BusinessId businessId, CategoryId categoryId, CatalogItemId catalogItemId, string title, long unitPriceQepik, int quantity,
+        DonorDisplay donorDisplay, string? donorName, Guid donorUserId, DateTimeOffset at)
+    {
+        if (!IsValidQuantity(quantity))
+        {
+            throw new ArgumentOutOfRangeException(nameof(quantity), "Say düzgün deyil.");
+        }
+
+        var offer = new Offer(StronglyTypedId.New<OfferId>(), businessId, OfferType.Remote, categoryId, at, donorUserId)
+        {
+            TotalQuantity = quantity,
+            Remaining = quantity,
+            UnitPriceQepik = Guard.Positive(unitPriceQepik),
+            DonorUserId = Guard.NotEmpty(donorUserId),
+            AwaitingPayment = true,
+            IsActive = false,
+        };
+        offer.ApplyCommon(title, catalogItemId, donorDisplay, donorName);
+        return offer;
+    }
+
+    /// <summary>Remote: ödəniş başladıldı (yazılmazdan əvvəl, bir dəfə).</summary>
+    public void AttachPayment(Guid paymentId)
+    {
+        EnsureType(OfferType.Remote);
+        if (PaymentId is not null)
+        {
+            throw new InvalidOperationException("Ödəniş artıq bağlanıb.");
+        }
+
+        PaymentId = Guard.NotEmpty(paymentId);
+    }
+
+    /// <summary>Remote təklifin ümumi dəyəri (qəpik).</summary>
+    public long TotalPriceQepik => UnitPriceQepik * TotalQuantity;
 
     /// <summary>Gündəlik təklifin parametrlərini dəyişir. Bugünkü sayğac saxlanılır; yeni kvota ondan azdırsa bu gün yeni claim olmur.</summary>
     public void UpdateDaily(DailyOfferDetails details, DateTimeOffset at, Guid? by)

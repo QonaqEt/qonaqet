@@ -6,7 +6,10 @@ using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Features.Payments.Common;
 using Qonaqet.Domain.Payments;
+using Qonaqet.Infrastructure.Messaging.Inbox;
+using Qonaqet.Infrastructure.Messaging.Outbox;
 using Qonaqet.Infrastructure.Persistence.Postgres;
+using MongoDB.Driver;
 using Qonaqet.IntegrationTests.Identity;
 
 namespace Qonaqet.IntegrationTests.Payments;
@@ -68,6 +71,58 @@ internal static class PaymentTestData
             request.Headers.Add("Idempotency-Key", key == "auto" ? Guid.NewGuid().ToString() : key);
         }
 
+        return await host.Client.SendAsync(request, Ct);
+    }
+
+    /// <summary>
+    /// Relay + broker əvəzi: hər iki outbox-dakı (Postgres və Mongo) consumer-in dinlədiyi hadisələri inbox ilə emal edir (sıra ilə). Emal
+    /// olunan mesajların sayını qaytarır; təkrar çağırış inbox sayəsində heç nə etmir.
+    /// </summary>
+    public static async Task<int> DeliverAsync(ApiTestHost host, IIntegrationEventConsumer consumer)
+    {
+        var messages = new List<(DateTimeOffset At, IntegrationMessage Message)>();
+        await using (var scope = host.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
+            var types = consumer.EventTypes.ToList();
+            var pg = await context.OutboxMessages.AsNoTracking().Where(m => types.Contains(m.Type)).ToListAsync(Ct);
+            messages.AddRange(pg.Select(m => (m.OccurredAt, new IntegrationMessage(m.Id, m.Type, m.Payload))));
+            var mongo = await host.Database.GetCollection<OutboxMessage>(MongoOutbox.CollectionName)
+                .Find(Builders<OutboxMessage>.Filter.In(m => m.Type, types)).ToListAsync(Ct);
+            messages.AddRange(mongo.Select(m => (m.OccurredAt, new IntegrationMessage(m.Id, m.Type, m.Payload))));
+        }
+
+        var processed = 0;
+        foreach (var (_, message) in messages.OrderBy(m => m.At))
+        {
+            await using var scope = host.Services.CreateAsyncScope();
+            if (await new InboxProcessor(scope.ServiceProvider.GetRequiredService<QonaqetDbContext>()).ProcessAsync(consumer, message, host.Clock.UtcNow, Ct))
+            {
+                processed++;
+            }
+        }
+
+        return processed;
+    }
+
+    public static Infrastructure.Messaging.Consumers.PaymentFulfillmentConsumer Fulfillment(ApiTestHost host) =>
+        new(host.Services.GetRequiredService<IServiceScopeFactory>());
+
+    public static Infrastructure.Messaging.Consumers.LedgerConsumer Ledger() =>
+        new(Microsoft.Extensions.Options.Options.Create(new Infrastructure.Messaging.Consumers.LedgerOptions()));
+
+    /// <summary>Kassada fake ödəniş səhifəsində "Ödə" (callback simulyasiyası ilə).</summary>
+    public static async Task PayAsync(ApiTestHost host, string paymentUrl, bool paid = true)
+    {
+        using var response = await host.GetAsync(new Uri(paymentUrl).PathAndQuery + (paid ? "?result=paid" : "?result=failed"), null);
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
+    public static async Task<HttpResponseMessage> PostIdempotentAsync(ApiTestHost host, string path, string token, object body, string? key = null)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(path, UriKind.Relative)) { Content = JsonContent.Create(body) };
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Add("Idempotency-Key", key ?? Guid.NewGuid().ToString());
         return await host.Client.SendAsync(request, Ct);
     }
 }

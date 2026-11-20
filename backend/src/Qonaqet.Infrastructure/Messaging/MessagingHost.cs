@@ -40,6 +40,7 @@ public static class MessagingHostRegistration
         services.AddSingleton<IIntegrationEventConsumer, SocialEventsConsumer>();
         services.Configure<LedgerOptions>(configuration.GetSection(LedgerOptions.SectionName));
         services.AddSingleton<IIntegrationEventConsumer, LedgerConsumer>();
+        services.AddSingleton<IIntegrationEventConsumer, PaymentFulfillmentConsumer>();
         services.AddHostedService<RabbitMqConsumerHost>();
         return services;
     }

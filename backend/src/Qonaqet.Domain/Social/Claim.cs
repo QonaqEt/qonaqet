@@ -110,6 +110,7 @@ public sealed class Claim : AggregateRoot<ClaimId>
             OfferId = offer.Id,
             OfferType = offer.Type,
             CatalogItemId = offer.CatalogItemId,
+            AmountQepik = offer.Type == Social.OfferType.Remote ? offer.UnitPriceQepik : null,
             CategoryId = offer.CategoryId,
             Title = offer.Title,
             DonorDisplayText = Guard.NotNullOrWhiteSpace(donorDisplayText),

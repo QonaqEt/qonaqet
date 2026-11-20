@@ -95,9 +95,28 @@ public sealed class OfferRepository(MongoContext context, IAggregateTracker trac
     public Task<long> CascadeRestoreForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken) =>
         CascadeRestoreAsync(Filter.Eq(x => x.BusinessId, businessId), businessId.Value, userId, BusinessCascade.DeleteReason, cancellationToken);
 
+    public const string UnpaidReason = "payment_not_completed";
+
+    public async Task<bool> TryActivateRemoteAsync(OfferId offerId, CancellationToken cancellationToken) =>
+        await TakeAsync(
+            Active(Filter.And(ById(offerId), Filter.Eq(x => x.Type, OfferType.Remote), Filter.Eq(x => x.AwaitingPayment, true))),
+            Builders<Offer>.Update.Set(x => x.AwaitingPayment, false).Set(x => x.IsActive, true),
+            cancellationToken).ConfigureAwait(false);
+
+    public async Task<bool> TryCloseUnpaidRemoteAsync(OfferId offerId, CancellationToken cancellationToken)
+    {
+        var now = Clock.UtcNow;
+        return await TakeAsync(
+            Active(Filter.And(ById(offerId), Filter.Eq(x => x.Type, OfferType.Remote), Filter.Eq(x => x.AwaitingPayment, true))),
+            Builders<Offer>.Update
+                .Set(x => x.AwaitingPayment, false).Set(x => x.IsActive, false)
+                .Set(x => x.IsDeleted, true).Set(x => x.DeletedAt, now).Set(x => x.DeleteReason, UnpaidReason),
+            cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<Offer>> ListDonatedByAsync(Guid donorUserId, int limit, CancellationToken cancellationToken)
     {
-        var filter = Active(Filter.Eq(x => x.DonorUserId, donorUserId));
+        var filter = Active(Filter.And(Filter.Eq(x => x.DonorUserId, donorUserId), Filter.Ne(x => x.AwaitingPayment, true)));
         return await Collection.Find(filter).SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -238,6 +257,7 @@ public static class SocialRegistration
         services.AddScoped<ClaimPresenter>();
         services.AddScoped<RedemptionCodeResolver>();
         services.AddScoped<SocialCascade>();
+        services.AddScoped<Application.Features.Donations.Events.PaymentFulfillment>();
         return services;
     }
 }
