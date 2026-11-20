@@ -9,6 +9,7 @@ using Qonaqet.Infrastructure.Documents.Csv;
 using Qonaqet.Infrastructure.Documents.Qr;
 using Qonaqet.Infrastructure.Email;
 using Qonaqet.Infrastructure.Identity;
+using Qonaqet.Infrastructure.Payments;
 using Qonaqet.Infrastructure.Push;
 using Qonaqet.Infrastructure.Storage;
 using Qonaqet.Infrastructure.Web;
@@ -49,6 +50,7 @@ public static class DependencyInjection
         services.AddBusinesses();
         services.AddCategories();
         services.AddSocial();
+        services.AddPayments(configuration);
 
         // HTTP host-ları (AddQonaqetWeb) öz aktorlarını əvvəlcədən qeyd edir; Worker anonim aktor alır.
         services.TryAddSingleton<AnonymousActor>();
