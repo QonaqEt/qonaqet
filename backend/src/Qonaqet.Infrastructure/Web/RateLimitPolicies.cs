@@ -26,6 +26,12 @@ public static class RateLimitPolicies
     /// <summary>Kod yoxlama/təhvil (biznes): istifadəçi başına dəqiqədə 60 — qısa kodun təxmin edilməsinə qarşı.</summary>
     public const string Redeem = "redeem";
 
+    /// <summary>Ödəniş statusu (tətbiq sorğulayır): istifadəçi (yoxdursa IP) başına dəqiqədə 60.</summary>
+    public const string Payment = "payment";
+
+    /// <summary>Provayder callback-i (anonim, imzasız): IP başına dəqiqədə 120.</summary>
+    public const string PaymentCallback = "payment-callback";
+
     public static readonly Error RateLimited = Error.TooManyRequests("rate_limited", "Çox sayda sorğu. Bir az sonra yenidən cəhd edin.");
 
     public static IServiceCollection AddQonaqetRateLimits(this IServiceCollection services)
@@ -49,6 +55,8 @@ public static class RateLimitPolicies
             o.AddValkeyFixedWindowPolicy(Auth, ClientIp, 30, TimeSpan.FromMinutes(1));
             o.AddValkeyFixedWindowPolicy(Claim, UserOrIp, 20, TimeSpan.FromMinutes(1));
             o.AddValkeyFixedWindowPolicy(Redeem, UserOrIp, 60, TimeSpan.FromMinutes(1));
+            o.AddValkeyFixedWindowPolicy(Payment, UserOrIp, 60, TimeSpan.FromMinutes(1));
+            o.AddValkeyFixedWindowPolicy(PaymentCallback, ClientIp, 120, TimeSpan.FromMinutes(1));
         });
     }
 
