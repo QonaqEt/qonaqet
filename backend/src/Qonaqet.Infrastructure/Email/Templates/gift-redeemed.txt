@@ -1,0 +1,6 @@
+Salam, {{recipientName}}!
+
+{{senderName}} göndərdiyi hədiyyədən indicə {{redeemed}} istifadə olundu.
+Qalıq: {{remaining}}
+
+Bu siz deyilsinizsə, hədiyyənin linkini heç kimlə paylaşmayın və göndərəndən linki yeniləməsini xahiş edin.
