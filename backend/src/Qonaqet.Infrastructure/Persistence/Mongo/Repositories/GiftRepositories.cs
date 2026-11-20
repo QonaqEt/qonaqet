@@ -87,6 +87,7 @@ public static class GiftRegistration
         services.AddScoped<GiftPricing>();
         services.AddScoped<GiftExpiryPools>();
         services.AddScoped<GiftFulfillment>();
+        services.AddScoped<GiftPresenter>();
         return services;
     }
 }
