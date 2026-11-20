@@ -20,6 +20,9 @@ public sealed class SecurityOptions
 
     /// <summary>Təhvil kodlarının (claim/hədiyyə QR imzası və qısa kod) ayrıca HMAC açarı (<c>Security__QrSigningSecret</c>).</summary>
     public string? QrSigningSecret { get; set; }
+
+    /// <summary>Hədiyyə link token-inin müvəqqəti şifrəli nüsxəsinin açarı (<c>Security__GiftLinkSealSecret</c>, AES-256-GCM, ADR 0007).</summary>
+    public string? GiftLinkSealSecret { get; set; }
 }
 
 /// <summary>

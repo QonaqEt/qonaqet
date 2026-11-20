@@ -99,4 +99,10 @@ public sealed class AppUrls(IConfiguration configuration) : IAppUrls
     public const string CallbackPath = "api/v1/payments/payriff/callback";
 
     public Uri PaymentCallback { get; } = new(FakePaymentGateway.BaseUrl(configuration), CallbackPath);
+
+    public Uri GiftLink(string token)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+        return new Uri(FakePaymentGateway.BaseUrl(configuration), "g/" + Uri.EscapeDataString(token));
+    }
 }

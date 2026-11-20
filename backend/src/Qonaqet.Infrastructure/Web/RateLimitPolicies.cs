@@ -26,6 +26,9 @@ public static class RateLimitPolicies
     /// <summary>Kod yoxlama/təhvil (biznes): istifadəçi başına dəqiqədə 60 — qısa kodun təxmin edilməsinə qarşı.</summary>
     public const string Redeem = "redeem";
 
+    /// <summary>Hədiyyə linki (ictimai səhifə, paylaşma/yeniləmə): istifadəçi (yoxdursa IP) başına dəqiqədə 30 — token bearer-dir.</summary>
+    public const string GiftLink = "gift-link";
+
     /// <summary>Ödəniş statusu (tətbiq sorğulayır): istifadəçi (yoxdursa IP) başına dəqiqədə 60.</summary>
     public const string Payment = "payment";
 
@@ -56,6 +59,7 @@ public static class RateLimitPolicies
             o.AddValkeyFixedWindowPolicy(Claim, UserOrIp, 20, TimeSpan.FromMinutes(1));
             o.AddValkeyFixedWindowPolicy(Redeem, UserOrIp, 60, TimeSpan.FromMinutes(1));
             o.AddValkeyFixedWindowPolicy(Payment, UserOrIp, 60, TimeSpan.FromMinutes(1));
+            o.AddValkeyFixedWindowPolicy(GiftLink, UserOrIp, 30, TimeSpan.FromMinutes(1));
             o.AddValkeyFixedWindowPolicy(PaymentCallback, ClientIp, 120, TimeSpan.FromMinutes(1));
         });
     }

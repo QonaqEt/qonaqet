@@ -126,6 +126,9 @@ public sealed class ApiTestHost : IAsyncDisposable
     {
         Client.Dispose();
         await _factory.DisposeAsync().ConfigureAwait(false);
+
+        // Bu host-un bazasına açıq qalan boş bağlantıları bağla (hər testin öz bazası var, pool-lar yığılmasın).
+        Npgsql.NpgsqlConnection.ClearAllPools();
     }
 }
 

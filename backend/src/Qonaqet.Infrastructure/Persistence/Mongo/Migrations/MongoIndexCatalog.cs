@@ -48,7 +48,10 @@ public static class MongoIndexCatalog
             Unique("businesses", ("slug", 1)),
             Unique("businessMemberships", ("businessId", 1), ("userId", 1)),
             Unique("couponCodes", ("couponId", 1), ("code", 1)),
-            Unique("gifts", ("linkTokenHash", 1)),
+
+            // Ödənilməmiş hədiyyənin hələ token-i yoxdur (null): unikallıq yalnız mövcud hash-lərə aiddir.
+            new("gifts", "ux_gifts_linkTokenHash", new BsonDocument("linkTokenHash", 1), Unique: true,
+                ExtraFilter: new BsonDocument("linkTokenHash", new BsonDocument("$type", "string"))),
 
             // Kateqoriyanın bir default (campaignId: null) və hər kampaniyanın bir hovuzu.
             Unique("pools", ("categoryId", 1), ("campaignId", 1)),
@@ -86,6 +89,7 @@ public static class MongoIndexCatalog
             Query("gifts", ("corporateOrderId", 1)),
             Query("gifts", ("status", 1), ("deliverAt", 1)),
             Query("gifts", ("status", 1), ("expiresAt", 1)),
+            Query("gifts", ("shortCodeHash", 1)),
             Query("verificationRequests", ("status", 1), ("createdAt", 1)),
             Query("verificationRequests", ("userId", 1), ("categoryId", 1)),
             Query("giftRedemptions", ("giftId", 1)),

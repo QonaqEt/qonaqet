@@ -102,4 +102,7 @@ public interface IAppUrls
 {
     /// <summary>Payriff callback-i: <c>{PublicBaseUrl}/api/v1/payments/payriff/callback</c>.</summary>
     Uri PaymentCallback { get; }
+
+    /// <summary>İctimai hədiyyə səhifəsi: <c>{PublicBaseUrl}/g/{token}</c> (token bearer-dir, loglanmır).</summary>
+    Uri GiftLink(string token);
 }

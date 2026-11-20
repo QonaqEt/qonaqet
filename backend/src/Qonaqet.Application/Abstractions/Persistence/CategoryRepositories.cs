@@ -10,6 +10,9 @@ public interface ICategoryRepository : IRepository<Category, CategoryId>
     /// <summary>Kod silinməmiş bir kateqoriyada işlənirmi (partial unikal indeks ilə eyni qayda).</summary>
     Task<bool> CodeExistsAsync(string code, CancellationToken cancellationToken);
 
+    /// <summary>Silinməmiş kateqoriya kodu ilə (konfiqurasiyada adı çəkilən kateqoriya üçün; məntiq kod üzrə şaxələnmir).</summary>
+    Task<Category?> GetByCodeAsync(string code, CancellationToken cancellationToken);
+
     /// <summary>Aktiv kateqoriyalar <c>sortOrder</c>, sonra ad üzrə (mobil və veb UI bütün kateqoriya ekranlarını bundan qurur).</summary>
     Task<IReadOnlyList<Category>> ListActiveAsync(CancellationToken cancellationToken);
 
