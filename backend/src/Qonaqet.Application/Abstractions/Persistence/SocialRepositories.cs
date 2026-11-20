@@ -60,6 +60,9 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
     /// <summary>Biznesdə qısa kodun hash-inə uyğun ən son claim (istənilən statusda, ki təkrar təhvil <c>already_redeemed</c> alsın).</summary>
     Task<Claim?> FindByShortCodeAsync(BusinessId businessId, string shortCodeHash, CancellationToken cancellationToken);
 
+    /// <summary>Müddəti keçmiş, hələ <c>Reserved</c> qalan claim-lər (ən köhnələr əvvəl), ən çox <paramref name="limit"/>.</summary>
+    Task<IReadOnlyList<Claim>> ListStaleReservedAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken);
+
     /// <summary>Alıcının claim-ləri, ən yenilər əvvəl, ən çox <paramref name="limit"/>.</summary>
     Task<IReadOnlyList<Claim>> ListForRecipientAsync(Guid userId, int limit, CancellationToken cancellationToken);
 }

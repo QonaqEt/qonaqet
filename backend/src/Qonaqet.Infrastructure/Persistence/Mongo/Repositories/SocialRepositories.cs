@@ -178,6 +178,12 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
         return claim;
     }
 
+    public async Task<IReadOnlyList<Claim>> ListStaleReservedAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken)
+    {
+        var filter = Active(Filter.And(Filter.Eq(x => x.Status, ClaimStatus.Reserved), Filter.Lte(x => x.ExpiresAt, now)));
+        return await Collection.Find(filter).SortBy(x => x.ExpiresAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<Claim>> ListForRecipientAsync(Guid userId, int limit, CancellationToken cancellationToken)
     {
         var filter = Active(Filter.Eq(x => x.RecipientUserId, userId));
