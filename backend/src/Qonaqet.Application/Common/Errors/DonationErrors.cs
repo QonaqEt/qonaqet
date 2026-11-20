@@ -18,5 +18,12 @@ public static class DonationErrors
 
     public static readonly Error CampaignNotFound = Error.NotFound("campaign_not_found", "Kampaniya tapılmadı.");
 
+    public static readonly Error CampaignInvalid =
+        Error.Validation("campaign_invalid", "Kampaniya sahələri düzgün deyil (başlıq, slug, tarixlər, məqsəd məbləği).");
+
+    public static readonly Error CampaignSlugTaken = Error.Conflict("campaign_slug_taken", "Bu slug artıq başqa kampaniyadadır.");
+
+    public static readonly Error CampaignNotEditable = Error.Conflict("campaign_not_editable", "Bu kampaniya bu vəziyyətdə dəyişdirilə bilməz.");
+
     public static readonly Error CampaignNotActive = Error.Conflict("campaign_not_active", "Kampaniya hazırda aktiv deyil.");
 }

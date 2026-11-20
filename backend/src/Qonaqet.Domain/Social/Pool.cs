@@ -42,4 +42,8 @@ public sealed class Pool : AggregateRoot<PoolId>
     /// <summary>Kateqoriyanın default hovuzu, boş balansla.</summary>
     public static Pool CreateDefault(CategoryId categoryId, DateTimeOffset at, Guid? by) =>
         new(StronglyTypedId.New<PoolId>(), categoryId, null, at, by);
+
+    /// <summary>Kampaniyanın hovuzu (kampaniya aktivləşdiriləndə), boş balansla.</summary>
+    public static Pool CreateForCampaign(CategoryId categoryId, Guid campaignId, DateTimeOffset at, Guid? by) =>
+        new(StronglyTypedId.New<PoolId>(), categoryId, Guard.NotEmpty(campaignId), at, by);
 }

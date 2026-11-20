@@ -1,3 +1,4 @@
+using Qonaqet.Application.Features.Campaigns.Jobs;
 using Qonaqet.Application.Features.Ledger.Jobs;
 using Qonaqet.Application.Features.Payments.Jobs;
 using Qonaqet.Application.Features.Social.Jobs;
@@ -45,6 +46,9 @@ public static class Program
 
         // Gecəlik: hovuzların Mongo balansı ↔ ledger; fərqlər hesabata yazılır və xəbərdarlıq logu verilir.
         builder.Services.AddScheduledJob<ReconcileLedgerJob>(ReconcileLedgerJob.Name, ReconcileLedgerJob.Interval);
+
+        // Bitmiş kampaniyaları Ended edir, qalığı default hovuza köçürür (CampaignRollover).
+        builder.Services.AddScheduledJob<EndCampaignsJob>(EndCampaignsJob.Name, EndCampaignsJob.Interval);
 
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Services.AddHostedService<WorkerHeartbeat>();

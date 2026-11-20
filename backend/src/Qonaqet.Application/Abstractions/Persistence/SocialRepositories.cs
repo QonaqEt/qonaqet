@@ -122,3 +122,26 @@ public interface IPoolDonationRepository : IRepository<PoolDonation, PoolDonatio
     /// <summary>Ianəçinin ianələri, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<PoolDonation>> ListForDonorAsync(Guid donorUserId, int limit, CancellationToken cancellationToken);
 }
+
+/// <summary><c>campaigns</c>.</summary>
+public interface ICampaignRepository : IRepository<Campaign, CampaignId>
+{
+    /// <summary>Slug silinməmiş başqa kampaniyada işlənirmi.</summary>
+    Task<bool> SlugExistsAsync(string slug, CampaignId? except, CancellationToken cancellationToken);
+
+    Task<Campaign?> GetBySlugAsync(string slug, CancellationToken cancellationToken);
+
+    /// <summary>Kampaniyalar (status filtri ilə), ən yenilər əvvəl.</summary>
+    Task<IReadOnlyList<Campaign>> ListAsync(CampaignStatus? status, int limit, CancellationToken cancellationToken);
+
+    /// <summary>İndi açıq olan aktiv kampaniyalar, ən tez bitən əvvəl.</summary>
+    Task<IReadOnlyList<Campaign>> ListOpenAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken);
+
+    /// <summary>Müddəti bitmiş, hələ <c>Active</c> kampaniyalar.</summary>
+    Task<IReadOnlyList<Campaign>> ListDueToEndAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken);
+
+    /// <summary><c>Active</c> → <c>Ended</c> (atomik); başqa instans artıq bitiribsə <c>false</c>.</summary>
+    Task<bool> TryEndAsync(CampaignId id, DateTimeOffset now, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<Campaign>> ListEndedAsync(int limit, CancellationToken cancellationToken);
+}

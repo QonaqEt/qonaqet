@@ -30,6 +30,7 @@ public static class MongoRegistration
         services.AddSingleton<MongoIndexRunner>();
         services.AddSingleton<MongoMigrator>();
         services.AddSingleton<Seed.CategorySeeder>();
+        services.AddSingleton<Seed.CampaignSeeder>();
         services.AddHostedService<MongoMigrationHostedService>();
         return services;
     }

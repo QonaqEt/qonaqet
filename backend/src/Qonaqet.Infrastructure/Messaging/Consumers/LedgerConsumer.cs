@@ -38,9 +38,11 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
 
     public static readonly string PoolReservationReleasedType = typeof(PoolReservationReleased).FullName!;
 
+    public static readonly string CampaignRolledOverType = typeof(CampaignRolledOver).FullName!;
+
     public string Name => "ledger";
 
-    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType];
+    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType];
 
     public Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
     {
@@ -71,6 +73,18 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
                 reserve ? -pool.AmountQepik : pool.AmountQepik, "Claim", pool.ClaimId, pool.ClaimId, reserve ? "pool-reserve" : "pool-release", pool.At)];
         }
 
+        else if (message.Type == CampaignRolledOverType)
+        {
+            var rollover = Read<RolloverPayload>(message);
+            entries =
+            [
+                LedgerEntry.Post(LedgerAccount.Pool(rollover.FromPoolId), LedgerEntryType.CampaignRollover, -rollover.AmountQepik, "Campaign",
+                    rollover.CampaignId, message.MessageId, "rollover-out", rollover.At),
+                LedgerEntry.Post(LedgerAccount.Pool(rollover.ToPoolId), LedgerEntryType.CampaignRollover, rollover.AmountQepik, "Campaign",
+                    rollover.CampaignId, message.MessageId, "rollover-in", rollover.At),
+            ];
+        }
+
         context.Set<LedgerEntry>().AddRange(entries);
         return Task.CompletedTask;
     }
@@ -80,6 +94,8 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
         ?? throw new InvalidOperationException($"Boş {message.Type} mesajı.");
 
     private sealed record ClaimRedeemedPayload(Guid ClaimId, Guid BusinessId, long? AmountQepik, bool Commissionable, DateTimeOffset At);
+
+    private sealed record RolloverPayload(Guid CampaignId, Guid FromPoolId, Guid ToPoolId, long AmountQepik, DateTimeOffset At);
 
     private sealed record PoolMovementPayload(Guid ClaimId, Guid PoolId, long AmountQepik, DateTimeOffset At);
 

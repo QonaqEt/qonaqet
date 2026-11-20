@@ -44,7 +44,7 @@ public sealed partial class MongoMigrator(IMongoDatabase database, MongoIndexRun
 /// <c>Mongo:ApplyMigrationsOnStartup = true</c> olduqda migrasiyanı host qalxarkən işə salır, sonra
 /// (<c>Mongo:SeedReferenceData</c>) ilkin kateqoriyaları seed edir.
 /// </summary>
-public sealed class MongoMigrationHostedService(MongoMigrator migrator, Seed.CategorySeeder seeder, IOptions<MongoOptions> options) : IHostedService
+public sealed class MongoMigrationHostedService(MongoMigrator migrator, Seed.CategorySeeder seeder, Seed.CampaignSeeder campaignSeeder, IOptions<MongoOptions> options) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -57,6 +57,7 @@ public sealed class MongoMigrationHostedService(MongoMigrator migrator, Seed.Cat
         if (options.Value.SeedReferenceData)
         {
             await seeder.RunAsync(cancellationToken).ConfigureAwait(false);
+            await campaignSeeder.RunAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
