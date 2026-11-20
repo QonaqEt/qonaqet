@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Qonaqet.Application.Features.Social.Commands.CancelClaim;
 using Qonaqet.Application.Features.Social.Commands.ClaimOffer;
 using Qonaqet.Application.Features.Social.Queries.GetMyClaims;
+using Qonaqet.Application.Features.Social.Queries.GetMyDonations;
 using Qonaqet.Application.Features.Social.Queries.ListOffers;
 using Qonaqet.Domain.Businesses;
 using Qonaqet.Domain.Categories;
@@ -40,6 +41,10 @@ public sealed class SocialController(ISender sender) : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.Claim)]
     public async Task<IActionResult> MyClaims(CancellationToken cancellationToken) =>
         (await sender.Send(new GetMyClaimsQuery(), cancellationToken)).ToActionResult();
+
+    [HttpGet("me/donations")]
+    public async Task<IActionResult> MyDonations(CancellationToken cancellationToken) =>
+        (await sender.Send(new GetMyDonationsQuery(), cancellationToken)).ToActionResult();
 
     [HttpGet("me/claims/{claimId:guid}")]
     [EnableRateLimiting(RateLimitPolicies.Claim)]

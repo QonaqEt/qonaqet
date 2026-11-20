@@ -25,6 +25,9 @@ public interface IOfferRepository : IRepository<Offer, OfferId>
     /// (<paramref name="quotaDate"/>), askıda/remote-da <c>remaining + 1</c> (ümumi saydan çox olmadan).
     /// </summary>
     Task ReleaseUnitAsync(OfferId offerId, OfferType type, string? quotaDate, CancellationToken cancellationToken);
+
+    /// <summary>İstifadəçinin ianəçi olduğu (askıda/remote) təkliflər, ən yenilər əvvəl.</summary>
+    Task<IReadOnlyList<Offer>> ListDonatedByAsync(Guid donorUserId, int limit, CancellationToken cancellationToken);
 }
 
 /// <summary><c>claims</c>: sosial qonaqlıq rezervləri.</summary>
@@ -62,6 +65,9 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
 
     /// <summary>Müddəti keçmiş, hələ <c>Reserved</c> qalan claim-lər (ən köhnələr əvvəl), ən çox <paramref name="limit"/>.</summary>
     Task<IReadOnlyList<Claim>> ListStaleReservedAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken);
+
+    /// <summary>Təklifdən neçə claim təhvil verilib (ianəçinin aqreqatı üçün; kim olduğu yox, yalnız say).</summary>
+    Task<long> CountRedeemedForOfferAsync(OfferId offerId, CancellationToken cancellationToken);
 
     /// <summary>Alıcının claim-ləri, ən yenilər əvvəl, ən çox <paramref name="limit"/>.</summary>
     Task<IReadOnlyList<Claim>> ListForRecipientAsync(Guid userId, int limit, CancellationToken cancellationToken);
