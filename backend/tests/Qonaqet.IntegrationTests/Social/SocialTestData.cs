@@ -85,3 +85,37 @@ internal static class SocialTestData
 }
 
 internal sealed record Shop(JsonElement Admin, JsonElement Owner, JsonElement Staff, string BusinessId);
+
+/// <summary>Bütün log sətirlərini tutur (kodların loglanmadığını yoxlamaq üçün).</summary>
+internal sealed class LogCapture : Microsoft.Extensions.Logging.ILoggerProvider
+{
+    private readonly System.Collections.Concurrent.ConcurrentQueue<string> _lines = new();
+
+    public IReadOnlyCollection<string> Lines => _lines;
+
+    public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) => new Logger(_lines);
+
+    public void Dispose()
+    {
+    }
+
+    private sealed class Logger(System.Collections.Concurrent.ConcurrentQueue<string> lines) : Microsoft.Extensions.Logging.ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+        {
+            lines.Enqueue(state.ToString() ?? string.Empty);
+            return null;
+        }
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            ArgumentNullException.ThrowIfNull(formatter);
+            lines.Enqueue(formatter(state, exception) + " " + state + " " + exception);
+        }
+    }
+}

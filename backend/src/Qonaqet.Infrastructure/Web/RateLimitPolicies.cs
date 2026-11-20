@@ -20,6 +20,12 @@ public static class RateLimitPolicies
     /// <summary>Token yeniləmə və çıxış: IP başına dəqiqədə 30.</summary>
     public const string Auth = "auth";
 
+    /// <summary>Claim yaratma və kodların göstərilməsi: istifadəçi (yoxdursa IP) başına dəqiqədə 20.</summary>
+    public const string Claim = "claim";
+
+    /// <summary>Kod yoxlama/təhvil (biznes): istifadəçi başına dəqiqədə 60 — qısa kodun təxmin edilməsinə qarşı.</summary>
+    public const string Redeem = "redeem";
+
     public static readonly Error RateLimited = Error.TooManyRequests("rate_limited", "Çox sayda sorğu. Bir az sonra yenidən cəhd edin.");
 
     public static IServiceCollection AddQonaqetRateLimits(this IServiceCollection services)
@@ -41,8 +47,13 @@ public static class RateLimitPolicies
             };
             o.AddValkeyFixedWindowPolicy(Otp, ClientIp, 10, TimeSpan.FromMinutes(1));
             o.AddValkeyFixedWindowPolicy(Auth, ClientIp, 30, TimeSpan.FromMinutes(1));
+            o.AddValkeyFixedWindowPolicy(Claim, UserOrIp, 20, TimeSpan.FromMinutes(1));
+            o.AddValkeyFixedWindowPolicy(Redeem, UserOrIp, 60, TimeSpan.FromMinutes(1));
         });
     }
+
+    private static string UserOrIp(HttpContext context) =>
+        context.User.FindFirst("sub")?.Value is { Length: > 0 } sub ? $"u:{sub}" : $"ip:{ClientIp(context)}";
 
     private static string ClientIp(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

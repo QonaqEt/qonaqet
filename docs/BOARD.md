@@ -13,7 +13,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E03](epics/E03.md) | Files, email & notifications | ✅ done | @Tapdiq49 | 5/5 | — |
 | [E04](epics/E04.md) | Businesses & catalog | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E05](epics/E05.md) | Categories & verification | ✅ done | @Tapdiq49 | 7/7 | — |
-| [E06](epics/E06.md) | Social treating | 🔄 in-progress | @Tapdiq49 | 3/9 | — |
+| [E06](epics/E06.md) | Social treating | 🔄 in-progress | @Tapdiq49 | 4/9 | — |
 | [E07](epics/E07.md) | Payments & ledger | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ⬜ todo | — | 0/6 | E06, E07 |
 | [E09](epics/E09.md) | Gifting | ⬜ todo | — | 0/10 | E07 |
@@ -138,14 +138,14 @@ Yoxdur.
 
 ## E06 — Social treating
 
-🔄 in-progress · @Tapdiq49 · 3/9 task
+🔄 in-progress · @Tapdiq49 · 4/9 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
 | ✅ | E06-T01 | Offer aqreqatı: BusinessDaily və Suspended | backend | p0 | L |
 | ✅ | E06-T02 | Atomik claim və gündəlik kvotanın sıfırlanması | backend | p0 | L |
 | ✅ | E06-T03 | Limitlər və ləyaqətlilik qaydaları | backend | p0 | M |
-| ⬜ | E06-T04 | QR token və qısa kod | backend | p0 | M |
+| ✅ | E06-T04 | QR token və qısa kod | backend | p0 | M |
 | ⬜ | E06-T05 | Claim təhvili (staff tərəfi) | backend | p0 | M |
 | ⬜ | E06-T06 | Müddət bitmə job-u və rezervin buraxılması | backend | p0 | S |
 | ⬜ | E06-T07 | Məxfilik testləri | backend | p0 | M |

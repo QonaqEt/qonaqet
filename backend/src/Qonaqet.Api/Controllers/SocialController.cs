@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Qonaqet.Application.Features.Social.Commands.ClaimOffer;
+using Qonaqet.Application.Features.Social.Queries.GetMyClaims;
 using Qonaqet.Application.Features.Social.Queries.ListOffers;
 using Qonaqet.Domain.Businesses;
 using Qonaqet.Domain.Categories;
@@ -22,9 +24,20 @@ public sealed class SocialController(ISender sender) : ControllerBase
             cancellationToken)).ToActionResult();
 
     [HttpPost("offers/{offerId:guid}/claim")]
+    [EnableRateLimiting(RateLimitPolicies.Claim)]
     public async Task<IActionResult> ClaimOffer(Guid offerId, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new ClaimOfferCommand(OfferId.From(offerId)), cancellationToken);
         return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : result.ToActionResult();
     }
+
+    [HttpGet("me/claims")]
+    [EnableRateLimiting(RateLimitPolicies.Claim)]
+    public async Task<IActionResult> MyClaims(CancellationToken cancellationToken) =>
+        (await sender.Send(new GetMyClaimsQuery(), cancellationToken)).ToActionResult();
+
+    [HttpGet("me/claims/{claimId:guid}")]
+    [EnableRateLimiting(RateLimitPolicies.Claim)]
+    public async Task<IActionResult> MyClaim(Guid claimId, CancellationToken cancellationToken) =>
+        (await sender.Send(new GetMyClaimQuery(ClaimId.From(claimId)), cancellationToken)).ToActionResult();
 }

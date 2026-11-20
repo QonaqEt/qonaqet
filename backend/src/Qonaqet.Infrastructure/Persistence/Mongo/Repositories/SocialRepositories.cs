@@ -154,6 +154,13 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
             ? await Collection.CountDocumentsAsync(session, Active(filter), cancellationToken: cancellationToken).ConfigureAwait(false)
             : await Collection.CountDocumentsAsync(Active(filter), cancellationToken: cancellationToken).ConfigureAwait(false);
     }
+
+    public async Task<IReadOnlyList<Claim>> ListForRecipientAsync(Guid userId, int limit, CancellationToken cancellationToken)
+    {
+        var filter = Active(Filter.Eq(x => x.RecipientUserId, userId));
+        var find = Context.Session is { } session ? Collection.Find(session, filter) : Collection.Find(filter);
+        return await find.SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
 }
 
 public static class SocialCollectionNames
@@ -174,6 +181,7 @@ public static class SocialRegistration
         services.AddScoped<SocialEligibility>();
         services.AddScoped<ClaimRelease>();
         services.AddScoped<SocialLimits>();
+        services.AddScoped<ClaimPresenter>();
         return services;
     }
 }

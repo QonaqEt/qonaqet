@@ -30,6 +30,7 @@ public sealed class ClaimOfferHandler(
     SocialEligibility eligibility,
     SocialLimits limits,
     ClaimRelease release,
+    ClaimPresenter presenter,
     ICurrentUser currentUser,
     IClock clock) : ICommandHandler<ClaimOfferCommand, ClaimDto>
 {
@@ -90,6 +91,7 @@ public sealed class ClaimOfferHandler(
         }
 
         var claim = Claim.ReserveFromOffer(offer, userId, DonorTexts.Claim(offer, business), today, now);
+        presenter.AttachCodes(claim);
         bool added;
         try
         {
@@ -108,6 +110,6 @@ public sealed class ClaimOfferHandler(
             return SocialErrors.ActiveClaimExists;
         }
 
-        return claim.ToDto(business.Name);
+        return presenter.Present(claim, business.Name);
     }
 }

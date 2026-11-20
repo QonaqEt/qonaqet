@@ -17,6 +17,9 @@ public sealed class SecurityOptions
 
     /// <summary>FIN hash-inin ayrıca HMAC açarı (<c>Security__FinHashSecret</c>); token açarı ilə paylaşılmır.</summary>
     public string? FinHashSecret { get; set; }
+
+    /// <summary>Təhvil kodlarının (claim/hədiyyə QR imzası və qısa kod) ayrıca HMAC açarı (<c>Security__QrSigningSecret</c>).</summary>
+    public string? QrSigningSecret { get; set; }
 }
 
 /// <summary>
