@@ -145,3 +145,20 @@ public interface ICampaignRepository : IRepository<Campaign, CampaignId>
 
     Task<IReadOnlyList<Campaign>> ListEndedAsync(int limit, CancellationToken cancellationToken);
 }
+
+/// <summary>Anonim aqreqat statistikası (ictimai sayt, hovuz xülasəsi). Heç bir şəxs, alıcı və ya ianəçi siyahısı qaytarmır.</summary>
+public interface ISocialStatsReader
+{
+    /// <summary><paramref name="since"/>-dən bəri təhvil verilmiş claim-lər.</summary>
+    Task<long> CountRedeemedClaimsSinceAsync(DateTimeOffset since, CancellationToken cancellationToken);
+
+    /// <summary>Ən azı bir dəfə qonaq olunmuş fərqli alıcıların sayı.</summary>
+    Task<long> CountPeopleTreatedAsync(CancellationToken cancellationToken);
+
+    Task<long> CountActiveBusinessesAsync(CancellationToken cancellationToken);
+
+    /// <summary>Kateqoriya üzrə hovuz aqreqatları (bütün hovuzlar, kampaniya hovuzları daxil).</summary>
+    Task<IReadOnlyList<PoolSummaryRow>> PoolSummaryAsync(CancellationToken cancellationToken);
+}
+
+public sealed record PoolSummaryRow(Guid CategoryId, long AvailableQepik, long DonatedQepik, long TreatsFunded);
