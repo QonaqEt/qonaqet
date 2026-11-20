@@ -17,6 +17,9 @@ public enum FilePurpose
     CouponCsv,
     RecipientCsv,
     GiftImage,
+
+    /// <summary>Korporativ/CSR PDF hesabatı (Worker yaradır).</summary>
+    Report,
 }
 
 /// <summary>Faylın sahibi olan obyekt növü.</summary>
@@ -107,12 +110,14 @@ public sealed record FilePolicy(IReadOnlyList<string> ContentTypes, long MaxSize
     private static readonly FilePolicy Images = new([Jpeg, Png], FiveMegabytes, IsPublic: true);
     private static readonly FilePolicy Documents = new([Pdf, Jpeg, Png], FiveMegabytes, IsPublic: false);
     private static readonly FilePolicy CsvFiles = new([Csv], FiveMegabytes, IsPublic: false);
+    private static readonly FilePolicy Reports = new([Pdf], FiveMegabytes, IsPublic: false);
 
     public static FilePolicy For(FilePurpose purpose) => purpose switch
     {
         FilePurpose.VerificationDocument => Documents,
         FilePurpose.Logo or FilePurpose.Banner or FilePurpose.CatalogImage or FilePurpose.GiftImage => Images,
         FilePurpose.CouponCsv or FilePurpose.RecipientCsv => CsvFiles,
+        FilePurpose.Report => Reports,
         _ => throw new ArgumentOutOfRangeException(nameof(purpose), purpose, null),
     };
 }

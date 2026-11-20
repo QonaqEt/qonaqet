@@ -24,3 +24,6 @@ public interface ICorporateGiftOrderRepository : IRepository<CorporateGiftOrder,
     /// <summary>Hədiyyələri yaradılmalı (<c>Paid</c>) və ya yarımçıq qalmış (<c>Sending</c>) sifarişlər, ən köhnələr əvvəl.</summary>
     Task<IReadOnlyList<CorporateGiftOrder>> ListToFanOutAsync(int limit, CancellationToken cancellationToken);
 }
+
+/// <summary><c>corporateReports</c>: PDF hesabat sorğuları.</summary>
+public interface ICorporateReportRepository : IRepository<CorporateReport, CorporateReportId>;

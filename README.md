@@ -171,6 +171,19 @@ digər mühitlərdə məcburidir.
 - **Ləğv və müddət:** `POST .../gifts/{id}/cancel` (yalnız `Scheduled`, tam refund, idempotent); Worker `gift-expiry` (15 dəqiqə) 7 gün
   qalmış xatırladır, sonra qalığı refund edir və ya hovuza bağışlayır (`GiftExpiryDonation`); `gift-refunds` gözləyən refundları təkrarlayır.
 
+### Korporativ hədiyyələr və CSR (E10)
+
+- **Şirkətlər:** admin `/api/v1/admin/corporates` (yarat, dəyiş) və `POST .../corporates/{id}/users {email}` — istifadəçi şirkətə bağlanır,
+  `CorporateUser` rolu alır. Portal: `GET /api/v1/corporate/me`.
+- **Sifariş:** `POST /api/v1/corporate/orders` (şablon: məhsullar / biznes vauçeri / şəbəkə vauçeri, tema `Corporate`, qiymət serverdə),
+  `POST .../orders/{id}/recipients` (CSV `name,email`, ≤ 5,000 sətir, sətir-sətir xəta hesabatı), məbləğ = qiymət × alıcı sayı.
+- **Ödəniş:** `POST .../orders/{id}/pay` (`Idempotency-Key`): `Card` (Payriff) və ya `BankTransfer` (yalnız "hovuza bağışla" ilə); admin
+  `POST /api/v1/admin/corporate-orders/{id}/confirm-bank-transfer` bank referansı ilə təsdiqləyir (audit).
+- **Fan-out:** Worker `corporate-fanout` (dəqiqədə bir) hər alıcıya bir hədiyyə yaradır, 200-lük paketlər, dublikatsız, yarıda qalan yerdən davam edir.
+- **Hesabatlar:** `GET .../orders/{id}/report[.csv]` (çatdırılan/açılan/təhvil verilən, istifadə olunmamış dəyər, alıcı üzrə yalnız "təhvil verildi:
+  bəli/xeyr"); CSR: `GET .../corporate/campaigns`, `.../campaigns/{id}/report[.csv]` (yalnız aqreqatlar). PDF: `POST ...report.pdf` → Worker
+  (`corporate-reports`, Playwright) → `GET .../corporate/reports/{id}/file`.
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
@@ -180,7 +193,8 @@ kateqoriyalar/təsdiq (E05: dinamik kateqoriyalar + default hovuz, seed, təsdiq
 sosial qonaqlıq (E06: gündəlik/askıda təkliflər, atomik claim, limitlər, QR/qısa kod, təhvil, müddət job-u, məxfilik testləri) və
 ödənişlər/ledger (E07: Payriff + Fake gateway, payments/refunds, callback + yenidən yoxlama, ledger + komissiya, payout-lar, uzlaşdırma) və
 hovuzlar/kampaniyalar (E08: remote/hovuz/kampaniya ianələri, hovuz claim-ləri, donor atribusiyası, kampaniya qalığının köçməsi, ictimai statistika) və
-hədiyyələr (E09: məhsul/vauçer/şəbəkə hədiyyələri, ödəniş, link token-ləri, ictimai səhifə, çatdırılma, qismən təhvil, ləğv, müddət bitməsi) hazırdır.
+hədiyyələr (E09: məhsul/vauçer/şəbəkə hədiyyələri, ödəniş, link token-ləri, ictimai səhifə, çatdırılma, qismən təhvil, ləğv, müddət bitməsi) və
+korporativ (E10: şirkətlər, toplu sifarişlər + CSV, kart/bank ödənişi, fan-out, PDF/CSV hesabatlar, CSR) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 

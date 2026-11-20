@@ -13,7 +13,8 @@ public sealed record CampaignDto(
 
 /// <summary>Admin formasının sahələri.</summary>
 public sealed record CampaignInput(
-    string Title, string Slug, string? Description, Guid? BannerFileId, Guid CategoryId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, long GoalQepik)
+    string Title, string Slug, string? Description, Guid? BannerFileId, Guid CategoryId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, long GoalQepik,
+    Guid? CorporateId = null)
 {
     public CampaignDetails ToDetails() =>
         new(Title, Slug, Description ?? string.Empty, BannerFileId, Domain.Categories.CategoryId.From(CategoryId), StartsAt.ToUniversalTime(), EndsAt.ToUniversalTime(), GoalQepik);

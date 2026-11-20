@@ -3,17 +3,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Qonaqet.Application.Features.Corporate.Commands.CorporateOrders;
 using Qonaqet.Application.Features.Corporate.Commands.CorporatePayments;
+using Qonaqet.Application.Features.Corporate.Commands.CorporateReports;
 using Qonaqet.Application.Features.Corporate.Queries.CorporateOrders;
+using Qonaqet.Application.Features.Corporate.Queries.CorporateReports;
 using Qonaqet.Application.Features.Gifts.Common;
 using Qonaqet.Domain.Corporate;
 using Qonaqet.Domain.Gifts;
+using Qonaqet.Domain.Social;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.SharedKernel.Messaging;
 
 namespace Qonaqet.Api.Controllers;
 
 /// <summary>
-/// Korporativ portal (<c>CorporateUser</c>): toplu hədiyyə/bonus sifarişləri (şablon, CSV alıcılar, kart və ya bank köçürməsi).
+/// Korporativ portal (<c>CorporateUser</c>): toplu hədiyyə/bonus sifarişləri (şablon, CSV alıcılar, kart və ya bank köçürməsi), hesabatlar və CSR.
 /// Şirkət cari istifadəçinin hesabından oxunur; başqa şirkətin sifarişi görünmür.
 /// </summary>
 [ApiController]
@@ -75,6 +78,49 @@ public sealed class CorporateController(ISender sender) : ControllerBase
     [HttpPost("orders/{orderId:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid orderId, CancellationToken cancellationToken) =>
         (await sender.Send(new CancelCorporateOrderCommand(CorporateGiftOrderId.From(orderId)), cancellationToken)).ToActionResult();
+
+    [HttpGet("orders/{orderId:guid}/report")]
+    public async Task<IActionResult> OrderReport(Guid orderId, CancellationToken cancellationToken) =>
+        (await sender.Send(new GetCorporateOrderReportQuery(CorporateGiftOrderId.From(orderId)), cancellationToken)).ToActionResult();
+
+    [HttpGet("orders/{orderId:guid}/report.csv")]
+    public async Task<IActionResult> OrderReportCsv(Guid orderId, CancellationToken cancellationToken) =>
+        FileResult(await sender.Send(new ExportCorporateOrderReportCsvQuery(CorporateGiftOrderId.From(orderId)), cancellationToken));
+
+    /// <summary>PDF Worker-də yaradılır: cavab sorğudur, hazır olanda <c>GET corporate/reports/{id}/file</c>.</summary>
+    [HttpPost("orders/{orderId:guid}/report.pdf")]
+    public async Task<IActionResult> OrderReportPdf(Guid orderId, CancellationToken cancellationToken) =>
+        Accepted(await sender.Send(new RequestCorporateReportCommand(CorporateReportSubject.GiftOrder, orderId), cancellationToken));
+
+    [HttpGet("campaigns")]
+    public async Task<IActionResult> Campaigns(CancellationToken cancellationToken) =>
+        (await sender.Send(new ListCorporateCampaignsQuery(), cancellationToken)).ToActionResult();
+
+    [HttpGet("campaigns/{campaignId:guid}/report")]
+    public async Task<IActionResult> CampaignReport(Guid campaignId, CancellationToken cancellationToken) =>
+        (await sender.Send(new GetCampaignReportQuery(CampaignId.From(campaignId)), cancellationToken)).ToActionResult();
+
+    [HttpGet("campaigns/{campaignId:guid}/report.csv")]
+    public async Task<IActionResult> CampaignReportCsv(Guid campaignId, CancellationToken cancellationToken) =>
+        FileResult(await sender.Send(new ExportCampaignReportCsvQuery(CampaignId.From(campaignId)), cancellationToken));
+
+    [HttpPost("campaigns/{campaignId:guid}/report.pdf")]
+    public async Task<IActionResult> CampaignReportPdf(Guid campaignId, CancellationToken cancellationToken) =>
+        Accepted(await sender.Send(new RequestCorporateReportCommand(CorporateReportSubject.Campaign, campaignId), cancellationToken));
+
+    [HttpGet("reports/{reportId:guid}")]
+    public async Task<IActionResult> Report(Guid reportId, CancellationToken cancellationToken) =>
+        (await sender.Send(new GetCorporateReportQuery(CorporateReportId.From(reportId)), cancellationToken)).ToActionResult();
+
+    [HttpGet("reports/{reportId:guid}/file")]
+    public async Task<IActionResult> ReportFile(Guid reportId, CancellationToken cancellationToken) =>
+        FileResult(await sender.Send(new DownloadCorporateReportQuery(CorporateReportId.From(reportId)), cancellationToken));
+
+    private IActionResult FileResult(SharedKernel.Result<ReportFileDto> result) =>
+        result.IsSuccess ? File(result.Value.Content, result.Value.ContentType, result.Value.FileName) : result.ToActionResult();
+
+    private IActionResult Accepted(SharedKernel.Result<CorporateReportDto> result) =>
+        result.IsSuccess ? StatusCode(StatusCodes.Status202Accepted, result.Value) : result.ToActionResult();
 
     public sealed record CreateOrderRequest(
         GiftKind Kind, GiftScope Scope, Guid? BusinessId, IReadOnlyList<GiftItemRequest>? Items, long? AmountQepik, string? Message, DateTimeOffset? DeliverAt,

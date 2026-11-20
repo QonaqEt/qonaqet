@@ -17,7 +17,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E07](epics/E07.md) | Payments & ledger | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E09](epics/E09.md) | Gifting | ✅ done | @Tapdiq49 | 10/10 | — |
-| [E10](epics/E10.md) | Corporate & CSR | 🔄 in-progress | @Tapdiq49 | 4/5 | — |
+| [E10](epics/E10.md) | Corporate & CSR | ✅ done | @Tapdiq49 | 5/5 | — |
 | [E11](epics/E11.md) | Leaderboard & gamification | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo · 🟢 götürülə bilər | — | 0/4 | — |
 | [E13](epics/E13.md) | Integration platform | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
@@ -27,7 +27,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E17](epics/E17.md) | Business portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/9 | — |
 | [E18](epics/E18.md) | Admin & corporate portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E19](epics/E19.md) | Landing website (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
-| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
+| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E11, E12, E13, E14, E15, E16, E17, E18, E19 |
 
 ## Hazırda işlənən task-lar
 
@@ -197,7 +197,7 @@ Yoxdur.
 
 ## E10 — Corporate & CSR
 
-🔄 in-progress · @Tapdiq49 · 4/5 task
+✅ done · @Tapdiq49 · 5/5 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -205,7 +205,7 @@ Yoxdur.
 | ✅ | E10-T02 | Hədiyyə sifarişi və CSV validasiyası | backend | p1 | L |
 | ✅ | E10-T03 | Ödəniş: kart və bank köçürməsi | backend | p1 | M |
 | ✅ | E10-T04 | Fan-out job-u | backend | p1 | M |
-| ⬜ | E10-T05 | Korporativ hesabatlar (PDF/CSV) | backend | p1 | M |
+| ✅ | E10-T05 | Korporativ hesabatlar (PDF/CSV) | backend | p1 | M |
 
 ## E11 — Leaderboard & gamification
 

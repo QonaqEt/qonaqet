@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Features.Corporate.Common;
@@ -50,6 +51,38 @@ public sealed class CorporateGiftOrderRepository(MongoContext context, IAggregat
             .SortBy(x => x.PaidAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
 }
 
+public sealed class CorporateReportRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<CorporateReport, CorporateReportId>(context, tracker, outbox, clock, CorporateCollectionNames.Reports), ICorporateReportRepository;
+
+/// <summary>Kampaniyanın CSR aqreqatları: təsdiqlənmiş ianələr və kampaniya hovuzundan maliyyələşən təhvil verilmiş claim-lər (yalnız saylar/məbləğlər).</summary>
+public sealed class CsrStatsReader(MongoContext context) : ICsrStatsReader
+{
+    public async Task<CampaignCsrStats> CampaignStatsAsync(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var id = new BsonBinaryData(campaignId, GuidRepresentation.Standard);
+        var donations = await context.Collection<BsonDocument>(DonationCollectionNames.PoolDonations).CountDocumentsAsync(
+            new BsonDocument { { "isDeleted", false }, { "campaignId", id }, { "status", "Confirmed" } }, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var poolIds = await context.Collection<BsonDocument>(CategoryCollectionNames.Pools)
+            .Find(new BsonDocument { { "isDeleted", false }, { "campaignId", id } }).Project(new BsonDocument("_id", 1)).ToListAsync(cancellationToken).ConfigureAwait(false);
+        if (poolIds.Count == 0)
+        {
+            return new CampaignCsrStats((int)donations, 0, 0);
+        }
+
+        var claims = await context.Collection<BsonDocument>(SocialCollectionNames.Claims)
+            .Find(new BsonDocument
+            {
+                { "isDeleted", false },
+                { "poolId", new BsonDocument("$in", new BsonArray(poolIds.Select(p => p["_id"]))) },
+                { "status", "Redeemed" },
+            })
+            .Project(new BsonDocument("amountQepik", 1)).ToListAsync(cancellationToken).ConfigureAwait(false);
+        return new CampaignCsrStats(
+            (int)donations, claims.Count, claims.Sum(c => c.TryGetValue("amountQepik", out var v) && v.IsNumeric ? v.ToInt64() : 0));
+    }
+}
+
 public static class CorporateCollectionNames
 {
     public const string Corporates = "corporates";
@@ -65,7 +98,11 @@ public static class CorporateRegistration
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<ICorporateRepository, CorporateRepository>();
         services.AddScoped<ICorporateGiftOrderRepository, CorporateGiftOrderRepository>();
+        services.AddScoped<ICorporateReportRepository, CorporateReportRepository>();
+        services.AddScoped<ICsrStatsReader, CsrStatsReader>();
         services.AddScoped<CorporateAccess>();
+        services.AddScoped<Application.Features.Corporate.Queries.CorporateReports.CorporateCampaigns>();
+        services.AddScoped<CorporateReportBuilder>();
         services.AddScoped<Application.Features.Corporate.Events.CorporateOrderPayments>();
         return services;
     }
