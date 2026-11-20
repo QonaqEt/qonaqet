@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Qonaqet.Application.Abstractions.Services;
+using Qonaqet.Infrastructure.Payments.Fake;
 using Qonaqet.Infrastructure.Payments.Payriff;
 
 namespace Qonaqet.Infrastructure.Payments;
@@ -10,6 +12,9 @@ namespace Qonaqet.Infrastructure.Payments;
 /// <summary>Ödəniş provayderlərinin DI qeydiyyatı.</summary>
 public static class PaymentsRegistration
 {
+    /// <summary><c>Payments:Provider</c>: <c>Payriff</c> və ya <c>Fake</c>; boşdursa Development-də açarsız Payriff → Fake.</summary>
+    public const string ProviderKey = "Payments:Provider";
+
     public static IServiceCollection AddPayments(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -34,7 +39,46 @@ public static class PaymentsRegistration
                 o.Retry.DisableForUnsafeHttpMethods();
             });
 
-        services.AddScoped<IPaymentGateway>(sp => sp.GetRequiredService<PayriffGateway>());
+        services.AddScoped<FakePaymentGateway>();
+        services.AddScoped<IFakeCheckout>(sp => sp.GetRequiredService<FakePaymentGateway>());
+        services.AddScoped<IPaymentGatewayRegistry, PaymentGatewayRegistry>();
+        services.AddScoped<IPaymentGateway>(sp => sp.GetRequiredService<IPaymentGatewayRegistry>().Default);
         return services;
+    }
+}
+
+/// <summary>
+/// Default provayder: Development-də <c>Payments:Provider = Fake</c> və ya (provayder verilməyib və) <c>Payriff:AppKey</c> boşdursa Fake;
+/// qalan bütün hallarda Payriff. Fake heç vaxt Development-dən kənarda default ola bilməz (konfiqurasiya xətası exception atır).
+/// Sandbox həmişə Fake-dir.
+/// </summary>
+public sealed class PaymentGatewayRegistry(IServiceProvider services, IConfiguration configuration, IHostEnvironment environment) : IPaymentGatewayRegistry
+{
+    public IPaymentGateway Default => UseFake(configuration, environment)
+        ? services.GetRequiredService<FakePaymentGateway>()
+        : services.GetRequiredService<PayriffGateway>();
+
+    public IPaymentGateway Sandbox => services.GetRequiredService<FakePaymentGateway>();
+
+    public IPaymentGateway Get(string providerName) => providerName switch
+    {
+        PayriffGateway.ProviderName => services.GetRequiredService<PayriffGateway>(),
+        FakePaymentGateway.ProviderName => services.GetRequiredService<FakePaymentGateway>(),
+        _ => throw new InvalidOperationException($"Naməlum ödəniş provayderi: {providerName}"),
+    };
+
+    public static bool UseFake(IConfiguration configuration, IHostEnvironment environment)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
+        var provider = configuration[PaymentsRegistration.ProviderKey];
+        var wantsFake = string.Equals(provider, FakePaymentGateway.ProviderName, StringComparison.OrdinalIgnoreCase)
+            || (string.IsNullOrWhiteSpace(provider) && string.IsNullOrWhiteSpace(configuration[$"{PayriffOptions.SectionName}:AppKey"]) && environment.IsDevelopment());
+        if (wantsFake && !environment.IsDevelopment())
+        {
+            throw new InvalidOperationException("Fake ödəniş gateway-i yalnız Development-də default ola bilər.");
+        }
+
+        return wantsFake;
     }
 }

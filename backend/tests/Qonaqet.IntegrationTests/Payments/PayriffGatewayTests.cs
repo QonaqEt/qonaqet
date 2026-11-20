@@ -118,7 +118,7 @@ public sealed class PayriffGatewayTests
     {
         var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
         await using var provider = Services(handler);
-        var gateway = provider.CreateScope().ServiceProvider.GetRequiredService<IPaymentGateway>();
+        var gateway = provider.CreateScope().ServiceProvider.GetRequiredService<PayriffGateway>();
         Assert.Equal(PayriffGateway.ProviderName, gateway.Name);
 
         await Assert.ThrowsAsync<PaymentGatewayException>(() => gateway.CreateOrderAsync(new GatewayOrderRequest(100, "x", new Uri("https://a.az/cb")), Ct));
