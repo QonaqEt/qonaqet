@@ -1,0 +1,13 @@
+Salam, {{recipientName}}!
+
+{{senderName}} sizə QONAQET-də hədiyyə göndərdi.
+
+{{message}}
+
+Hədiyyə: {{contents}}
+Harada: {{where}}
+
+Hədiyyəni açın: {{link}}
+
+Hədiyyəni məkanda QR kodu və ya qısa kodu göstərərək götürün. Hədiyyə {{expiresAt}} tarixinədək qüvvədədir.
+Linki heç kimlə paylaşmayın: onu açan hədiyyədən istifadə edə bilər.

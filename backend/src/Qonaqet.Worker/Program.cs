@@ -1,4 +1,5 @@
 using Qonaqet.Application.Features.Campaigns.Jobs;
+using Qonaqet.Application.Features.Gifts.Jobs;
 using Qonaqet.Application.Features.Ledger.Jobs;
 using Qonaqet.Application.Features.Payments.Jobs;
 using Qonaqet.Application.Features.Social.Jobs;
@@ -49,6 +50,9 @@ public static class Program
 
         // Bitmiş kampaniyaları Ended edir, qalığı default hovuza köçürür (CampaignRollover).
         builder.Services.AddScheduledJob<EndCampaignsJob>(EndCampaignsJob.Name, EndCampaignsJob.Interval);
+
+        // Vaxtı çatmış hədiyyələri çatdırır (temalı email + push); hər hədiyyə versiya şərti ilə bir dəfə.
+        builder.Services.AddScheduledJob<DeliverScheduledGiftsJob>(DeliverScheduledGiftsJob.Name, DeliverScheduledGiftsJob.Interval);
 
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Services.AddHostedService<WorkerHeartbeat>();

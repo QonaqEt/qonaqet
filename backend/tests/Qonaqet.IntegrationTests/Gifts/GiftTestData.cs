@@ -185,3 +185,19 @@ internal sealed class FormattedLogCapture : Microsoft.Extensions.Logging.ILogger
         }
     }
 }
+
+/// <summary>Email növbəsini yaddaşda saxlayır (göndərmir).</summary>
+internal sealed class RecordingEmailQueue : IEmailQueue
+{
+    private readonly System.Collections.Concurrent.ConcurrentQueue<(EmailMessage Message, string Kind)> _sent = new();
+
+    public IReadOnlyCollection<(EmailMessage Message, string Kind)> Sent => _sent;
+
+    public IReadOnlyList<EmailMessage> Of(string kind) => [.. _sent.Where(s => s.Kind == kind).Select(s => s.Message)];
+
+    public ValueTask EnqueueAsync(EmailMessage message, string kind, CancellationToken cancellationToken)
+    {
+        _sent.Enqueue((message, kind));
+        return ValueTask.CompletedTask;
+    }
+}

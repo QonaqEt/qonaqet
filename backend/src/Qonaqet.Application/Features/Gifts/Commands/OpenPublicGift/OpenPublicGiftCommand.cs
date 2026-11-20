@@ -3,9 +3,7 @@ using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Common.Errors;
 using Qonaqet.Application.Features.Gifts.Common;
-using Qonaqet.Application.Features.Users.Common;
 using Qonaqet.Domain.Gifts;
-using Qonaqet.Domain.Users;
 using Qonaqet.SharedKernel;
 using Qonaqet.SharedKernel.Messaging;
 
@@ -24,7 +22,7 @@ public sealed record OpenPublicGiftCommand(string Token) : ICommand<PublicGiftDt
 }
 
 public sealed class OpenPublicGiftHandler(
-    IGiftRepository gifts, IGiftLinkTokens links, GiftPresenter presenter, UserPushNotifier push, IClock clock)
+    IGiftRepository gifts, IGiftLinkTokens links, GiftPresenter presenter, GiftNotifications notifications, IClock clock)
     : ICommandHandler<OpenPublicGiftCommand, PublicGiftDto>
 {
     public async Task<Result<PublicGiftDto>> Handle(OpenPublicGiftCommand request, CancellationToken cancellationToken)
@@ -37,13 +35,10 @@ public sealed class OpenPublicGiftHandler(
         }
 
         var version = gift.Version;
-        if (gift.Open(clock.UtcNow) && await gifts.TryReplaceAsync(gift, version, cancellationToken).ConfigureAwait(false) && gift.SenderUserId is { } sender)
+        if (gift.Open(clock.UtcNow) && await gifts.TryReplaceAsync(gift, version, cancellationToken).ConfigureAwait(false))
         {
             // Yalnız qalib gələn ilk açılış bildiriş göndərir; anonim göndərən də xəbər alır.
-            await push.NotifyAsync(
-                UserId.From(sender), NotificationType.GiftStatus,
-                new PushMessage("Hədiyyənizə baxıldı 🎉", $"{gift.RecipientName} hədiyyənizi açdı.", new Dictionary<string, string> { ["giftId"] = gift.Id.Value.ToString() }),
-                cancellationToken).ConfigureAwait(false);
+            await notifications.OpenedAsync(gift, cancellationToken).ConfigureAwait(false);
         }
 
         return await presenter.PresentAsync(gift, cancellationToken).ConfigureAwait(false);
