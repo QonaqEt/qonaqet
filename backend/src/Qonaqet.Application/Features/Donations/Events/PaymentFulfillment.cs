@@ -1,5 +1,7 @@
 using Qonaqet.Application.Abstractions.Persistence;
+using Qonaqet.Application.Features.Corporate.Events;
 using Qonaqet.Application.Features.Gifts.Events;
+using Qonaqet.Domain.Corporate;
 using Qonaqet.Domain.Gifts;
 using Qonaqet.Domain.Ledger;
 using Qonaqet.Domain.Payments;
@@ -15,7 +17,7 @@ public sealed record PaidPurpose(Guid PaymentId, PaymentPurpose Purpose, Guid Re
 /// (atomik status keçidi); qaytarılan ledger yazılarını consumer inbox ilə eyni Postgres tranzaksiyasında yazır. Ledger yazılarının
 /// <c>source_event_id</c>-si obyektdən (ianədən) törəyir, ona görə təkrar çatdırılma və ya Mongo-dan sonra yarıda qalan emal ikinci yazı yaratmır.
 /// </summary>
-public sealed class PaymentFulfillment(IOfferRepository offers, IPoolDonationRepository poolDonations, GiftFulfillment gifts)
+public sealed class PaymentFulfillment(IOfferRepository offers, IPoolDonationRepository poolDonations, GiftFulfillment gifts, CorporateOrderPayments corporateOrders)
 {
     /// <summary>Ödəniş təsdiqləndi: məqsədin obyektini aktivləşdirir; ledger yazıları (varsa) qaytarılır.</summary>
     public async Task<IReadOnlyList<LedgerEntry>> OnPaidAsync(PaidPurpose paid, CancellationToken cancellationToken)
@@ -34,8 +36,12 @@ public sealed class PaymentFulfillment(IOfferRepository offers, IPoolDonationRep
                 // Pul təhvildə biznesə kredit kimi düşür (GiftRedeemed → RedemptionCredit + komissiya); burada yalnız Scheduled + link.
                 await gifts.OnPaidAsync(GiftId.From(paid.ReferenceId), paid.At, cancellationToken).ConfigureAwait(false);
                 return [];
+            case PaymentPurpose.CorporateGiftOrder:
+                // Sifariş Paid olur; hədiyyələri fan-out job-u yaradır. Pul təhvillərdə biznesə kredit kimi düşür.
+                await corporateOrders.OnPaidAsync(CorporateGiftOrderId.From(paid.ReferenceId), paid.At, cancellationToken).ConfigureAwait(false);
+                return [];
             default:
-                // Digər məqsədlər öz epic-lərində qoşulur (korporativ — E10, partnyor — E13).
+                // Digər məqsədlər öz epic-lərində qoşulur (partnyor — E13).
                 return [];
         }
     }
@@ -51,6 +57,10 @@ public sealed class PaymentFulfillment(IOfferRepository offers, IPoolDonationRep
         else if (unpaid.Purpose is PaymentPurpose.Pool or PaymentPurpose.Campaign)
         {
             await poolDonations.TryCancelPendingAsync(PoolDonationId.From(unpaid.ReferenceId), cancellationToken).ConfigureAwait(false);
+        }
+        else if (unpaid.Purpose == PaymentPurpose.CorporateGiftOrder)
+        {
+            await corporateOrders.OnUnpaidAsync(CorporateGiftOrderId.From(unpaid.ReferenceId), unpaid.PaymentId, unpaid.At, cancellationToken).ConfigureAwait(false);
         }
         else if (unpaid.Purpose == PaymentPurpose.Gift)
         {

@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Qonaqet.Application.Features.Corporate.Commands.AdminCorporates;
+using Qonaqet.Application.Features.Corporate.Commands.CorporatePayments;
 using Qonaqet.Domain.Corporate;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.SharedKernel.Messaging;
 
 namespace Qonaqet.Api.Controllers;
 
-/// <summary>Admin: şirkətlər, şirkət istifadəçiləri.</summary>
+/// <summary>Admin: şirkətlər, şirkət istifadəçiləri və bank köçürməsinin təsdiqi.</summary>
 [ApiController]
 [Route("api/v1/admin")]
 public sealed class AdminCorporatesController(ISender sender) : ControllerBase
@@ -40,10 +41,21 @@ public sealed class AdminCorporatesController(ISender sender) : ControllerBase
             .ToActionResult();
     }
 
+    /// <summary>Bank köçürməsinin təsdiqi (bank referansı ilə) → sifariş ödənilir, hədiyyələr yaradılır.</summary>
+    [HttpPost("corporate-orders/{orderId:guid}/confirm-bank-transfer")]
+    public async Task<IActionResult> ConfirmBankTransfer(Guid orderId, BankTransferRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return (await sender.Send(new ConfirmCorporateBankTransferCommand(CorporateGiftOrderId.From(orderId), request.BankReference ?? string.Empty), cancellationToken))
+            .ToActionResult();
+    }
+
     public sealed record CorporateRequest(string? Name, string? Voen, Guid? LogoFileId, string? BrandColor, string? ContactEmail)
     {
         public CorporateDetails ToDetails() => new(Name ?? string.Empty, Voen ?? string.Empty, LogoFileId, BrandColor, ContactEmail ?? string.Empty);
     }
 
     public sealed record AssignUserRequest(string? Email);
+
+    public sealed record BankTransferRequest(string? BankReference);
 }

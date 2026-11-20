@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Qonaqet.Application.Features.Corporate.Commands.CorporateOrders;
+using Qonaqet.Application.Features.Corporate.Commands.CorporatePayments;
 using Qonaqet.Application.Features.Corporate.Queries.CorporateOrders;
 using Qonaqet.Application.Features.Gifts.Common;
 using Qonaqet.Domain.Corporate;
@@ -11,7 +13,7 @@ using Qonaqet.SharedKernel.Messaging;
 namespace Qonaqet.Api.Controllers;
 
 /// <summary>
-/// Korporativ portal (<c>CorporateUser</c>): toplu hədiyyə/bonus sifarişləri (şablon, CSV alıcılar).
+/// Korporativ portal (<c>CorporateUser</c>): toplu hədiyyə/bonus sifarişləri (şablon, CSV alıcılar, kart və ya bank köçürməsi).
 /// Şirkət cari istifadəçinin hesabından oxunur; başqa şirkətin sifarişi görünmür.
 /// </summary>
 [ApiController]
@@ -61,6 +63,15 @@ public sealed class CorporateController(ISender sender) : ControllerBase
             .ToActionResult();
     }
 
+    /// <summary>Ödəniş (<c>Idempotency-Key</c> məcburi): <c>Card</c> → <c>paymentUrl</c>; <c>BankTransfer</c> → köçürmə referansı.</summary>
+    [HttpPost("orders/{orderId:guid}/pay")]
+    [EnableRateLimiting(RateLimitPolicies.Payment)]
+    public async Task<IActionResult> Pay(Guid orderId, PayRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return (await sender.Send(new PayCorporateOrderCommand(CorporateGiftOrderId.From(orderId), request.Method), cancellationToken)).ToActionResult();
+    }
+
     [HttpPost("orders/{orderId:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid orderId, CancellationToken cancellationToken) =>
         (await sender.Send(new CancelCorporateOrderCommand(CorporateGiftOrderId.From(orderId)), cancellationToken)).ToActionResult();
@@ -68,4 +79,6 @@ public sealed class CorporateController(ISender sender) : ControllerBase
     public sealed record CreateOrderRequest(
         GiftKind Kind, GiftScope Scope, Guid? BusinessId, IReadOnlyList<GiftItemRequest>? Items, long? AmountQepik, string? Message, DateTimeOffset? DeliverAt,
         GiftExpiryAction? ExpiryAction);
+
+    public sealed record PayRequest(CorporatePaymentMethod Method);
 }

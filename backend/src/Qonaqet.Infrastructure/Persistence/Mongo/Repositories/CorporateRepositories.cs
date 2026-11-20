@@ -66,6 +66,7 @@ public static class CorporateRegistration
         services.AddScoped<ICorporateRepository, CorporateRepository>();
         services.AddScoped<ICorporateGiftOrderRepository, CorporateGiftOrderRepository>();
         services.AddScoped<CorporateAccess>();
+        services.AddScoped<Application.Features.Corporate.Events.CorporateOrderPayments>();
         return services;
     }
 }
