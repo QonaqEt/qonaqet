@@ -125,13 +125,31 @@ digər mühitlərdə məcburidir.
 - Worker `claim-expiry` (dəqiqədə bir) bitmiş rezervləri buraxır; `social-claims` consumer-i `UserBlocked` və `BusinessDeleted`-də aktiv
   claim-ləri ləğv edir, biznesin təkliflərini kaskad soft delete/bərpa edir.
 
+### Ödənişlər və ledger (E07)
+
+- **Provayder:** Payriff v3 (`Payriff__AppKey`, `Authorization` başlığında prefikssiz). Development-də açar boşdursa (və ya
+  `Payments__Provider=Fake`) Fake gateway işləyir: ödəniş səhifəsi `GET /api/v1/payments/fake/{orderId}` (`?result=paid|failed`), yalnız
+  Development-də açıqdır. Sandbox partnyorlar həmişə Fake-dən istifadə edir.
+- **Ödəniş:** `POST payments` yoxdur — məqsəd əmrləri (hədiyyə, ianə …) `PaymentStarter` ilə serverdə hesablanmış məbləğlə ödəniş başladır;
+  tətbiq `paymentUrl`-i açır və `GET /api/v1/payments/{id}`-ni sorğulayır. Callback `POST /api/v1/payments/payriff/callback` imzasızdır: yalnız
+  tetikleyicidir, status həmişə Get Order ilə təsdiqlənir. Worker `payment-recheck` (5 dəqiqə) 2 dəqiqədən köhnə `Pending`-ləri yoxlayır,
+  30 dəqiqədən köhnə ödənilməmişləri `Expired` edir. Təsdiq `PaymentConfirmed` outbox hadisəsi ilə eyni Postgres tranzaksiyasındadır.
+- **Refund:** `POST /api/v1/admin/payments/{id}/refunds` (tam və ya qismən, `Idempotency-Key`); cəm heç vaxt ödənişi aşmır.
+- **Ledger:** `ledger_entries` append-only, `source_event_id` unikal (consumer idempotentdir). Onlayn ödənişli təhvil → `RedemptionCredit` +
+  `Commission` (`Ledger__CommissionPercent`, default 7); gündəlik/askıda üçün yazı yoxdur. Biznes balansı `SUM(amount)`:
+  `GET /api/v1/business/{id}/ledger`, `GET .../payouts` (yalnız sahib).
+- **Payout və uzlaşdırma:** admin `POST /api/v1/admin/payouts` (bank köçürməsi → `Payout` ledger yazısı, balansı aşa bilməz); Worker
+  `ledger-reconciliation` gecəlik hovuzların Mongo balansını (`balance − reserved`) ledger ilə müqayisə edir, fərqlər
+  `GET /api/v1/admin/ledger/reconciliation`-da görünür və xəbərdarlıq logu verir.
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
 fayllar/email/bildirişlər (E03: RustFS saxlama, yükləmə axını, MailKit + şablonlar, Playwright PDF, FCM push + seçimlər) və
 bizneslər/kataloq (E04: müraciət + aktivləşdirmə, işçilər, kataloq, parametrlər, coğrafi axtarış, şəbəkələr) və
 kateqoriyalar/təsdiq (E05: dinamik kateqoriyalar + default hovuz, seed, təsdiq sihirbazı, FIN hash, admin baxışı, xatırlatmalar) və
-sosial qonaqlıq (E06: gündəlik/askıda təkliflər, atomik claim, limitlər, QR/qısa kod, təhvil, müddət job-u, məxfilik testləri) hazırdır.
+sosial qonaqlıq (E06: gündəlik/askıda təkliflər, atomik claim, limitlər, QR/qısa kod, təhvil, müddət job-u, məxfilik testləri) və
+ödənişlər/ledger (E07: Payriff + Fake gateway, payments/refunds, callback + yenidən yoxlama, ledger + komissiya, payout-lar, uzlaşdırma) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 

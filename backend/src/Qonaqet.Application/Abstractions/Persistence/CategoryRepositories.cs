@@ -31,6 +31,16 @@ public interface IPoolRepository : IRepository<Pool, PoolId>
 
     /// <summary>Kaskadla silinmiş hovuzları bərpa edir.</summary>
     Task<long> CascadeRestoreForCategoryAsync(CategoryId categoryId, Guid? userId, CancellationToken cancellationToken);
+
+    /// <summary>Bütün (silinməmiş) hovuzların balansları — gecəlik ledger uzlaşdırması üçün.</summary>
+    Task<IReadOnlyList<PoolBalance>> ListBalancesAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>Hovuzun əməliyyat balansı (Mongo). Ledger-də hovuz hesabının cəmi <see cref="Available"/>-a bərabər olmalıdır.</summary>
+public sealed record PoolBalance(PoolId PoolId, long BalanceQepik, long ReservedQepik)
+{
+    /// <summary>Rezervdən kənar balans: ledger-də <c>PoolDeposit</c> (+), <c>PoolReserve</c> (−), <c>PoolRelease</c> (+) … cəmi.</summary>
+    public long Available => BalanceQepik - ReservedQepik;
 }
 
 /// <summary>Kateqoriyanın silinməsinə mane olan istinadlar (hər biri ayrıca sayılır).</summary>

@@ -14,20 +14,20 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E04](epics/E04.md) | Businesses & catalog | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E05](epics/E05.md) | Categories & verification | ✅ done | @Tapdiq49 | 7/7 | — |
 | [E06](epics/E06.md) | Social treating | ✅ done | @Tapdiq49 | 9/9 | — |
-| [E07](epics/E07.md) | Payments & ledger | 🔄 in-progress | @Tapdiq49 | 5/6 | — |
-| [E08](epics/E08.md) | Pools, campaigns & donations | ⬜ todo | — | 0/6 | E07 |
-| [E09](epics/E09.md) | Gifting | ⬜ todo | — | 0/10 | E07 |
+| [E07](epics/E07.md) | Payments & ledger | ✅ done | @Tapdiq49 | 6/6 | — |
+| [E08](epics/E08.md) | Pools, campaigns & donations | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
+| [E09](epics/E09.md) | Gifting | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
 | [E10](epics/E10.md) | Corporate & CSR | ⬜ todo | — | 0/5 | E09 |
 | [E11](epics/E11.md) | Leaderboard & gamification | ⬜ todo | — | 0/6 | E09 |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo · 🟢 götürülə bilər | — | 0/4 | — |
-| [E13](epics/E13.md) | Integration platform | ⬜ todo | — | 0/10 | E07, E09 |
+| [E13](epics/E13.md) | Integration platform | ⬜ todo | — | 0/10 | E09 |
 | [E14](epics/E14.md) | Mobile foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
 | [E15](epics/E15.md) | Mobile user features | ⬜ todo | — | 0/10 | E14 |
 | [E16](epics/E16.md) | Mobile business mode | ⬜ todo | — | 0/5 | E14 |
 | [E17](epics/E17.md) | Business portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/9 | — |
 | [E18](epics/E18.md) | Admin & corporate portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E19](epics/E19.md) | Landing website (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
-| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E07, E08, E09, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
+| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E08, E09, E10, E11, E12, E13, E14, E15, E16, E17, E18, E19 |
 
 ## Hazırda işlənən task-lar
 
@@ -154,7 +154,7 @@ Yoxdur.
 
 ## E07 — Payments & ledger
 
-🔄 in-progress · @Tapdiq49 · 5/6 task
+✅ done · @Tapdiq49 · 6/6 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -163,7 +163,7 @@ Yoxdur.
 | ✅ | E07-T03 | payments / refunds cədvəlləri və status axını | backend | p0 | M |
 | ✅ | E07-T04 | Callback və yenidən yoxlama job-u | backend | p0 | M |
 | ✅ | E07-T05 | Ledger və komissiya | backend | p0 | L |
-| ⬜ | E07-T06 | Payout-lar və gecə uzlaşdırması | backend | p1 | M |
+| ✅ | E07-T06 | Payout-lar və gecə uzlaşdırması | backend | p1 | M |
 
 ## E08 — Pools, campaigns & donations
 

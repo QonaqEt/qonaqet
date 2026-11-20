@@ -10,6 +10,7 @@ using Qonaqet.Application.Features.Catalog.Commands.DeleteCatalogItem;
 using Qonaqet.Application.Features.Catalog.Commands.UpdateCatalogItem;
 using Qonaqet.Application.Features.Catalog.Queries.ListCatalogItems;
 using Qonaqet.Application.Features.Ledger.Queries.GetBusinessLedger;
+using Qonaqet.Application.Features.Ledger.Queries.ListBusinessPayouts;
 using Qonaqet.Domain.Catalog;
 using Qonaqet.Domain.Businesses;
 using Qonaqet.Infrastructure.Web;
@@ -59,6 +60,11 @@ public sealed class BusinessPanelController(ISender sender) : ControllerBase
     [HttpGet("ledger")]
     public async Task<IActionResult> Ledger(Guid businessId, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken) =>
         (await sender.Send(new GetBusinessLedgerQuery(BusinessId.From(businessId), page, pageSize), cancellationToken)).ToActionResult();
+
+    /// <summary>Biznesə edilmiş bank köçürmələri; yalnız sahib.</summary>
+    [HttpGet("payouts")]
+    public async Task<IActionResult> Payouts(Guid businessId, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken) =>
+        (await sender.Send(new ListBusinessPayoutsQuery(BusinessId.From(businessId), page, pageSize), cancellationToken)).ToActionResult();
 
     [HttpGet("catalog")]
     public async Task<IActionResult> ListCatalog(Guid businessId, CancellationToken cancellationToken) =>
