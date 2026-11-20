@@ -94,6 +94,8 @@ public static class GiftRegistration
         services.AddScoped<GiftPresenter>();
         services.AddScoped<GiftNotifications>();
         services.AddScoped<GiftTransactions>();
+        services.AddScoped<GiftRedemptionService>();
+        services.AddScoped<Application.Common.MongoTransaction>();
         return services;
     }
 }

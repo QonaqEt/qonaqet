@@ -17,7 +17,18 @@ internal static class GiftTestData
 {
     public static async Task<GiftShop> ShopAsync(ApiTestHost host, string prefix, bool acceptsNetwork = false)
     {
-        var shop = await SocialTestData.ShopAsync(host, prefix);
+        // Hər biznesin öz VÖEN-i: bir testdə bir neçə biznes ola bilər.
+        var admin = await RolesTests.LoginAsAdminAsync(host, $"{prefix}-admin@example.az");
+        var voen = string.Concat(Enumerable.Range(0, 10).Select(_ => Random.Shared.Next(10).ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        var (owner, id) = await Businesses.BusinessTestData.ActiveBusinessAsync(
+            host, admin, $"{prefix}-owner@example.az", Businesses.BusinessTestData.ApplicationBody(name: $"Kafe {prefix}", voen: voen));
+        var staffLogin = await host.LoginAsync($"{prefix}-barista@example.az");
+        using (var add = await host.SendAsync(HttpMethod.Post, $"/api/v1/business/{id}/staff", Access(owner), new { email = $"{prefix}-barista@example.az" }))
+        {
+            Assert.True(add.IsSuccessStatusCode, await add.Content.ReadAsStringAsync(Ct));
+        }
+
+        var shop = new Shop(admin, owner, await Businesses.BusinessTestData.RefreshAsync(host, staffLogin), id);
         if (acceptsNetwork)
         {
             using var settings = await host.SendAsync(HttpMethod.Patch, $"/api/v1/business/{shop.BusinessId}/settings", Access(shop.Owner),

@@ -35,10 +35,18 @@ public sealed class OpenPublicGiftHandler(
         }
 
         var version = gift.Version;
-        if (gift.Open(clock.UtcNow) && await gifts.TryReplaceAsync(gift, version, cancellationToken).ConfigureAwait(false))
+        if (gift.Open(clock.UtcNow))
         {
-            // Yalnız qalib gələn ilk açılış bildiriş göndərir; anonim göndərən də xəbər alır.
-            await notifications.OpenedAsync(gift, cancellationToken).ConfigureAwait(false);
+            if (await gifts.TryReplaceAsync(gift, version, cancellationToken).ConfigureAwait(false))
+            {
+                // Yalnız qalib gələn ilk açılış bildiriş göndərir; anonim göndərən də xəbər alır.
+                await notifications.OpenedAsync(gift, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                // Paralel açılış qazandı: bizim GiftOpened hadisəmiz yazılmır.
+                gift.DequeueDomainEvents();
+            }
         }
 
         return await presenter.PresentAsync(gift, cancellationToken).ConfigureAwait(false);
