@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Qonaqet.Application.Features.Gifts.Commands.CancelGift;
 using Qonaqet.Application.Features.Gifts.Commands.CreateGift;
 using Qonaqet.Application.Features.Gifts.Commands.ReissueGiftLink;
 using Qonaqet.Application.Features.Gifts.Commands.RevealGiftLink;
@@ -48,6 +49,12 @@ public sealed class GiftsController(ISender sender) : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.GiftLink)]
     public async Task<IActionResult> ReissueLink(Guid giftId, CancellationToken cancellationToken) =>
         (await sender.Send(new ReissueGiftLinkCommand(GiftId.From(giftId)), cancellationToken)).ToActionResult();
+
+    /// <summary>Hələ çatdırılmamış hədiyyənin ləğvi; ödəniş tam refund olunur (idempotent).</summary>
+    [HttpPost("{giftId:guid}/cancel")]
+    [EnableRateLimiting(RateLimitPolicies.Payment)]
+    public async Task<IActionResult> Cancel(Guid giftId, CancellationToken cancellationToken) =>
+        (await sender.Send(new CancelGiftCommand(GiftId.From(giftId)), cancellationToken)).ToActionResult();
 
     [HttpGet("sent")]
     public async Task<IActionResult> Sent(CancellationToken cancellationToken) =>

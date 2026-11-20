@@ -255,6 +255,11 @@ public sealed class Gift : AggregateRoot<GiftId>
     /// <summary>Ödəyiciyə qaytarılmış məbləğ (ləğv və ya müddət bitməsi).</summary>
     public long RefundedQepik { get; private set; }
 
+    /// <summary>Qaytarılmalı, amma hələ provayderdə tamamlanmamış məbləğ (ləğvdə tam, müddət bitməsində qalıq); job təkrar cəhd edir.</summary>
+    public long RefundDueQepik { get; private set; }
+
+    public GiftRefundReason? RefundReason { get; private set; }
+
     /// <summary>Müddət bitməsində hovuza bağışlanan məbləğ.</summary>
     public long DonatedQepik { get; private set; }
 
@@ -591,6 +596,8 @@ public sealed class Gift : AggregateRoot<GiftId>
         Touch(at, by);
         if (PaymentId is { } paymentId)
         {
+            RefundDueQepik = AmountQepik;
+            RefundReason = GiftRefundReason.Cancelled;
             Raise(new GiftRefundRequested(Id, paymentId, AmountQepik, GiftRefundReason.Cancelled, at));
         }
     }
@@ -614,6 +621,8 @@ public sealed class Gift : AggregateRoot<GiftId>
 
         if (ExpiryAction == GiftExpiryAction.RefundToPayer && PaymentId is { } paymentId)
         {
+            RefundDueQepik = RemainingQepik;
+            RefundReason = GiftRefundReason.Expired;
             Raise(new GiftRefundRequested(Id, paymentId, RemainingQepik, GiftRefundReason.Expired, at));
         }
         else if (ExpiryPoolId is { } poolId)
@@ -623,16 +632,17 @@ public sealed class Gift : AggregateRoot<GiftId>
         }
     }
 
-    /// <summary>Refund uğurla tamamlandı. Müddəti bitmiş hədiyyə <c>Refunded</c> olur; ləğv olunmuş <c>Cancelled</c> qalır.</summary>
+    /// <summary>Refund uğurla tamamlandı. Müddəti bitmiş hədiyyə <c>Refunded</c> olur; ləğv olunmuş <c>Cancelled</c> qalır. Təkrar çağırış <c>false</c>.</summary>
     public bool MarkRefunded(long amountQepik, DateTimeOffset at)
     {
         Guard.Positive(amountQepik);
-        if (Status is not (GiftStatus.Expired or GiftStatus.Cancelled) || RefundedQepik > 0)
+        if (Status is not (GiftStatus.Expired or GiftStatus.Cancelled) || RefundDueQepik <= 0)
         {
             return false;
         }
 
-        RefundedQepik = amountQepik;
+        RefundedQepik += amountQepik;
+        RefundDueQepik = 0;
         if (Status == GiftStatus.Expired)
         {
             Status = GiftStatus.Refunded;
