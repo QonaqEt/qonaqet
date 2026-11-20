@@ -58,6 +58,29 @@ public sealed class GiftRepository(MongoContext context, IAggregateTracker track
                 Filter.Eq(x => x.ExpiryReminderSentAt, null))))
             .SortBy(x => x.ExpiresAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
 
+    public async Task<int> AddCorporateBatchAsync(IReadOnlyList<Gift> gifts, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(gifts);
+        if (gifts.Count == 0)
+        {
+            return 0;
+        }
+
+        try
+        {
+            await Collection.InsertManyAsync(gifts, new InsertManyOptions { IsOrdered = false }, cancellationToken).ConfigureAwait(false);
+            return gifts.Count;
+        }
+        catch (MongoBulkWriteException<Gift> ex) when (ex.WriteErrors.All(e => e.Category == ServerErrorCategory.DuplicateKey))
+        {
+            // Əvvəlki (yarıda kəsilmiş) cəhd bu alıcıları artıq yazıb.
+            return gifts.Count - ex.WriteErrors.Count;
+        }
+    }
+
+    public async Task<IReadOnlyList<Gift>> ListForCorporateOrderAsync(Guid corporateOrderId, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.Eq(x => x.CorporateOrderId, corporateOrderId))).ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public async Task<IReadOnlyList<Gift>> ListReceivedAsync(Guid recipientUserId, int limit, CancellationToken cancellationToken)
     {
         var delivered = new[]

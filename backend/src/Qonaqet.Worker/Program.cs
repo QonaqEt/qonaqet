@@ -1,4 +1,5 @@
 using Qonaqet.Application.Features.Campaigns.Jobs;
+using Qonaqet.Application.Features.Corporate.Jobs;
 using Qonaqet.Application.Features.Gifts.Jobs;
 using Qonaqet.Application.Features.Ledger.Jobs;
 using Qonaqet.Application.Features.Payments.Jobs;
@@ -59,6 +60,9 @@ public static class Program
 
         // Müddəti bitən hədiyyələr: 7 gün qalmış xatırlatma, sonra qalığın refundu və ya hovuza bağışlanması.
         builder.Services.AddScheduledJob<ExpireGiftsJob>(ExpireGiftsJob.Name, ExpireGiftsJob.Interval);
+
+        // Ödənilmiş korporativ sifarişlər üçün hər alıcıya hədiyyə (200-lük paketlər, idempotent, yarıda qalan yerdən davam edir).
+        builder.Services.AddScheduledJob<CorporateFanOutJob>(CorporateFanOutJob.Name, CorporateFanOutJob.Interval);
 
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Services.AddHostedService<WorkerHeartbeat>();

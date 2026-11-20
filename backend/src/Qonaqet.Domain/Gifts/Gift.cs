@@ -263,6 +263,9 @@ public sealed class Gift : AggregateRoot<GiftId>
     /// <summary>Müddət bitməsində hovuza bağışlanan məbləğ.</summary>
     public long DonatedQepik { get; private set; }
 
+    /// <summary>Korporativ sifarişdə alıcının sıra nömrəsi (CSV-dəki yeri): (<c>corporateOrderId</c>, bu) unikaldır → fan-out idempotentdir.</summary>
+    public int? CorporateRecipientIndex { get; private set; }
+
     /// <summary>Optimistik konkurensiya: hər dəyişiklikdə artır.</summary>
     public long Version { get; private set; }
 
@@ -339,6 +342,29 @@ public sealed class Gift : AggregateRoot<GiftId>
             ExpiryAction = expiry.Action,
             ExpiryPoolId = expiry.PoolId,
         };
+    }
+
+    /// <summary>
+    /// Korporativ sifarişin bir alıcısı üçün hədiyyə (fan-out): göndərən şirkətdir (adı snapshot, tema <c>Corporate</c>), sifariş artıq ödənilib —
+    /// hədiyyə dərhal <c>Scheduled</c>-dir və link token-i bağlanır. Linki götürəcək şəxs göndərən yoxdur, ona görə şifrəli nüsxə yalnız
+    /// çatdırılma emailinə qədər saxlanılır.
+    /// </summary>
+    public static Gift CreateForCorporateOrder(
+        GiftContent content, Guid corporateOrderId, string corporateName, Guid? paymentId, GiftRecipient recipient, int recipientIndex, string? message,
+        DateTimeOffset deliverAt, int validityDays, GiftExpiryPlan expiry, GiftLinkSecret link, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(link);
+        var gift = Create(
+            content, new GiftSender(null, Guard.NotEmpty(corporateOrderId), SenderDisplay.Named, corporateName), recipient, GiftTheme.Corporate, message,
+            deliverAt < now ? now : deliverAt, validityDays, expiry, now);
+        gift.PaymentId = paymentId;
+        gift.CorporateRecipientIndex = Guard.InRange(recipientIndex, 0, int.MaxValue);
+        gift.Status = GiftStatus.Scheduled;
+        gift.PaidAt = now;
+        gift.SetLink(link);
+        gift.LinkRevealedAt = now;
+        gift.TrimSealedToken();
+        return gift;
     }
 
     public void AttachPayment(Guid paymentId)
