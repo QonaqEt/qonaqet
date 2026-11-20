@@ -55,7 +55,7 @@ public static class ObservabilityExtensions
         var otlp = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
         var telemetry = builder.Services.AddOpenTelemetry()
             .ConfigureResource(r => r.AddService(serviceName, serviceNamespace: "qonaqet"))
-            .WithTracing(t => t.AddSource(Sources).SetErrorStatusOnException())
+            .WithTracing(t => t.AddSource(Sources).AddProcessor(new SensitivePathRedactor()).SetErrorStatusOnException())
             .WithMetrics(m => m.AddMeter(Meters));
         if (!string.IsNullOrWhiteSpace(otlp))
         {

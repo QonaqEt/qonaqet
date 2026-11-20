@@ -11,7 +11,8 @@ namespace Qonaqet.Infrastructure.Observability;
 /// <summary>
 /// JSON console formatter (bir sətir = bir JSON obyekt). Adı həssas olan struktur sahələrinin (OTP, token,
 /// parol, FIN, kart, IBAN, e-poçt …) dəyərləri həm <c>state</c>-də, həm də render olunan mesajda
-/// <c>***</c> ilə əvəzlənir — dəyər səhvən log çağırışına düşsə belə çıxışa yazılmır.
+/// <c>***</c> ilə əvəzlənir — dəyər səhvən log çağırışına düşsə belə çıxışa yazılmır. Bütün mətn dəyərlərində (o cümlədən ASP.NET-in
+/// <c>RequestPath</c> scope-unda) bearer token daşıyan yollar (<c>/public/gifts/{token}</c>) <see cref="SensitivePathRedactor"/> ilə maskalanır.
 /// </summary>
 public sealed partial class RedactingJsonConsoleFormatter() : ConsoleFormatter(FormatterName)
 {
@@ -57,16 +58,16 @@ public sealed partial class RedactingJsonConsoleFormatter() : ConsoleFormatter(F
             json.WriteString("level", logEntry.LogLevel.ToString());
             json.WriteString("category", logEntry.Category);
             json.WriteNumber("eventId", logEntry.EventId.Id);
-            json.WriteString("message", message);
+            json.WriteString("message", SensitivePathRedactor.Redact(message));
             if (logEntry.Exception is { } exception)
             {
-                json.WriteString("exception", exception.ToString());
+                json.WriteString("exception", SensitivePathRedactor.Redact(exception.ToString()));
             }
 
             json.WriteStartObject("state");
             foreach (var (key, value) in properties)
             {
-                json.WriteString(key, IsSensitive(key) ? Mask : Convert.ToString(value, CultureInfo.InvariantCulture));
+                json.WriteString(key, IsSensitive(key) ? Mask : Text(value));
             }
 
             json.WriteEndObject();
@@ -79,7 +80,7 @@ public sealed partial class RedactingJsonConsoleFormatter() : ConsoleFormatter(F
                     {
                         foreach (var (key, value) in pairs.Where(p => p.Key != "{OriginalFormat}"))
                         {
-                            writer.WriteString(key, IsSensitive(key) ? Mask : Convert.ToString(value, CultureInfo.InvariantCulture));
+                            writer.WriteString(key, IsSensitive(key) ? Mask : Text(value));
                         }
                     }
                 },
@@ -91,6 +92,9 @@ public sealed partial class RedactingJsonConsoleFormatter() : ConsoleFormatter(F
         textWriter.Write(Encoding.UTF8.GetString(buffer.ToArray()));
         textWriter.Write(Environment.NewLine);
     }
+
+    private static string? Text(object? value) =>
+        Convert.ToString(value, CultureInfo.InvariantCulture) is { } text ? SensitivePathRedactor.Redact(text) : null;
 
     /// <summary><c>{Name}</c> / <c>{Name:format}</c> yer tutucularını (həssaslar maskalanmaqla) doldurur.</summary>
     public static string Render(string template, IReadOnlyList<KeyValuePair<string, object?>> properties)
