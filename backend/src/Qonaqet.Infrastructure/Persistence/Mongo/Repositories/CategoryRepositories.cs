@@ -58,6 +58,12 @@ public sealed class PoolRepository(MongoContext context, IAggregateTracker track
 
     public Task<long> CascadeRestoreForCategoryAsync(CategoryId categoryId, Guid? userId, CancellationToken cancellationToken) =>
         CascadeRestoreAsync(Filter.Eq(x => x.CategoryId, categoryId), categoryId.Value, userId, CategoryCascade.DeleteReason, cancellationToken);
+
+    public async Task<IReadOnlyList<PoolBalance>> ListBalancesAsync(CancellationToken cancellationToken)
+    {
+        var pools = await FindAsync(Filter.Empty, cancellationToken).ConfigureAwait(false);
+        return [.. pools.Select(p => new PoolBalance(p.Id, p.BalanceQepik, p.ReservedQepik))];
+    }
 }
 
 public sealed class VerificationRequestRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
