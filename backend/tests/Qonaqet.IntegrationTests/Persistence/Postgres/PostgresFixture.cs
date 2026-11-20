@@ -30,6 +30,8 @@ public sealed class PostgresFixture : IAsyncLifetime
             _container = new ContainerBuilder(Image)
                 .WithEnvironment("POSTGRES_PASSWORD", Password)
                 .WithPortBinding(5432, true)
+                // Hər test öz bazası (və öz Npgsql pool-u) ilə gəlir: default 100 bağlantı geniş test dəstinə çatmır.
+                .WithCommand("-c", "max_connections=500")
                 .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("pg_isready", "-U", "postgres", "-h", "127.0.0.1"))
                 .Build();
             await _container.StartAsync().ConfigureAwait(false);
