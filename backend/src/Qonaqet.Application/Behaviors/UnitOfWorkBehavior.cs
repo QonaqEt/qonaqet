@@ -9,6 +9,7 @@ namespace Qonaqet.Application.Behaviors;
 /// Ən daxili behavior, yalnız əmrlər üçün: tranzaksiya açır, handler uğurlu olarsa izlənən aqreqatların
 /// domen hadisələrini <b>eyni tranzaksiyada</b> outbox-a yazır və commit edir. Uğursuz nəticə və ya exception
 /// rollback edir — heç bir hadisə yazılmır (<see cref="ICommitsOnFailure"/> əmrləri istisna: uğursuzluq da commit olunur).
+/// <see cref="INonTransactionalCommand"/> əmrləri tranzaksiyasız işləyir (atomik tək sənədli addımlar + kompensasiya).
 /// </summary>
 public sealed class UnitOfWorkBehavior<TRequest, TResponse>(IUnitOfWork unitOfWork, IAggregateTracker tracker, IOutbox outbox)
     : IPipelineBehavior<TRequest, TResponse>
@@ -20,6 +21,21 @@ public sealed class UnitOfWorkBehavior<TRequest, TResponse>(IUnitOfWork unitOfWo
         if (request is not ICommandBase)
         {
             return await next(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (request is INonTransactionalCommand)
+        {
+            var result = await next(cancellationToken).ConfigureAwait(false);
+            if (result is Result { IsSuccess: true })
+            {
+                var pending = tracker.Tracked.SelectMany(a => a.DequeueDomainEvents()).ToArray();
+                if (pending.Length > 0)
+                {
+                    await outbox.AddAsync(pending, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            return result;
         }
 
         await unitOfWork.BeginAsync(cancellationToken).ConfigureAwait(false);

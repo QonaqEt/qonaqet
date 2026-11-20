@@ -13,10 +13,13 @@ namespace Qonaqet.Application.Features.Social.Commands.ClaimOffer;
 /// <summary>
 /// <c>POST offers/{id}/claim</c>: uyğun istifadəçi təklifdən bir vahid rezerv edir (30 dəqiqə). Vahid tək şərtli atomik yeniləmə ilə
 /// götürülür (<see cref="IOfferRepository.TryTakeUnitAsync"/>), ona görə paralel claim-lər kvotanı heç vaxt aşmır; bitəndə
-/// <c>quota_exhausted</c>. Götürmə tranzaksiyadan kənardadır, ona görə rezerv yazıla bilməsə vahid dərhal geri qaytarılır.
+/// <c>quota_exhausted</c>. Əmr tranzaksiyasızdır (<see cref="INonTransactionalCommand"/>): hər addım tək sənədli atomik yeniləmədir,
+/// rezerv yazıla bilməsə götürülmüş vahid dərhal geri qaytarılır.
+/// Limitlər (<see cref="SocialLimits"/>) vahid götürülməzdən əvvəl yoxlanılır; istifadəçinin müddəti keçmiş köhnə rezervi job-u
+/// gözləmədən burada buraxılır. Donor alıcını nə seçir, nə görür: alıcı özü gəlir.
 /// </summary>
 [RequiresActiveAccount]
-public sealed record ClaimOfferCommand(OfferId OfferId) : ICommand<ClaimDto>;
+public sealed record ClaimOfferCommand(OfferId OfferId) : ICommand<ClaimDto>, INonTransactionalCommand;
 
 public sealed class ClaimOfferHandler(
     IOfferRepository offers,
@@ -24,6 +27,9 @@ public sealed class ClaimOfferHandler(
     IBusinessRepository businesses,
     ICategoryRepository categories,
     IUserRepository users,
+    SocialEligibility eligibility,
+    SocialLimits limits,
+    ClaimRelease release,
     ICurrentUser currentUser,
     IClock clock) : ICommandHandler<ClaimOfferCommand, ClaimDto>
 {
@@ -61,9 +67,20 @@ public sealed class ClaimOfferHandler(
             return SocialErrors.OutsideWindow;
         }
 
-        if (await claims.FindReservedForUserAsync(userId, cancellationToken).ConfigureAwait(false) is not null)
+        if (await claims.FindReservedForUserAsync(userId, cancellationToken).ConfigureAwait(false) is { } current)
         {
-            return SocialErrors.ActiveClaimExists;
+            // Müddəti keçmiş rezerv artıq heç nəyə hüquq vermir: job-u gözləmədən buraxılır.
+            if (current.IsRedeemableAt(now) || !await release.ExpireAsync(current, cancellationToken).ConfigureAwait(false))
+            {
+                return SocialErrors.ActiveClaimExists;
+            }
+        }
+
+        var eligible = await eligibility.EligibleCategoriesAsync(user, now, cancellationToken).ConfigureAwait(false);
+        var limit = await limits.CheckAsync(userId, offer, eligible, now, cancellationToken).ConfigureAwait(false);
+        if (limit.IsFailure)
+        {
+            return limit.Error;
         }
 
         var today = Offer.DateKey(BakuTime.ToBakuDate(now));

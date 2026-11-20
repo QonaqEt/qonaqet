@@ -114,9 +114,9 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
         {
             return false;
         }
-        catch (MongoException ex) when (ex.HasErrorLabel("TransientTransactionError"))
+        catch (MongoException ex) when (Context.Session is not null && ex.HasErrorLabel("TransientTransactionError"))
         {
-            // Eyni istifadəçinin paralel tranzaksiyası eyni unikal açarı yazır (hələ commit olunmayıb): WriteConflict.
+            // Tranzaksiya daxilində: eyni istifadəçinin paralel tranzaksiyası eyni unikal açarı yazır (hələ commit olunmayıb).
             return false;
         }
     }
@@ -129,6 +129,30 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
         var found = await FindAsync(
             Filter.And(Filter.Eq(x => x.RecipientUserId, userId), Filter.Eq(x => x.Status, ClaimStatus.Reserved)), cancellationToken).ConfigureAwait(false);
         return found.Count == 0 ? null : found[0];
+    }
+
+    public async Task<bool> TryCloseReservationAsync(Claim claim, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        var filter = Active(Filter.And(ById(claim.Id), Filter.Eq(x => x.Status, ClaimStatus.Reserved)));
+        var result = await Collection.ReplaceOneAsync(filter, claim, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.MatchedCount == 1;
+    }
+
+    public async Task<long> CountCountedSinceAsync(Guid userId, DateTimeOffset since, OfferId? offerId, CancellationToken cancellationToken)
+    {
+        var filter = Filter.And(
+            Filter.Eq(x => x.RecipientUserId, userId),
+            Filter.In(x => x.Status, [ClaimStatus.Reserved, ClaimStatus.Redeemed]),
+            Filter.Gte(x => x.CreatedAt, since));
+        if (offerId is { } id)
+        {
+            filter = Filter.And(filter, Filter.Eq(x => x.OfferId, id));
+        }
+
+        return Context.Session is { } session
+            ? await Collection.CountDocumentsAsync(session, Active(filter), cancellationToken: cancellationToken).ConfigureAwait(false)
+            : await Collection.CountDocumentsAsync(Active(filter), cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -148,6 +172,8 @@ public static class SocialRegistration
         services.AddScoped<IClaimRepository, ClaimRepository>();
         services.AddScoped<OfferReferenceCheck>();
         services.AddScoped<SocialEligibility>();
+        services.AddScoped<ClaimRelease>();
+        services.AddScoped<SocialLimits>();
         return services;
     }
 }

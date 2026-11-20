@@ -24,6 +24,7 @@ public sealed class PipelineTests
         typeof(GetGift), typeof(GetGiftHandler),
         typeof(VerifyOtp), typeof(VerifyOtpHandler),
         typeof(RevokeSessionsCommand), typeof(RevokeSessionsHandler),
+        typeof(TakeUnitCommand), typeof(TakeUnitHandler),
         typeof(ClaimOfferCommand), typeof(ClaimOfferHandler),
     ];
 
@@ -50,6 +51,19 @@ public sealed class PipelineTests
 
         Assert.Equal("refresh_token_reused", result.Error.Code);
         Assert.Equal(["begin", "handler", "outbox:1", "commit"], app.Trace);
+    }
+
+    [Theory]
+    [InlineData(false, new[] { "handler", "outbox:1" })]
+    [InlineData(true, new[] { "handler" })]
+    public async Task Non_transactional_command_opens_no_transaction_and_writes_events_only_on_success(bool fail, string[] expected)
+    {
+        await using var app = TestApp.Create(authenticated: false);
+
+        var result = await app.Send(new TakeUnitCommand(fail));
+
+        Assert.Equal(!fail, result.IsSuccess);
+        Assert.Equal(expected, app.Trace);
     }
 
     [Fact]
@@ -473,6 +487,19 @@ public sealed class PipelineTests
             trace.Add("handler");
             tracker.Track(new Gift(clock.UtcNow));
             return Task.FromResult(Result.Failure(Error.Unauthorized("refresh_token_reused", "Token təkrar işlədildi.")));
+        }
+    }
+
+    [PublicRequest]
+    public sealed record TakeUnitCommand(bool Fail) : ICommand, INonTransactionalCommand;
+
+    public sealed class TakeUnitHandler(IAggregateTracker tracker, List<string> trace, IClock clock) : ICommandHandler<TakeUnitCommand>
+    {
+        public Task<Result> Handle(TakeUnitCommand request, CancellationToken cancellationToken)
+        {
+            trace.Add("handler");
+            tracker.Track(new Gift(clock.UtcNow));
+            return Task.FromResult(request.Fail ? Result.Failure(Error.Conflict("quota_exhausted", "Bitdi.")) : Result.Success());
         }
     }
 

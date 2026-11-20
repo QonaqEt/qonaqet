@@ -28,6 +28,14 @@ public interface IIdempotentCommand;
 public interface ICommitsOnFailure;
 
 /// <summary>
+/// Tranzaksiyasız əmr: bir neçə <b>tək sənədli atomik</b> şərtli yeniləmədən ibarətdir (məs. kvotadan vahid götürmə + rezerv), hər addım
+/// dərhal görünür və uğursuzluqda handler özü kompensasiya edir. İsti sənədi (bir təklifi) eyni anda yüzlərlə sorğu yeniləyəndə
+/// Mongo tranzaksiyaları WriteConflict ilə qırılardı; tranzaksiyasız atomik yeniləmələr isə bir-birini gözləyir. UnitOfWork belə
+/// əmrdə tranzaksiya açmır; aqreqat hadisələri (varsa) uğurdan sonra outbox-a yazılır.
+/// </summary>
+public interface INonTransactionalCommand;
+
+/// <summary>
 /// Yalnız aktiv (bloklanmamış, silinməmiş) hesab üçün: claim yaratmaq, hədiyyə göndərmək kimi əmrlər. Authorization
 /// behavior hesabın vəziyyətini store-dan oxuyur; bloklanmış hesab <c>403 user_blocked</c> alır.
 /// </summary>
