@@ -32,6 +32,15 @@ public interface IOfferRepository : IRepository<Offer, OfferId>
     /// <summary>Kaskadla silinmiş təklifləri bərpa edir (sahibin ayrıca sildikləri silinmiş qalır).</summary>
     Task<long> CascadeRestoreForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Remote təklifi ödəniş təsdiqindən sonra aktivləşdirir (atomik, sessiyasız): yalnız hələ <c>awaitingPayment</c>-dirsə. Təkrar çağırış
+    /// <c>false</c> qaytarır — consumer idempotentdir.
+    /// </summary>
+    Task<bool> TryActivateRemoteAsync(OfferId offerId, CancellationToken cancellationToken);
+
+    /// <summary>Ödənilməyən remote təklifi bağlayır (atomik): <c>awaitingPayment</c> → qeyri-aktiv, soft delete (<c>payment_not_completed</c>).</summary>
+    Task<bool> TryCloseUnpaidRemoteAsync(OfferId offerId, CancellationToken cancellationToken);
+
     /// <summary>İstifadəçinin ianəçi olduğu (askıda/remote) təkliflər, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<Offer>> ListDonatedByAsync(Guid donorUserId, int limit, CancellationToken cancellationToken);
 }
