@@ -3,7 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
+using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
+using Qonaqet.Application.Features.Payments.Common;
+using Qonaqet.Infrastructure.Persistence.Postgres.Repositories;
 using Qonaqet.Infrastructure.Payments.Fake;
 using Qonaqet.Infrastructure.Payments.Payriff;
 
@@ -43,6 +46,11 @@ public static class PaymentsRegistration
         services.AddScoped<IFakeCheckout>(sp => sp.GetRequiredService<FakePaymentGateway>());
         services.AddScoped<IPaymentGatewayRegistry, PaymentGatewayRegistry>();
         services.AddScoped<IPaymentGateway>(sp => sp.GetRequiredService<IPaymentGatewayRegistry>().Default);
+        services.AddSingleton<IAppUrls, AppUrls>();
+
+        services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<PaymentStarter>();
+        services.AddScoped<PaymentRefunds>();
         return services;
     }
 }
@@ -81,4 +89,12 @@ public sealed class PaymentGatewayRegistry(IServiceProvider services, IConfigura
 
         return wantsFake;
     }
+}
+
+/// <summary><c>App:PublicBaseUrl</c> əsasında ictimai URL-lər (Payriff callback-i ictimai domenə gəlir).</summary>
+public sealed class AppUrls(IConfiguration configuration) : IAppUrls
+{
+    public const string CallbackPath = "api/v1/payments/payriff/callback";
+
+    public Uri PaymentCallback { get; } = new(FakePaymentGateway.BaseUrl(configuration), CallbackPath);
 }

@@ -8,7 +8,7 @@ using Qonaqet.SharedKernel;
 namespace Qonaqet.Infrastructure.Persistence.Postgres;
 
 /// <summary>Bir əmr = bir Postgres tranzaksiyası; commit-dən əvvəl <c>SaveChanges</c> (interceptor-lar işləyir).</summary>
-public sealed class PostgresUnitOfWork(QonaqetDbContext context) : IUnitOfWork
+public sealed class PostgresUnitOfWork(QonaqetDbContext context) : IPostgresUnitOfWork
 {
     private IDbContextTransaction? _transaction;
 

@@ -15,6 +15,12 @@ public interface IUnitOfWork
     Task RollbackAsync(CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Postgres tranzaksiyası (ödənişlər, ledger, payout-lar). <see cref="Abstractions.Messaging.IPostgresCommand"/> əmrləri default
+/// (Mongo) əvəzinə bunu açır; hadisələr Postgres outbox-una interceptor ilə eyni <c>SaveChanges</c>-də yazılır.
+/// </summary>
+public interface IPostgresUnitOfWork : IUnitOfWork;
+
 /// <summary>Bu sorğuda yüklənən/yaradılan aqreqatlar. Repository-lər qeyd edir, UnitOfWork hadisələri buradan toplayır.</summary>
 public interface IAggregateTracker
 {
