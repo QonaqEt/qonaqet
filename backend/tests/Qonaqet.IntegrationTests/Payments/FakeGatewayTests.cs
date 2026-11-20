@@ -7,21 +7,20 @@ using Qonaqet.Infrastructure.Payments;
 using Qonaqet.Infrastructure.Payments.Fake;
 using Qonaqet.Infrastructure.Payments.Payriff;
 using Qonaqet.IntegrationTests.Identity;
-using Qonaqet.IntegrationTests.Persistence.Mongo;
 
 namespace Qonaqet.IntegrationTests.Payments;
 
-/// <summary>Fake gateway: ödəniş səhifəsi (yalnız Development), status/refund davranışı, provayder seçimi.</summary>
-[Collection(MongoCollection.Name)]
-public sealed class FakeGatewayTests(MongoFixture mongo)
+/// <summary>Fake gateway (səhifə ödənişdən sonra callback-i simulyasiya edir, ona görə Postgres də lazımdır): ödəniş səhifəsi (yalnız Development), status/refund davranışı, provayder seçimi.</summary>
+[Collection(PaymentsCollection.Name)]
+public sealed class FakeGatewayTests(PaymentsFixture fixture)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task Checkout_page_marks_the_order_paid_once()
     {
-        mongo.SkipIfUnavailable();
-        await using var host = new ApiTestHost(mongo);
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
         var order = await CreateOrderAsync(host, 12_50);
         Assert.StartsWith("http://localhost:5080/api/v1/payments/fake/fake-", order.PaymentUrl.ToString(), StringComparison.Ordinal);
 
@@ -52,8 +51,8 @@ public sealed class FakeGatewayTests(MongoFixture mongo)
     [Fact]
     public async Task Checkout_page_can_fail_the_order()
     {
-        mongo.SkipIfUnavailable();
-        await using var host = new ApiTestHost(mongo);
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
         var order = await CreateOrderAsync(host, 500);
 
         using var fail = await host.GetAsync(order.PaymentUrl.PathAndQuery + "?result=failed", null);
@@ -65,8 +64,8 @@ public sealed class FakeGatewayTests(MongoFixture mongo)
     [Fact]
     public async Task Refunds_never_exceed_the_paid_amount()
     {
-        mongo.SkipIfUnavailable();
-        await using var host = new ApiTestHost(mongo);
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
         var order = await CreateOrderAsync(host, 10_00);
         await using var scope = host.Services.CreateAsyncScope();
         var fake = scope.ServiceProvider.GetRequiredService<FakePaymentGateway>();
@@ -85,8 +84,8 @@ public sealed class FakeGatewayTests(MongoFixture mongo)
     [Fact]
     public async Task Checkout_page_is_not_found_outside_development()
     {
-        mongo.SkipIfUnavailable();
-        await using var host = new ApiTestHost(mongo, environment: "Staging");
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync("Staging");
         await using var scope = host.Services.CreateAsyncScope();
 
         // Sandbox (partnyorlar) hər mühitdə Fake-dir; səhifə isə yalnız Development-də açılır.
