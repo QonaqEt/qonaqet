@@ -26,6 +26,12 @@ public interface IOfferRepository : IRepository<Offer, OfferId>
     /// </summary>
     Task ReleaseUnitAsync(OfferId offerId, OfferType type, string? quotaDate, CancellationToken cancellationToken);
 
+    /// <summary>Biznes silinəndə onun bütün təkliflərini <see cref="BusinessCascade.DeleteReason"/> ilə soft delete edir.</summary>
+    Task<long> CascadeDeleteForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken);
+
+    /// <summary>Kaskadla silinmiş təklifləri bərpa edir (sahibin ayrıca sildikləri silinmiş qalır).</summary>
+    Task<long> CascadeRestoreForBusinessAsync(BusinessId businessId, Guid? userId, CancellationToken cancellationToken);
+
     /// <summary>İstifadəçinin ianəçi olduğu (askıda/remote) təkliflər, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<Offer>> ListDonatedByAsync(Guid donorUserId, int limit, CancellationToken cancellationToken);
 }
@@ -62,6 +68,9 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
 
     /// <summary>Biznesdə qısa kodun hash-inə uyğun ən son claim (istənilən statusda, ki təkrar təhvil <c>already_redeemed</c> alsın).</summary>
     Task<Claim?> FindByShortCodeAsync(BusinessId businessId, string shortCodeHash, CancellationToken cancellationToken);
+
+    /// <summary>Biznesin bütün <c>Reserved</c> claim-ləri (biznes silinəndə ləğv üçün).</summary>
+    Task<IReadOnlyList<Claim>> ListReservedForBusinessAsync(BusinessId businessId, CancellationToken cancellationToken);
 
     /// <summary>İstifadəçinin bütün <c>Reserved</c> claim-ləri (bloklama zamanı ləğv üçün).</summary>
     Task<IReadOnlyList<Claim>> ListReservedForUserAsync(Guid userId, CancellationToken cancellationToken);

@@ -110,12 +110,28 @@ digər mühitlərdə məcburidir.
   (`identity_already_used`). Admin `/api/v1/admin/verifications` ilə təsdiqləyir/rədd edir; `validUntil` kateqoriyanın qaydasından
   (Bakı təqvimi) hesablanır və əl ilə dəyişdirilə bilər. Müddət məntiqidir; Worker bitməyə 14 gün qalmış bir dəfə push + email göndərir.
 
+### Sosial qonaqlıq (E06)
+
+- **Təkliflər:** sahib `POST /api/v1/business/{id}/offers` ilə gündəlik pulsuz təklif (kvota, istəyə bağlı `HH:mm` pəncərəsi), işçi
+  `POST .../offers/suspended` ilə kassadakı "askıda"nı (say, adlı/anonim ianəçi, istəyə bağlı `donorEmail`) qeyd edir. İctimai siyahı
+  `GET /api/v1/offers?categoryId=&businessId=`.
+- **Claim:** `POST /api/v1/offers/{id}/claim` 30 dəqiqəlik rezerv yaradır. Vahid tək şərtli atomik `FindOneAndUpdate` ilə götürülür
+  (tranzaksiyasız, `INonTransactionalCommand`), gündəlik sayğac Bakı günü ilə lazy sıfırlanır, bitəndə `409 quota_exhausted`. Limitlər:
+  bir aktiv rezerv, təklifdən gündə bir, kateqoriyalar arasında ən səxavətli gündəlik/aylıq say (`limit_reached`).
+- **Kodlar:** QR `base64url("c." + claimId + "." + HMAC)` (`Security__QrSigningSecret`) və 8 simvollu qısa kod; DB-də yalnız qısa kodun
+  hash-i saxlanılır. `GET /api/v1/me/claims`, `POST /api/v1/claims/{id}/cancel`, `GET /api/v1/me/donations` (yalnız aqreqatlar).
+- **Təhvil:** `POST /api/v1/business/{id}/redeem/preview` və `.../redeem` (`{ code }`, rate-limitli); işçi yalnız məhsulu, statusu,
+  məbləği və etiketi görür (həssas kateqoriyada "Qonaq"). Təhvil `ClaimRedeemed` outbox hadisəsi yazır; gündəlik/askıda üçün komissiya yoxdur.
+- Worker `claim-expiry` (dəqiqədə bir) bitmiş rezervləri buraxır; `social-claims` consumer-i `UserBlocked` və `BusinessDeleted`-də aktiv
+  claim-ləri ləğv edir, biznesin təkliflərini kaskad soft delete/bərpa edir.
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
 fayllar/email/bildirişlər (E03: RustFS saxlama, yükləmə axını, MailKit + şablonlar, Playwright PDF, FCM push + seçimlər) və
 bizneslər/kataloq (E04: müraciət + aktivləşdirmə, işçilər, kataloq, parametrlər, coğrafi axtarış, şəbəkələr) və
-kateqoriyalar/təsdiq (E05: dinamik kateqoriyalar + default hovuz, seed, təsdiq sihirbazı, FIN hash, admin baxışı, xatırlatmalar) hazırdır.
+kateqoriyalar/təsdiq (E05: dinamik kateqoriyalar + default hovuz, seed, təsdiq sihirbazı, FIN hash, admin baxışı, xatırlatmalar) və
+sosial qonaqlıq (E06: gündəlik/askıda təkliflər, atomik claim, limitlər, QR/qısa kod, təhvil, müddət job-u, məxfilik testləri) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 
