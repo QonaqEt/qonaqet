@@ -142,6 +142,20 @@ digər mühitlərdə məcburidir.
   `ledger-reconciliation` gecəlik hovuzların Mongo balansını (`balance − reserved`) ledger ilə müqayisə edir, fərqlər
   `GET /api/v1/admin/ledger/reconciliation`-da görünür və xəbərdarlıq logu verir.
 
+### Hovuzlar, kampaniyalar və ianələr (E08)
+
+- **İanələr** (`Idempotency-Key`, məbləğ serverdə; cavabda `refundable: false` — ianələr geri qaytarılmır): `POST /api/v1/donations/remote`
+  (kataloq məhsulu × say → ödənişdən sonra görünən `Remote` təklif), `POST .../donations/pool` (kateqoriyanın default hovuzu),
+  `POST .../donations/campaign`. Ödəniş təsdiqini Worker-in `payment-fulfillment` consumer-i idempotent yerinə yetirir (hovuz balansı +
+  ledger `PoolDeposit`). `GET /api/v1/me/donations/pools` — ianəçinin aqreqatları.
+- **Hovuz claim-i:** `POST /api/v1/pool-claims` (`acceptsPool` biznesin məhsulu; `poolAccess` olan kateqoriyalar; əvvəl ən tez bitən aktiv
+  kampaniya hovuzu, sonra default). Rezerv atomik şərtli yeniləmədir (`balance − reserved ≥ qiymət`), `pool_insufficient`; ledger-də
+  `PoolReserve`/`PoolRelease`, beləliklə hovuz hesabı = `balance − reserved`. Alıcı "Leyla sizə ısmarladı 💚" görür: claim ən köhnə
+  istifadə olunmamış ianədən maliyyələşir, təhvildə məbləğ ianələrdən FIFO ilə xərclənir.
+- **Kampaniyalar:** admin `/api/v1/admin/campaigns` (yarat, dəyiş, aktivləşdir — hovuz yaranır); 4 qaralama şablon seed olunur. Worker
+  `campaign-end` (5 dəqiqə) bitmiş kampaniyanı `Ended` edir və qalığı default hovuza köçürür (`CampaignRollover`).
+- **İctimai:** `GET /api/v1/public/stats` (60 s keş), `GET /api/v1/pools/summary`, `GET /api/v1/campaigns/active` — yalnız aqreqatlar.
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
@@ -149,7 +163,8 @@ fayllar/email/bildirişlər (E03: RustFS saxlama, yükləmə axını, MailKit + 
 bizneslər/kataloq (E04: müraciət + aktivləşdirmə, işçilər, kataloq, parametrlər, coğrafi axtarış, şəbəkələr) və
 kateqoriyalar/təsdiq (E05: dinamik kateqoriyalar + default hovuz, seed, təsdiq sihirbazı, FIN hash, admin baxışı, xatırlatmalar) və
 sosial qonaqlıq (E06: gündəlik/askıda təkliflər, atomik claim, limitlər, QR/qısa kod, təhvil, müddət job-u, məxfilik testləri) və
-ödənişlər/ledger (E07: Payriff + Fake gateway, payments/refunds, callback + yenidən yoxlama, ledger + komissiya, payout-lar, uzlaşdırma) hazırdır.
+ödənişlər/ledger (E07: Payriff + Fake gateway, payments/refunds, callback + yenidən yoxlama, ledger + komissiya, payout-lar, uzlaşdırma) və
+hovuzlar/kampaniyalar (E08: remote/hovuz/kampaniya ianələri, hovuz claim-ləri, donor atribusiyası, kampaniya qalığının köçməsi, ictimai statistika) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 

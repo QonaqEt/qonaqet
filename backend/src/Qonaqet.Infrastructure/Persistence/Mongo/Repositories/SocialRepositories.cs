@@ -263,6 +263,7 @@ public static class SocialRegistration
         services.AddScoped<IClaimRepository, ClaimRepository>();
         services.AddScoped<IPoolDonationRepository, PoolDonationRepository>();
         services.AddScoped<ICampaignRepository, CampaignRepository>();
+        services.AddScoped<ISocialStatsReader, SocialStatsReader>();
         services.AddScoped<Application.Features.Donations.Commands.DonatePool.PoolDonationStarter>();
         services.AddScoped<OfferReferenceCheck>();
         services.AddScoped<SocialEligibility>();
