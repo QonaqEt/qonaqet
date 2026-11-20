@@ -37,5 +37,14 @@ public static class SocialErrors
 
     public static readonly Error ClaimNotFound = Error.NotFound("claim_not_found", "Claim tapılmadı.");
 
+    /// <summary>Kod tanınmadı, saxtadır və ya başqa biznesə aiddir (fərq açıqlanmır).</summary>
+    public static readonly Error CodeNotFound = Error.NotFound("code_not_found", "Kod tapılmadı.");
+
+    public static readonly Error AlreadyRedeemed = Error.Conflict("already_redeemed", "Bu kod artıq istifadə olunub.");
+
+    public static readonly Error ClaimExpired = Error.Conflict("claim_expired", "Rezervin müddəti bitib.");
+
+    public static readonly Error ClaimCancelled = Error.Conflict("claim_cancelled", "Bu rezerv ləğv olunub.");
+
     public static readonly Error DonorNotFound = Error.NotFound("donor_not_found", "Bu email ilə QONAQET hesabı yoxdur.");
 }

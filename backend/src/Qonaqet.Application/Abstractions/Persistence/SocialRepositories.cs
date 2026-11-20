@@ -57,6 +57,9 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
     /// </summary>
     Task<long> CountCountedSinceAsync(Guid userId, DateTimeOffset since, OfferId? offerId, CancellationToken cancellationToken);
 
+    /// <summary>Biznesdə qısa kodun hash-inə uyğun ən son claim (istənilən statusda, ki təkrar təhvil <c>already_redeemed</c> alsın).</summary>
+    Task<Claim?> FindByShortCodeAsync(BusinessId businessId, string shortCodeHash, CancellationToken cancellationToken);
+
     /// <summary>Alıcının claim-ləri, ən yenilər əvvəl, ən çox <paramref name="limit"/>.</summary>
     Task<IReadOnlyList<Claim>> ListForRecipientAsync(Guid userId, int limit, CancellationToken cancellationToken);
 }

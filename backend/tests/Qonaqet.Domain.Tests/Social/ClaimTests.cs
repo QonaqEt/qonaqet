@@ -1,0 +1,75 @@
+using Qonaqet.Domain.Businesses;
+using Qonaqet.Domain.Categories;
+using Qonaqet.Domain.Social;
+using Qonaqet.SharedKernel;
+
+namespace Qonaqet.Domain.Tests.Social;
+
+public sealed class ClaimTests
+{
+    private static readonly DateTimeOffset Now = new(2026, 11, 20, 8, 0, 0, TimeSpan.Zero);
+
+    private static Offer Daily() => Offer.CreateDaily(
+        StronglyTypedId.New<BusinessId>(), StronglyTypedId.New<CategoryId>(),
+        new DailyOfferDetails("Çay", null, 5, null, null, DonorDisplay.Anonymous, null, true), Now, null);
+
+    private static Claim Reserve(Offer? offer = null) =>
+        Claim.ReserveFromOffer(offer ?? Daily(), Guid.CreateVersion7(), "Bir xeyirxah insan sizə ısmarladı 💚", "2026-11-20", Now);
+
+    [Fact]
+    public void Reservation_lasts_thirty_minutes_and_snapshots_the_offer()
+    {
+        var offer = Daily();
+        var claim = Reserve(offer);
+
+        Assert.Equal(ClaimStatus.Reserved, claim.Status);
+        Assert.Equal(Now.AddMinutes(30), claim.ExpiresAt);
+        Assert.Equal(offer.Id, claim.OfferId);
+        Assert.Equal(OfferType.BusinessDaily, claim.OfferType);
+        Assert.Equal("Çay", claim.Title);
+        Assert.Equal("2026-11-20", claim.QuotaDate);
+        Assert.True(claim.IsRedeemableAt(Now.AddMinutes(29)));
+        Assert.False(claim.IsRedeemableAt(Now.AddMinutes(30)));
+        Assert.False(claim.IsCommissionable);
+    }
+
+    [Fact]
+    public void Redeem_raises_one_event_and_cannot_repeat()
+    {
+        var claim = Reserve();
+        var staff = Guid.CreateVersion7();
+
+        claim.Redeem(staff, Now.AddMinutes(5));
+
+        Assert.Equal(ClaimStatus.Redeemed, claim.Status);
+        Assert.Equal(staff, claim.RedeemedByStaffId);
+        var evt = Assert.IsType<ClaimRedeemed>(Assert.Single(claim.DequeueDomainEvents()));
+        Assert.False(evt.Commissionable);
+        Assert.Null(evt.AmountQepik);
+        Assert.Throws<InvalidOperationException>(() => claim.Redeem(staff, Now.AddMinutes(6)));
+    }
+
+    [Fact]
+    public void Expired_reservation_cannot_be_redeemed_and_closed_claims_cannot_change()
+    {
+        var late = Reserve();
+        Assert.Throws<InvalidOperationException>(() => late.Redeem(Guid.CreateVersion7(), Now.AddMinutes(31)));
+
+        late.Expire(Now.AddMinutes(31));
+        Assert.Equal(ClaimStatus.Expired, late.Status);
+        Assert.Throws<InvalidOperationException>(() => late.Cancel("user", Now, null));
+
+        var cancelled = Reserve();
+        cancelled.Cancel("user_cancelled", Now, null);
+        Assert.Equal("user_cancelled", cancelled.CancelReason);
+        Assert.Throws<InvalidOperationException>(() => cancelled.Expire(Now));
+    }
+
+    [Fact]
+    public void Short_code_hash_is_attached_once()
+    {
+        var claim = Reserve();
+        claim.AttachShortCode("abc");
+        Assert.Throws<InvalidOperationException>(() => claim.AttachShortCode("def"));
+    }
+}

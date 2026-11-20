@@ -121,8 +121,18 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
         }
     }
 
-    public Task<bool> TryTransitionAsync(Claim claim, ClaimStatus expected, CancellationToken cancellationToken) =>
-        TryReplaceAsync(claim, Filter.Eq(x => x.Status, expected), cancellationToken);
+    public async Task<bool> TryTransitionAsync(Claim claim, ClaimStatus expected, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await TryReplaceAsync(claim, Filter.Eq(x => x.Status, expected), cancellationToken).ConfigureAwait(false);
+        }
+        catch (MongoException ex) when (Context.Session is not null && ex.HasErrorLabel("TransientTransactionError"))
+        {
+            // Paralel tranzaksiya eyni claim-i elə indi dəyişir (məs. iki işçi eyni kodu skan etdi): qalib o olur.
+            return false;
+        }
+    }
 
     public async Task<Claim?> FindReservedForUserAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -155,6 +165,19 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
             : await Collection.CountDocumentsAsync(Active(filter), cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<Claim?> FindByShortCodeAsync(BusinessId businessId, string shortCodeHash, CancellationToken cancellationToken)
+    {
+        var filter = Active(Filter.And(Filter.Eq(x => x.BusinessId, businessId), Filter.Eq(x => x.ShortCodeHash, shortCodeHash)));
+        var find = Context.Session is { } session ? Collection.Find(session, filter) : Collection.Find(filter);
+        var claim = await find.SortByDescending(x => x.CreatedAt).Limit(1).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        if (claim is not null)
+        {
+            Tracker.Track(claim);
+        }
+
+        return claim;
+    }
+
     public async Task<IReadOnlyList<Claim>> ListForRecipientAsync(Guid userId, int limit, CancellationToken cancellationToken)
     {
         var filter = Active(Filter.Eq(x => x.RecipientUserId, userId));
@@ -182,6 +205,7 @@ public static class SocialRegistration
         services.AddScoped<ClaimRelease>();
         services.AddScoped<SocialLimits>();
         services.AddScoped<ClaimPresenter>();
+        services.AddScoped<RedemptionCodeResolver>();
         return services;
     }
 }
