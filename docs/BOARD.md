@@ -16,7 +16,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E06](epics/E06.md) | Social treating | ✅ done | @Tapdiq49 | 9/9 | — |
 | [E07](epics/E07.md) | Payments & ledger | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ✅ done | @Tapdiq49 | 6/6 | — |
-| [E09](epics/E09.md) | Gifting | 🔄 in-progress | @Tapdiq49 | 3/10 | — |
+| [E09](epics/E09.md) | Gifting | 🔄 in-progress | @Tapdiq49 | 4/10 | — |
 | [E10](epics/E10.md) | Corporate & CSR | ⬜ todo | — | 0/5 | E09 |
 | [E11](epics/E11.md) | Leaderboard & gamification | ⬜ todo | — | 0/6 | E09 |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo · 🟢 götürülə bilər | — | 0/4 | — |
@@ -180,14 +180,14 @@ Yoxdur.
 
 ## E09 — Gifting
 
-🔄 in-progress · @Tapdiq49 · 3/10 task
+🔄 in-progress · @Tapdiq49 · 4/10 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
 | ✅ | E09-T01 | Gift aqreqatı və qiymətin serverdə hesablanması | backend | p0 | L |
 | ✅ | E09-T02 | Hədiyyənin yaradılması və ödəniş | backend | p0 | M |
 | ✅ | E09-T03 | Link token-ləri və public hədiyyə API-si | backend | p0 | M |
-| ⬜ | E09-T04 | Hesaba əlavə etmə və linkin yenidən verilməsi | backend | p0 | M |
+| ✅ | E09-T04 | Hesaba əlavə etmə və linkin yenidən verilməsi | backend | p0 | M |
 | ⬜ | E09-T05 | Çatdırılma job-u | backend | p0 | M |
 | ⬜ | E09-T06 | Təhvil: QR, preview və qismən təhvil | backend | p0 | L |
 | ⬜ | E09-T07 | GiftRedeemed consumer-i | backend | p0 | M |

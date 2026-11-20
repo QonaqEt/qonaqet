@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Qonaqet.Application.Features.Gifts.Commands.ClaimGiftToAccount;
 using Qonaqet.Application.Features.Gifts.Commands.OpenPublicGift;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.SharedKernel.Messaging;
@@ -18,4 +19,9 @@ public sealed class PublicGiftsController(ISender sender) : ControllerBase
     [HttpGet("{token}")]
     public async Task<IActionResult> Get(string token, CancellationToken cancellationToken) =>
         (await sender.Send(new OpenPublicGiftCommand(token), cancellationToken)).ToActionResult();
+
+    /// <summary>"Hesabıma əlavə et" (login tələb edir): hədiyyə hesaba bağlanır, link işləməyə davam edir.</summary>
+    [HttpPost("{token}/claim")]
+    public async Task<IActionResult> Claim(string token, CancellationToken cancellationToken) =>
+        (await sender.Send(new ClaimGiftToAccountCommand(token), cancellationToken)).ToActionResult();
 }

@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Qonaqet.Application.Features.Gifts.Commands.CreateGift;
+using Qonaqet.Application.Features.Gifts.Commands.ReissueGiftLink;
 using Qonaqet.Application.Features.Gifts.Commands.RevealGiftLink;
+using Qonaqet.Application.Features.Gifts.Queries.MyGifts;
 using Qonaqet.Application.Features.Gifts.Common;
 using Qonaqet.Domain.Gifts;
 using Qonaqet.Infrastructure.Web;
@@ -40,6 +42,24 @@ public sealed class GiftsController(ISender sender) : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.GiftLink)]
     public async Task<IActionResult> ShareLink(Guid giftId, CancellationToken cancellationToken) =>
         (await sender.Send(new RevealGiftLinkCommand(GiftId.From(giftId)), cancellationToken)).ToActionResult();
+
+    /// <summary>Yeni link (köhnəsi dərhal etibarsız olur); yalnız göndərən.</summary>
+    [HttpPost("{giftId:guid}/reissue-link")]
+    [EnableRateLimiting(RateLimitPolicies.GiftLink)]
+    public async Task<IActionResult> ReissueLink(Guid giftId, CancellationToken cancellationToken) =>
+        (await sender.Send(new ReissueGiftLinkCommand(GiftId.From(giftId)), cancellationToken)).ToActionResult();
+
+    [HttpGet("sent")]
+    public async Task<IActionResult> Sent(CancellationToken cancellationToken) =>
+        (await sender.Send(new GetSentGiftsQuery(), cancellationToken)).ToActionResult();
+
+    [HttpGet("received")]
+    public async Task<IActionResult> Received(CancellationToken cancellationToken) =>
+        (await sender.Send(new GetReceivedGiftsQuery(), cancellationToken)).ToActionResult();
+
+    [HttpGet("{giftId:guid}")]
+    public async Task<IActionResult> Get(Guid giftId, CancellationToken cancellationToken) =>
+        (await sender.Send(new GetGiftQuery(GiftId.From(giftId)), cancellationToken)).ToActionResult();
 
     public sealed record CreateGiftRequest(
         GiftKind Kind,
