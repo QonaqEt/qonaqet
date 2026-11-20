@@ -49,6 +49,12 @@ public interface IPoolRepository : IRepository<Pool, PoolId>
     /// </summary>
     Task<IReadOnlyList<Pool>> ListClaimablePoolsAsync(IReadOnlyCollection<CategoryId> categoryIds, DateTimeOffset now, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Kampaniya hovuzunun istifadə olunmamış qalığını (<c>balance − reserved</c>) default hovuza köçürür: bir Mongo tranzaksiyasında hər iki hovuz,
+    /// kampaniyanın <c>rolledOverQepik</c>-i və <c>CampaignRolledOver</c> outbox hadisəsi. Köçən məbləği qaytarır (0 — köçəcək heç nə yoxdur).
+    /// </summary>
+    Task<long> RollOverAsync(PoolId fromPoolId, PoolId toPoolId, CampaignId campaignId, CancellationToken cancellationToken);
+
     /// <summary>Bütün (silinməmiş) hovuzların balansları — gecəlik ledger uzlaşdırması üçün.</summary>
     Task<IReadOnlyList<PoolBalance>> ListBalancesAsync(CancellationToken cancellationToken);
 }

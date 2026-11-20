@@ -107,6 +107,51 @@ public sealed class PoolDonationRepository(MongoContext context, IAggregateTrack
     }
 }
 
+public sealed class CampaignRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<Campaign, CampaignId>(context, tracker, outbox, clock, DonationCollectionNames.Campaigns), ICampaignRepository
+{
+    public async Task<bool> SlugExistsAsync(string slug, CampaignId? except, CancellationToken cancellationToken)
+    {
+        var filter = Filter.Eq(x => x.Slug, slug);
+        if (except is { } id)
+        {
+            filter = Filter.And(filter, Filter.Ne(x => x.Id, id));
+        }
+
+        return (await FindAsync(filter, cancellationToken).ConfigureAwait(false)).Count > 0;
+    }
+
+    public async Task<Campaign?> GetBySlugAsync(string slug, CancellationToken cancellationToken) =>
+        (await FindAsync(Filter.Eq(x => x.Slug, slug), cancellationToken).ConfigureAwait(false)).FirstOrDefault();
+
+    public async Task<IReadOnlyList<Campaign>> ListAsync(CampaignStatus? status, int limit, CancellationToken cancellationToken)
+    {
+        var filter = status is { } s ? Active(Filter.Eq(x => x.Status, s)) : Active();
+        return await Collection.Find(filter).SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<Campaign>> ListOpenAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.And(Filter.Eq(x => x.Status, CampaignStatus.Active), Filter.Lte(x => x.StartsAt, now), Filter.Gt(x => x.EndsAt, now))))
+            .SortBy(x => x.EndsAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<Campaign>> ListDueToEndAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.And(Filter.Eq(x => x.Status, CampaignStatus.Active), Filter.Lte(x => x.EndsAt, now))))
+            .SortBy(x => x.EndsAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<bool> TryEndAsync(CampaignId id, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var result = await Collection.UpdateOneAsync(
+            Active(Filter.And(ById(id), Filter.Eq(x => x.Status, CampaignStatus.Active))),
+            Builders<Campaign>.Update.Set(x => x.Status, CampaignStatus.Ended).Set(x => x.EndedAt, now).Set(x => x.UpdatedAt, now),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount == 1;
+    }
+
+    public async Task<IReadOnlyList<Campaign>> ListEndedAsync(int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.Eq(x => x.Status, CampaignStatus.Ended))).SortByDescending(x => x.EndedAt).Limit(limit)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+}
+
 public static class DonationCollectionNames
 {
     public const string PoolDonations = "poolDonations";

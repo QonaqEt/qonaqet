@@ -119,6 +119,52 @@ public sealed class PoolRepository(MongoContext context, IAggregateTracker track
         return ordered;
     }
 
+    public async Task<long> RollOverAsync(PoolId fromPoolId, PoolId toPoolId, CampaignId campaignId, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await Context.InTransactionAsync(async ct =>
+                {
+                    var session = Context.Session!;
+                    var from = await Collection.Find(session, ById(fromPoolId)).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+                    var amount = from is null ? 0 : from.BalanceQepik - from.ReservedQepik;
+                    if (amount <= 0)
+                    {
+                        return 0L;
+                    }
+
+                    var now = Clock.UtcNow;
+                    var debit = await Collection.UpdateOneAsync(
+                        session,
+                        Filter.And(ById(fromPoolId), Filter.Eq(x => x.BalanceQepik, from!.BalanceQepik), Filter.Eq(x => x.ReservedQepik, from.ReservedQepik)),
+                        Builders<Pool>.Update.Inc(x => x.BalanceQepik, -amount).Set(x => x.UpdatedAt, now),
+                        cancellationToken: ct).ConfigureAwait(false);
+                    if (debit.ModifiedCount != 1)
+                    {
+                        return 0L;
+                    }
+
+                    await Collection.UpdateOneAsync(
+                        session, ById(toPoolId), Builders<Pool>.Update.Inc(x => x.BalanceQepik, amount).Set(x => x.UpdatedAt, now), cancellationToken: ct)
+                        .ConfigureAwait(false);
+                    await Context.Collection<BsonDocument>(DonationCollectionNames.Campaigns).UpdateOneAsync(
+                        session,
+                        new BsonDocument("_id", new BsonBinaryData(campaignId.Value, GuidRepresentation.Standard)),
+                        new BsonDocument("$inc", new BsonDocument("rolledOverQepik", amount)),
+                        cancellationToken: ct).ConfigureAwait(false);
+                    await Outbox.AddAsync([new CampaignRolledOver(campaignId, fromPoolId, toPoolId, amount, now)], ct).ConfigureAwait(false);
+                    return amount;
+                }, cancellationToken).ConfigureAwait(false);
+            }
+            catch (MongoException ex) when (ex.HasErrorLabel("TransientTransactionError") && attempt < 8)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(10 * attempt), cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
     public async Task<IReadOnlyList<PoolBalance>> ListBalancesAsync(CancellationToken cancellationToken)
     {
         var pools = await FindAsync(Filter.Empty, cancellationToken).ConfigureAwait(false);
@@ -256,7 +302,8 @@ public sealed class MongoCategoryUsageReader(MongoContext context) : ICategoryUs
         var id = new BsonBinaryData(categoryId.Value, GuidRepresentation.Standard);
         var byCategory = F.Eq("categoryId", id);
         var activeOffers = F.And(byCategory, F.Or(F.Eq("isActive", true), F.Gt("remaining", 0)));
-        var activeCampaigns = F.And(byCategory, F.In("status", new BsonValue[] { "Draft", "Active" }));
+        // Yalnız aktiv kampaniya mane olur: qaralamanın (seed şablonları daxil) hovuzu və pulu yoxdur, kateqoriyası dəyişdirilə bilər.
+        var activeCampaigns = F.And(byCategory, F.Eq("status", "Active"));
         var poolBalance = F.And(byCategory, F.Or(F.Gt("balanceQepik", 0L), F.Gt("reservedQepik", 0L)));
         var validVerification = F.ElemMatch<BsonValue>(
             "verifiedCategories",

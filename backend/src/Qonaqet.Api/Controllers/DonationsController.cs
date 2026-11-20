@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Qonaqet.Application.Features.Campaigns.Commands;
 using Qonaqet.Application.Features.Donations.Commands.DonatePool;
 using Qonaqet.Application.Features.Donations.Commands.DonateRemote;
 using Qonaqet.Application.Features.Donations.Queries.GetMyPoolDonations;
@@ -35,6 +36,14 @@ public sealed class DonationsController(ISender sender) : ControllerBase
     {
         var result = await sender.Send(
             new DonatePoolCommand(CategoryId.From(request.CategoryId ?? Guid.Empty), request.AmountQepik, request.DonorDisplay, request.DonorName), cancellationToken);
+        return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : result.ToActionResult();
+    }
+
+    [HttpPost("donations/campaign")]
+    public async Task<IActionResult> Campaign(AmountDonationRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(
+            new DonateCampaignCommand(CampaignId.From(request.CampaignId ?? Guid.Empty), request.AmountQepik, request.DonorDisplay, request.DonorName), cancellationToken);
         return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : result.ToActionResult();
     }
 
