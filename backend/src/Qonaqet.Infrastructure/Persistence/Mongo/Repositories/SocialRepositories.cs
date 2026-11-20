@@ -3,6 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Features.Social.Common;
+using Qonaqet.Application.Features.Social.Events;
 using Qonaqet.Domain.Businesses;
 using Qonaqet.Domain.Categories;
 using Qonaqet.Domain.Social;
@@ -188,6 +189,10 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
         Collection.CountDocumentsAsync(
             Active(Filter.And(Filter.Eq(x => x.OfferId, offerId), Filter.Eq(x => x.Status, ClaimStatus.Redeemed))), cancellationToken: cancellationToken);
 
+    public async Task<IReadOnlyList<Claim>> ListReservedForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.And(Filter.Eq(x => x.RecipientUserId, userId), Filter.Eq(x => x.Status, ClaimStatus.Reserved))))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public async Task<IReadOnlyList<Claim>> ListStaleReservedAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken)
     {
         var filter = Active(Filter.And(Filter.Eq(x => x.Status, ClaimStatus.Reserved), Filter.Lte(x => x.ExpiresAt, now)));
@@ -222,6 +227,7 @@ public static class SocialRegistration
         services.AddScoped<SocialLimits>();
         services.AddScoped<ClaimPresenter>();
         services.AddScoped<RedemptionCodeResolver>();
+        services.AddScoped<SocialCascade>();
         return services;
     }
 }
