@@ -90,6 +90,7 @@ public static class MongoIndexCatalog
             Query("gifts", ("status", 1), ("deliverAt", 1)),
             Query("gifts", ("status", 1), ("expiresAt", 1)),
             Query("gifts", ("shortCodeHash", 1)),
+            Query("gifts", ("refundDueQepik", 1), ("updatedAt", 1)),
             Query("verificationRequests", ("status", 1), ("createdAt", 1)),
             Query("verificationRequests", ("userId", 1), ("categoryId", 1)),
             Query("giftRedemptions", ("giftId", 1)),

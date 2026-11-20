@@ -54,6 +54,9 @@ public static class Program
         // Vaxtı çatmış hədiyyələri çatdırır (temalı email + push); hər hədiyyə versiya şərti ilə bir dəfə.
         builder.Services.AddScheduledJob<DeliverScheduledGiftsJob>(DeliverScheduledGiftsJob.Name, DeliverScheduledGiftsJob.Interval);
 
+        // Ləğv/müddət refundları provayder əlçatmaz olanda burada təkrarlanır (idempotent).
+        builder.Services.AddScheduledJob<RetryGiftRefundsJob>(RetryGiftRefundsJob.Name, RetryGiftRefundsJob.Interval);
+
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Services.AddHostedService<WorkerHeartbeat>();
         builder.Build().Run();
