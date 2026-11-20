@@ -14,7 +14,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E04](epics/E04.md) | Businesses & catalog | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E05](epics/E05.md) | Categories & verification | ✅ done | @Tapdiq49 | 7/7 | — |
 | [E06](epics/E06.md) | Social treating | ✅ done | @Tapdiq49 | 9/9 | — |
-| [E07](epics/E07.md) | Payments & ledger | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
+| [E07](epics/E07.md) | Payments & ledger | 🔄 in-progress | @Tapdiq49 | 1/6 | — |
 | [E08](epics/E08.md) | Pools, campaigns & donations | ⬜ todo | — | 0/6 | E07 |
 | [E09](epics/E09.md) | Gifting | ⬜ todo | — | 0/10 | E07 |
 | [E10](epics/E10.md) | Corporate & CSR | ⬜ todo | — | 0/5 | E09 |
@@ -154,11 +154,11 @@ Yoxdur.
 
 ## E07 — Payments & ledger
 
-⬜ todo · 0/6 task
+🔄 in-progress · @Tapdiq49 · 1/6 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
-| ⬜ | E07-T01 | Payriff client | backend | p0 | M |
+| ✅ | E07-T01 | Payriff client | backend | p0 | M |
 | ⬜ | E07-T02 | Fake gateway (Development) | backend | p0 | S |
 | ⬜ | E07-T03 | payments / refunds cədvəlləri və status axını | backend | p0 | M |
 | ⬜ | E07-T04 | Callback və yenidən yoxlama job-u | backend | p0 | M |
