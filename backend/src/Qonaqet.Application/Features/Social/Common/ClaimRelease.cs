@@ -8,9 +8,9 @@ namespace Qonaqet.Application.Features.Social.Common;
 /// Rezervin bağlanması və vahidin geri qaytarılması (müddət bitməsi, alıcının ləğvi, bloklama, biznesin silinməsi). Status keçidi
 /// tranzaksiyadan kənarda şərtli atomik yazılır (<c>Reserved</c> → hədəf); yalnız keçidi edən çağırış vahidi qaytarır, ona görə
 /// iki job instansı, ya da job ilə ləğv eyni anda işləsə də vahid bir dəfə buraxılır (idempotent).
-/// Hovuz rezervləri (E08) burada <c>PoolRelease</c> ilə genişlənəcək.
+/// Hovuz rezervində məbləğ hovuza qaytarılır və <see cref="PoolReservationReleased"/> birbaşa outbox-a yazılır (ledger-də <c>PoolRelease</c>).
 /// </summary>
-public sealed class ClaimRelease(IClaimRepository claims, IOfferRepository offers, IClock clock)
+public sealed class ClaimRelease(IClaimRepository claims, IOfferRepository offers, IPoolRepository pools, IOutbox outbox, IClock clock)
 {
     /// <summary>Müddəti bitmiş rezervi <c>Expired</c> edir; uğurda <c>true</c>.</summary>
     public async Task<bool> ExpireAsync(Claim claim, CancellationToken cancellationToken)
@@ -48,6 +48,14 @@ public sealed class ClaimRelease(IClaimRepository claims, IOfferRepository offer
         if (claim.Source == ClaimSource.Offer && claim.OfferId is { } offerId && claim.OfferType is { } type)
         {
             await offers.ReleaseUnitAsync(offerId, type, claim.QuotaDate, CancellationToken.None).ConfigureAwait(false);
+        }
+        else if (claim.Source == ClaimSource.Pool && claim.PoolId is { } poolId && claim.AmountQepik is { } amount)
+        {
+            if (await pools.ReleaseReservationAsync(poolId, amount, CancellationToken.None).ConfigureAwait(false))
+            {
+                // Job/consumer kontekstində UnitOfWork yoxdur: hadisə birbaşa (sessiyasız) outbox-a yazılır.
+                await outbox.AddAsync([new PoolReservationReleased(claim.Id, poolId, amount, clock.UtcNow)], CancellationToken.None).ConfigureAwait(false);
+            }
         }
 
         return true;

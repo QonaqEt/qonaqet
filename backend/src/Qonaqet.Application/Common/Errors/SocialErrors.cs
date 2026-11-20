@@ -35,6 +35,13 @@ public static class SocialErrors
     public static readonly Error ActiveClaimExists =
         Error.Conflict("limit_reached", "Sizin artıq aktiv rezerviniz var. Onu istifadə edin və ya ləğv edin.");
 
+    public static readonly Error PoolInsufficient = Error.Conflict("pool_insufficient", "Hovuzda hazırda kifayət qədər vəsait yoxdur.");
+
+    public static readonly Error PoolNotAccepted = Error.Conflict("pool_not_accepted", "Bu biznes hovuzdan ödənişi qəbul etmir.");
+
+    public static readonly Error PoolSpendLimitReached =
+        Error.Conflict("limit_reached", "Hovuzdan bugünkü xərc limitinə çatdınız. Sabah yenidən baxın.");
+
     public static readonly Error ClaimNotFound = Error.NotFound("claim_not_found", "Claim tapılmadı.");
 
     /// <summary>Kod tanınmadı, saxtadır və ya başqa biznesə aiddir (fərq açıqlanmır).</summary>

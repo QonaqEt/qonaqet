@@ -24,6 +24,7 @@ public sealed class LedgerOptions
 /// <list type="bullet">
 /// <item><see cref="ClaimRedeemed"/>: onlayn ödənişli (remote, hovuz) → <c>RedemptionCredit</c> + 7% <c>Commission</c>; <c>BusinessDaily</c>/<c>Suspended</c> → heç nə.</item>
 /// <item><see cref="PaymentRefunded"/>: platforma hesabından <c>Refund</c>.</item>
+/// <item><see cref="PoolClaimReserved"/> / <see cref="PoolReservationReleased"/>: hovuz hesabında <c>PoolReserve</c> (−) / <c>PoolRelease</c> (+).</item>
 /// </list>
 /// Hədiyyə təhvili (<c>GiftRedeemed</c>) E09 ilə eyni <see cref="LedgerPostings.Redemption"/> qaydasına qoşulur.
 /// </summary>
@@ -33,9 +34,13 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
 
     public static readonly string PaymentRefundedType = typeof(PaymentRefunded).FullName!;
 
+    public static readonly string PoolClaimReservedType = typeof(PoolClaimReserved).FullName!;
+
+    public static readonly string PoolReservationReleasedType = typeof(PoolReservationReleased).FullName!;
+
     public string Name => "ledger";
 
-    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType];
+    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType];
 
     public Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
     {
@@ -56,6 +61,16 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
             entries = [LedgerPostings.Refund(refund.Amount, refund.PaymentId, message.MessageId, refund.At)];
         }
 
+        else if (message.Type == PoolClaimReservedType || message.Type == PoolReservationReleasedType)
+        {
+            var pool = Read<PoolMovementPayload>(message);
+            var reserve = message.Type == PoolClaimReservedType;
+            // Mənbə claim-dir (hadisə deyil): eyni claim üçün bir rezerv və ən çox bir buraxılma.
+            entries = [LedgerEntry.Post(
+                LedgerAccount.Pool(pool.PoolId), reserve ? LedgerEntryType.PoolReserve : LedgerEntryType.PoolRelease,
+                reserve ? -pool.AmountQepik : pool.AmountQepik, "Claim", pool.ClaimId, pool.ClaimId, reserve ? "pool-reserve" : "pool-release", pool.At)];
+        }
+
         context.Set<LedgerEntry>().AddRange(entries);
         return Task.CompletedTask;
     }
@@ -65,6 +80,8 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
         ?? throw new InvalidOperationException($"Boş {message.Type} mesajı.");
 
     private sealed record ClaimRedeemedPayload(Guid ClaimId, Guid BusinessId, long? AmountQepik, bool Commissionable, DateTimeOffset At);
+
+    private sealed record PoolMovementPayload(Guid ClaimId, Guid PoolId, long AmountQepik, DateTimeOffset At);
 
     private sealed record PaymentRefundedPayload(Guid PaymentId, long Amount, DateTimeOffset At);
 }
