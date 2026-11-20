@@ -15,7 +15,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E05](epics/E05.md) | Categories & verification | ✅ done | @Tapdiq49 | 7/7 | — |
 | [E06](epics/E06.md) | Social treating | ✅ done | @Tapdiq49 | 9/9 | — |
 | [E07](epics/E07.md) | Payments & ledger | ✅ done | @Tapdiq49 | 6/6 | — |
-| [E08](epics/E08.md) | Pools, campaigns & donations | 🔄 in-progress | @Tapdiq49 | 1/6 | — |
+| [E08](epics/E08.md) | Pools, campaigns & donations | 🔄 in-progress | @Tapdiq49 | 2/6 | — |
 | [E09](epics/E09.md) | Gifting | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
 | [E10](epics/E10.md) | Corporate & CSR | ⬜ todo | — | 0/5 | E09 |
 | [E11](epics/E11.md) | Leaderboard & gamification | ⬜ todo | — | 0/6 | E09 |
@@ -167,12 +167,12 @@ Yoxdur.
 
 ## E08 — Pools, campaigns & donations
 
-🔄 in-progress · @Tapdiq49 · 1/6 task
+🔄 in-progress · @Tapdiq49 · 2/6 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
 | ✅ | E08-T01 | Remote təklif ianəsi | backend | p0 | M |
-| ⬜ | E08-T02 | Hovuz ianəsi və poolDonations | backend | p0 | M |
+| ✅ | E08-T02 | Hovuz ianəsi və poolDonations | backend | p0 | M |
 | ⬜ | E08-T03 | Hovuz claim-i və rezerv | backend | p0 | L |
 | ⬜ | E08-T04 | Donor atribusiyası və donorDisplayText | backend | p1 | M |
 | ⬜ | E08-T05 | Kampaniyalar, seed şablonları və qalığın köçməsi | backend | p1 | M |

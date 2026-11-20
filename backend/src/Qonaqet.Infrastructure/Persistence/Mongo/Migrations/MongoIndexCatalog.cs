@@ -56,6 +56,8 @@ public static class MongoIndexCatalog
             Query("offers", ("businessId", 1), ("type", 1)),
             Query("offers", ("categoryId", 1), ("type", 1)),
             Query("offers", ("donorUserId", 1), ("createdAt", 1)),
+            Query("poolDonations", ("poolId", 1), ("status", 1), ("confirmedAt", 1)),
+            Query("poolDonations", ("donorUserId", 1), ("createdAt", 1)),
             Geo("businesses", "location"),
             Query("businesses", ("status", 1), ("acceptsPool", 1)),
             Query("businesses", ("status", 1), ("acceptsNetworkVouchers", 1)),

@@ -1,0 +1,81 @@
+using MongoDB.Driver;
+using Qonaqet.Application.Abstractions.Persistence;
+using Qonaqet.Domain.Social;
+using Qonaqet.SharedKernel;
+
+namespace Qonaqet.Infrastructure.Persistence.Mongo.Repositories;
+
+public sealed class PoolDonationRepository(MongoContext context, IAggregateTracker tracker, IOutbox outbox, IClock clock)
+    : SoftDeleteRepository<PoolDonation, PoolDonationId>(context, tracker, outbox, clock, DonationCollectionNames.PoolDonations), IPoolDonationRepository
+{
+    private const int MaxTransactionAttempts = 8;
+
+    public async Task<PoolDonation?> ConfirmAsync(PoolDonationId id, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await Context.InTransactionAsync(ct => ConfirmInTransactionAsync(id, at, ct), cancellationToken).ConfigureAwait(false);
+            }
+            catch (MongoException ex) when (ex.HasErrorLabel("TransientTransactionError") && attempt < MaxTransactionAttempts)
+            {
+                // Eyni hovuzu eyni anda başqa təsdiq yeniləyir (WriteConflict): kiçik gözləmə ilə təkrar.
+                await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(5, 25) * attempt), cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    public async Task<bool> TryCancelPendingAsync(PoolDonationId id, CancellationToken cancellationToken)
+    {
+        var result = await Collection.UpdateOneAsync(
+            Active(Filter.And(ById(id), Filter.Eq(x => x.Status, PoolDonationStatus.Pending))),
+            Builders<PoolDonation>.Update.Set(x => x.Status, PoolDonationStatus.Cancelled).Set(x => x.UpdatedAt, Clock.UtcNow),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount == 1;
+    }
+
+    public async Task<IReadOnlyList<PoolDonation>> ListForDonorAsync(Guid donorUserId, int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.Eq(x => x.DonorUserId, donorUserId)))
+            .SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    private async Task<PoolDonation?> ConfirmInTransactionAsync(PoolDonationId id, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        var session = Context.Session!;
+        var donation = await Collection.Find(session, Active(ById(id))).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        if (donation is null || !donation.Confirm(at))
+        {
+            return donation;
+        }
+
+        await Collection.ReplaceOneAsync(session, Active(Filter.And(ById(id), Filter.Eq(x => x.Status, PoolDonationStatus.Pending))), donation,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        var pools = Context.Collection<Pool>(CategoryCollectionNames.Pools);
+        var credited = await pools.UpdateOneAsync(
+            session,
+            Builders<Pool>.Filter.Eq(p => p.Id, donation.PoolId),
+            Builders<Pool>.Update.Inc(p => p.BalanceQepik, donation.AmountQepik).Set(p => p.UpdatedAt, Clock.UtcNow),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (credited.MatchedCount != 1)
+        {
+            throw new InvalidOperationException($"Hovuz {donation.PoolId.Value} tapılmadı.");
+        }
+
+        if (donation.CampaignId is { } campaignId)
+        {
+            await Context.Collection<MongoDB.Bson.BsonDocument>(DonationCollectionNames.Campaigns).UpdateOneAsync(
+                session,
+                new MongoDB.Bson.BsonDocument("_id", new MongoDB.Bson.BsonBinaryData(campaignId, MongoDB.Bson.GuidRepresentation.Standard)),
+                new MongoDB.Bson.BsonDocument("$inc", new MongoDB.Bson.BsonDocument("raisedQepik", donation.AmountQepik)),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        return donation;
+    }
+}
+
+public static class DonationCollectionNames
+{
+    public const string PoolDonations = "poolDonations";
+    public const string Campaigns = "campaigns";
+}
