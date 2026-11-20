@@ -9,6 +9,7 @@ using Qonaqet.Application.Features.Catalog.Commands.CreateCatalogItem;
 using Qonaqet.Application.Features.Catalog.Commands.DeleteCatalogItem;
 using Qonaqet.Application.Features.Catalog.Commands.UpdateCatalogItem;
 using Qonaqet.Application.Features.Catalog.Queries.ListCatalogItems;
+using Qonaqet.Application.Features.Ledger.Queries.GetBusinessLedger;
 using Qonaqet.Domain.Catalog;
 using Qonaqet.Domain.Businesses;
 using Qonaqet.Infrastructure.Web;
@@ -53,6 +54,11 @@ public sealed class BusinessPanelController(ISender sender) : ControllerBase
     [HttpDelete("staff/{userId:guid}")]
     public async Task<IActionResult> RemoveStaff(Guid businessId, Guid userId, [FromQuery] string? reason, CancellationToken cancellationToken) =>
         (await sender.Send(new RemoveStaffCommand(BusinessId.From(businessId), userId, reason), cancellationToken)).ToActionResult();
+
+    /// <summary>Balans (ledger-dən) və yazılar; yalnız sahib.</summary>
+    [HttpGet("ledger")]
+    public async Task<IActionResult> Ledger(Guid businessId, [FromQuery] int? page, [FromQuery] int? pageSize, CancellationToken cancellationToken) =>
+        (await sender.Send(new GetBusinessLedgerQuery(BusinessId.From(businessId), page, pageSize), cancellationToken)).ToActionResult();
 
     [HttpGet("catalog")]
     public async Task<IActionResult> ListCatalog(Guid businessId, CancellationToken cancellationToken) =>

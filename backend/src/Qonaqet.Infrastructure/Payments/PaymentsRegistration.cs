@@ -49,6 +49,7 @@ public static class PaymentsRegistration
         services.AddSingleton<IAppUrls, AppUrls>();
 
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<ILedgerRepository, LedgerRepository>();
         services.AddScoped<PaymentStarter>();
         services.AddScoped<PaymentRefunds>();
         services.AddScoped<PaymentConfirmation>();

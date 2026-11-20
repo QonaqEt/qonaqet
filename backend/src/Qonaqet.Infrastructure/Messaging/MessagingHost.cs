@@ -38,6 +38,8 @@ public static class MessagingHostRegistration
         services.AddScoped<InboxProcessor>();
         services.AddSingleton<IIntegrationEventConsumer, AuditRecordedConsumer>();
         services.AddSingleton<IIntegrationEventConsumer, SocialEventsConsumer>();
+        services.Configure<LedgerOptions>(configuration.GetSection(LedgerOptions.SectionName));
+        services.AddSingleton<IIntegrationEventConsumer, LedgerConsumer>();
         services.AddHostedService<RabbitMqConsumerHost>();
         return services;
     }
