@@ -1,8 +1,11 @@
 using System.Globalization;
 using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Features.Payments.Commands.CompleteFakePayment;
+using Qonaqet.Application.Features.Payments.Commands.HandlePaymentCallback;
 using Qonaqet.Application.Features.Payments.Queries.GetFakeCheckout;
 using Qonaqet.Application.Features.Payments.Queries.GetPayment;
 using Qonaqet.Domain.Payments;
@@ -18,8 +21,20 @@ public sealed class PaymentsController(ISender sender) : ControllerBase
 {
     /// <summary>Ödəyicinin öz ödənişi: tətbiq ödəniş səhifəsindən sonra statusu buradan sorğulayır.</summary>
     [HttpGet("{id:guid}")]
+    [EnableRateLimiting(RateLimitPolicies.Payment)]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken) =>
         (await sender.Send(new GetPaymentQuery(PaymentId.From(id)), cancellationToken)).ToActionResult();
+
+    /// <summary>
+    /// Payriff callback-i (anonim, imzasız): yalnız tetikleyicidir, status Get Order ilə təsdiqlənir. Cavab həmişə 200-dür.
+    /// </summary>
+    [HttpPost("payriff/callback")]
+    [EnableRateLimiting(RateLimitPolicies.PaymentCallback)]
+    public async Task<IActionResult> PayriffCallback([FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] JsonElement? body, [FromQuery] string? orderId, CancellationToken cancellationToken)
+    {
+        await sender.Send(new HandlePaymentCallbackCommand(body, orderId), cancellationToken);
+        return Ok();
+    }
 
     /// <summary>
     /// Fake ödəniş səhifəsi (yalnız Development; başqa mühitdə 404). <c>?result=paid</c> ödənişi uğurlu, <c>?result=failed</c>
@@ -36,6 +51,9 @@ public sealed class PaymentsController(ISender sender) : ControllerBase
             {
                 return completed.ToActionResult();
             }
+
+            // Payriff kimi: ödənişdən sonra callback gəlir (status yenə Get Order ilə təsdiqlənir).
+            await sender.Send(new HandlePaymentCallbackCommand(null, orderId), cancellationToken);
         }
 
         var order = await sender.Send(new GetFakeCheckoutQuery(orderId), cancellationToken);

@@ -1,3 +1,4 @@
+using Qonaqet.Application.Features.Payments.Jobs;
 using Qonaqet.Application.Features.Social.Jobs;
 using Qonaqet.Application.Features.Verification.Jobs;
 using Qonaqet.Infrastructure;
@@ -37,6 +38,9 @@ public static class Program
 
         // 30 dəqiqəlik claim rezervlərini buraxır; hər claim atomik status keçidi ilə götürülür.
         builder.Services.AddScheduledJob<ExpireClaimsJob>(ExpireClaimsJob.Name, TimeSpan.FromMinutes(1));
+
+        // Callback itsə belə ödənişləri Get Order ilə təsdiqləyir, 30 dəqiqədən köhnə ödənilməmişləri Expired edir.
+        builder.Services.AddScheduledJob<RecheckPaymentsJob>(RecheckPaymentsJob.Name, RecheckPaymentsJob.Interval);
 
         // Konkret işlər (payment re-check, gift delivery, claim expiry …) öz epic-ləri ilə AddScheduledJob<T>() ilə gəlir.
         builder.Services.AddHostedService<WorkerHeartbeat>();

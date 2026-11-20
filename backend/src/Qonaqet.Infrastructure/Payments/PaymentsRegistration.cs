@@ -51,6 +51,7 @@ public static class PaymentsRegistration
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<PaymentStarter>();
         services.AddScoped<PaymentRefunds>();
+        services.AddScoped<PaymentConfirmation>();
         return services;
     }
 }
