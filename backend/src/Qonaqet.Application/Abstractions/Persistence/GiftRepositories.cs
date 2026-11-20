@@ -29,6 +29,15 @@ public interface IGiftRepository : IRepository<Gift, GiftId>
     /// <summary>Müddətinin bitməsinə <paramref name="until"/>-ə qədər qalan, xatırlatması hələ getməmiş, alıcının əlində olan hədiyyələr.</summary>
     Task<IReadOnlyList<Gift>> ListDueForReminderAsync(DateTimeOffset now, DateTimeOffset until, int limit, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Korporativ fan-out paketini yazır: (<c>corporateOrderId</c>, <c>corporateRecipientIndex</c>) artıq varsa həmin hədiyyə atlanır (təkrar
+    /// cəhd dublikat yaratmır). Yeni yazılanların sayı.
+    /// </summary>
+    Task<int> AddCorporateBatchAsync(IReadOnlyList<Gift> gifts, CancellationToken cancellationToken);
+
+    /// <summary>Korporativ sifarişin bütün hədiyyələri (hesabat üçün).</summary>
+    Task<IReadOnlyList<Gift>> ListForCorporateOrderAsync(Guid corporateOrderId, CancellationToken cancellationToken);
+
     /// <summary>Göndərənin hədiyyələri, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<Gift>> ListSentAsync(Guid senderUserId, int limit, CancellationToken cancellationToken);
 

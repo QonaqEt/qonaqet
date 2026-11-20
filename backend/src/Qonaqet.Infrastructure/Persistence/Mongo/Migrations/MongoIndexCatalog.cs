@@ -90,6 +90,10 @@ public static class MongoIndexCatalog
             Query("gifts", ("status", 1), ("deliverAt", 1)),
             Query("gifts", ("status", 1), ("expiresAt", 1)),
             Query("gifts", ("shortCodeHash", 1)),
+            // Korporativ fan-out: bir sifarişin bir alıcısı üçün bir hədiyyə (şəxsi hədiyyələrdə sahə yoxdur).
+            new("gifts", "ux_gifts_corporateOrderId_corporateRecipientIndex",
+                new BsonDocument { { "corporateOrderId", 1 }, { "corporateRecipientIndex", 1 } }, Unique: true,
+                ExtraFilter: new BsonDocument("corporateRecipientIndex", new BsonDocument("$type", "int"))),
             Unique("corporates", ("voen", 1)),
             Query("corporateGiftOrders", ("corporateId", 1), ("createdAt", 1)),
             Query("corporateGiftOrders", ("status", 1), ("paidAt", 1)),
