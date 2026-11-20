@@ -35,6 +35,9 @@ public static class GiftErrors
 
     public static readonly Error NotRedeemable = Error.Conflict("gift_not_redeemable", "Bu hədiyyə hazırda təhvil verilə bilməz.");
 
+    public static readonly Error NetworkNotAccepted =
+        Error.Conflict("network_voucher_not_accepted", "Bu məkan QONAQET şəbəkə vauçerlərini qəbul etmir.");
+
     public static readonly Error SelectionInvalid = Error.Validation("gift_selection_invalid", "Təhvil üçün məhsul sətirlərini və ya məbləği düzgün seçin.");
 
     public static readonly Error NotCancellable = Error.Conflict("gift_not_cancellable", "Yalnız hələ çatdırılmamış hədiyyə ləğv edilə bilər.");
