@@ -38,6 +38,10 @@ public sealed class GiftRepository(MongoContext context, IAggregateTracker track
         await Collection.Find(Active(Filter.Eq(x => x.SenderUserId, senderUserId))).SortByDescending(x => x.CreatedAt).Limit(limit)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
+    public async Task<IReadOnlyList<Gift>> ListDueForDeliveryAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken) =>
+        await Collection.Find(Active(Filter.And(Filter.Eq(x => x.Status, GiftStatus.Scheduled), Filter.Lte(x => x.DeliverAt, now))))
+            .SortBy(x => x.DeliverAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public async Task<IReadOnlyList<Gift>> ListReceivedAsync(Guid recipientUserId, int limit, CancellationToken cancellationToken)
     {
         var delivered = new[]
@@ -88,6 +92,8 @@ public static class GiftRegistration
         services.AddScoped<GiftExpiryPools>();
         services.AddScoped<GiftFulfillment>();
         services.AddScoped<GiftPresenter>();
+        services.AddScoped<GiftNotifications>();
+        services.AddScoped<GiftTransactions>();
         return services;
     }
 }

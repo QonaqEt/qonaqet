@@ -17,6 +17,9 @@ public interface IGiftRepository : IRepository<Gift, GiftId>
     /// <summary>Qısa kodun hash-i ilə hədiyyə.</summary>
     Task<Gift?> FindByShortCodeAsync(string shortCodeHash, CancellationToken cancellationToken);
 
+    /// <summary>Çatdırılma vaxtı çatmış <c>Scheduled</c> hədiyyələr, ən köhnə <c>deliverAt</c> əvvəl.</summary>
+    Task<IReadOnlyList<Gift>> ListDueForDeliveryAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken);
+
     /// <summary>Göndərənin hədiyyələri, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<Gift>> ListSentAsync(Guid senderUserId, int limit, CancellationToken cancellationToken);
 

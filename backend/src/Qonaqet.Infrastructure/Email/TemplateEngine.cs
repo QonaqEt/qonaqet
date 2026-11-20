@@ -30,7 +30,8 @@ public static partial class TemplateEngine
 
 /// <summary>
 /// Embedded resource şablonları: <c>Templates/{name}.subject.txt</c>, <c>{name}.html</c>, <c>{name}.txt</c> və ortaq
-/// <c>_layout.html</c>. Model dəyərlərindən əlavə <c>token.*</c> açarları dizayn token-ləridir (<c>token.color.brand.nar</c>).
+/// <c>_layout.html</c>. Model dəyərlərindən əlavə <c>token.*</c> açarları dizayn token-ləridir (<c>token.color.brand.nar</c>);
+/// <c>tokenOf.X</c> isə token yolunu model dəyərindən götürür (dinamik tema rəngi).
 /// </summary>
 public sealed class EmailTemplateRenderer : IEmailTemplateRenderer
 {
@@ -58,7 +59,10 @@ public sealed class EmailTemplateRenderer : IEmailTemplateRenderer
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(model);
+        // tokenOf.X: X model dəyəridir və token yoludur (məs. hədiyyə temasının rəngi: themeToken = "color.theme.family").
         return key.StartsWith("token.", StringComparison.Ordinal) ? _tokens.GetValueOrDefault(key[6..])
+            : key.StartsWith("tokenOf.", StringComparison.Ordinal)
+                ? model.TryGetValue(key[8..], out var path) && path is not null ? _tokens.GetValueOrDefault(path) : null
             : model.TryGetValue(key, out var value) ? value ?? string.Empty
             : null;
     }
