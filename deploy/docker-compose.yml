@@ -101,7 +101,7 @@ services:
       retries: 30
 
   valkey:
-    image: valkey/valkey:8.1.11-alpine
+    image: valkey/valkey:8.1.12-alpine
     # Valkey heç vaxt həqiqət mənbəyi deyil — disk yoxdur, restart-da boşalır.
     command: ["valkey-server", "--save", "", "--appendonly", "no"]
     ports:
@@ -113,7 +113,7 @@ services:
       retries: 30
 
   rabbitmq:
-    image: rabbitmq:4.4.0-management-alpine
+    image: rabbitmq:4.4.1-management-alpine
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-qonaqet}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-qonaqet-dev-only}
@@ -131,7 +131,7 @@ services:
 
   rustfs:
     # ADR 0002: yalnız GA 1.0.x; `latest`, preview və rc tag-ları işlədilmir.
-    image: rustfs/rustfs:1.0.5
+    image: rustfs/rustfs:1.0.6
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-qonaqet}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-qonaqet-dev-only}
@@ -150,7 +150,7 @@ services:
   rustfs-init:
     # Bucket-i yaradır və versioning-i açır. İdempotentdir; heç nə silmir.
     # MinIO `mc` əvəzinə Amazon-un rəsmi CLI-ı (asılılıq siyasəti).
-    image: amazon/aws-cli:2.40.3
+    image: amazon/aws-cli:2.42.0
     depends_on:
       rustfs:
         condition: service_healthy
@@ -166,7 +166,7 @@ services:
     restart: "no"
 
   mailpit:
-    image: axllent/mailpit:v1.33.1
+    image: axllent/mailpit:v1.34.0
     ports:
       - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
       - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
