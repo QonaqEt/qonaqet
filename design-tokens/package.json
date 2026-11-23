@@ -9,7 +9,7 @@
     "test": "node --test test/*.test.mjs"
   },
   "devDependencies": {
-    "style-dictionary": "5.7.1"
+    "style-dictionary": "5.8.0"
   },
   "engines": {
     "node": ">=22"
