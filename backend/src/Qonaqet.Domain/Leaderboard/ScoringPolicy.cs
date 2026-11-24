@@ -27,19 +27,50 @@ public sealed record ScorePoints
     public int CorporateClaim { get; init; } = 2;
 }
 
-/// <summary>Hədiyyə təhvili (<see cref="GiftRedeemed"/>-in xal üçün lazım olan hissəsi).</summary>
-public sealed record RedeemedGift(Guid GiftId, Guid RedemptionId, GiftKind Kind, long ValueQepik, int Units, Guid? SenderUserId, Guid? CorporateId);
+/// <summary>Anti-gaming limitləri (<c>Leaderboard:Limits</c>).</summary>
+public sealed record ScoreLimits
+{
+    /// <summary>Eyni göndərən→alıcı cütü üçün Bakı ayında maksimum xal.</summary>
+    public int PairPerMonth { get; init; } = 10;
+
+    /// <summary>İstifadəçi başına Bakı günündə maksimum xal; artığı <c>points = 0</c> ilə yazılır.</summary>
+    public int UserPerDay { get; init; } = 300;
+
+    /// <summary>Limitlərdən sonra qalan xal: qazanılan, cütün bu ayki və istifadəçinin bugünkü qalığından ən kiçiyi (mənfi olmur).</summary>
+    public int Allow(int earned, int? pairThisMonth, int userToday)
+    {
+        var allowed = Math.Min(earned, UserPerDay - userToday);
+        if (pairThisMonth is { } pair)
+        {
+            allowed = Math.Min(allowed, PairPerMonth - pair);
+        }
+
+        return Math.Max(0, allowed);
+    }
+}
+
+/// <summary>
+/// Hədiyyə təhvili (<see cref="GiftRedeemed"/>-in xal üçün lazım olan hissəsi). <see cref="RecipientUserId"/> yalnız email-i təsdiqlənmiş
+/// hesab olduqda doludur (email hesaba uyğun gəlib və ya "Hesabıma əlavə et").
+/// </summary>
+public sealed record RedeemedGift(
+    Guid GiftId, Guid RedemptionId, GiftKind Kind, long ValueQepik, int Units, Guid? SenderUserId, Guid? CorporateId, Guid? RecipientUserId);
 
 /// <summary>Claim təhvili (<see cref="ClaimRedeemed"/>-in xal üçün lazım olan hissəsi).</summary>
 public sealed record RedeemedClaim(Guid ClaimId, Guid BusinessId, OfferType? OfferType, long? AmountQepik, Guid? FunderUserId, Guid? FunderCorporateId);
 
-/// <summary>Xalın kimə və nə qədər yazılacağı (təmiz qayda; anti-gaming limitləri ayrıca tətbiq olunur).</summary>
-public sealed record ScoreAward(ScoreSubjectType SubjectType, Guid SubjectId, string SourceType, Guid SourceId, int Points, long Value);
+/// <summary>
+/// Xalın kimə və nə qədər yazılacağı (təmiz qayda; gündəlik və cüt limitləri <see cref="ScoreLimits"/> ilə ayrıca tətbiq olunur).
+/// <see cref="RecipientUserId"/> yalnız göndərən→alıcı cüt limiti üçündür.
+/// </summary>
+public sealed record ScoreAward(
+    ScoreSubjectType SubjectType, Guid SubjectId, string SourceType, Guid SourceId, int Points, long Value, Guid? RecipientUserId = null);
 
 /// <summary>
 /// Təhvil hadisəsindən xal: yalnız real qonaqlıq sayılır, ona görə xal alışda yox, təhvildə verilir.
 /// <list type="bullet">
-/// <item>Hədiyyə: göndərənə vahid başına (məhsul) və ya hər başlanan 5 AZN üçün (vauçer) xal; şirkətə hədiyyə başına bir dəfə.</item>
+/// <item>Hədiyyə: göndərənə vahid başına (məhsul) və ya hər başlanan 5 AZN üçün (vauçer) xal; şirkətə hədiyyə başına bir dəfə.
+/// Göndərən özü alıcıdırsa və ya alıcının təsdiqlənmiş hesabı yoxdursa (yalnız link), göndərən xal almır.</item>
 /// <item>Claim: <c>BusinessDaily</c>/<c>Suspended</c> → biznesə; remote/hovuz → donora; CSR kampaniyası → şirkətə.</item>
 /// </list>
 /// </summary>
@@ -55,12 +86,12 @@ public sealed class ScoringPolicy(ScorePoints points)
     {
         ArgumentNullException.ThrowIfNull(redeemed);
         var awards = new List<ScoreAward>();
-        if (redeemed.SenderUserId is { } senderId)
+        if (redeemed is { SenderUserId: { } senderId, RecipientUserId: { } recipientId } && senderId != recipientId)
         {
             var earned = redeemed.Kind == GiftKind.Items
                 ? redeemed.Units * points.GiftItemUnit
                 : (int)((redeemed.ValueQepik + points.GiftVoucherStepQepik - 1) / points.GiftVoucherStepQepik) * points.GiftVoucherStep;
-            awards.Add(new ScoreAward(ScoreSubjectType.User, senderId, GiftRedemptionSource, redeemed.RedemptionId, earned, redeemed.ValueQepik));
+            awards.Add(new ScoreAward(ScoreSubjectType.User, senderId, GiftRedemptionSource, redeemed.RedemptionId, earned, redeemed.ValueQepik, recipientId));
         }
 
         if (redeemed.CorporateId is { } corporateId)

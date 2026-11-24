@@ -16,7 +16,10 @@ using static Qonaqet.IntegrationTests.Payments.PaymentTestData;
 
 namespace Qonaqet.IntegrationTests.Leaderboard;
 
-/// <summary>Score consumer-i (E11-T01): xal yalnız təhvildə, idempotent, korporativ hədiyyə şirkətə bir dəfə.</summary>
+/// <summary>
+/// Score consumer-i (E11-T01): xal yalnız təhvildə, idempotent, korporativ hədiyyə şirkətə bir dəfə.
+/// Anti-gaming (E11-T02): özünə hədiyyə və yalnız-link hədiyyə xal vermir, gündəlik və cüt limitləri, geri alma mənfi hadisə yazır.
+/// </summary>
 [Collection(PaymentsCollection.Name)]
 public sealed class ScoreConsumerTests(PaymentsFixture fixture)
 {
@@ -82,7 +85,88 @@ public sealed class ScoreConsumerTests(PaymentsFixture fixture)
         await Assert.ThrowsAnyAsync<InvalidOperationException>(() => context.SaveChangesAsync(Ct));
     }
 
-    private static GiftRedeemed GiftRedeemed(GiftKind kind, long value, int units, Guid? senderUserId, Guid? corporateId, GiftId? giftId = null) => new(
+    [Fact]
+    public async Task Self_gift_and_link_only_gift_give_the_sender_no_points()
+    {
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
+        var sender = Guid.CreateVersion7();
+
+        Assert.True(await ScoreAsync(host, Message(GiftRedeemed(GiftKind.Items, 4_00, 2, sender, null, recipient: sender))));
+        Assert.True(await ScoreAsync(host, Message(GiftRedeemed(GiftKind.Items, 4_00, 2, sender, null) with { RecipientUserId = null })));
+
+        Assert.Empty(await EventsAsync(host, sender));
+    }
+
+    [Fact]
+    public async Task Daily_limit_records_the_treat_but_caps_the_points_per_baku_day()
+    {
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
+        var sender = Guid.CreateVersion7();
+        var limits = new LeaderboardOptions { Limits = new ScoreLimits { UserPerDay = 5 } };
+        var afterMidnight = new DateTimeOffset(2026, 11, 24, 20, 30, 0, TimeSpan.Zero); // Bakı: 25 noyabr 00:30
+
+        await HandleAsync(host, limits, GiftRedeemed(GiftKind.Items, 6_00, 3, sender, null, at: At));
+        await HandleAsync(host, limits, GiftRedeemed(GiftKind.Items, 6_00, 3, sender, null, at: At.AddHours(1)));
+        await HandleAsync(host, limits, GiftRedeemed(GiftKind.Items, 6_00, 3, sender, null, at: At.AddHours(2)));
+        await HandleAsync(host, limits, GiftRedeemed(GiftKind.Items, 6_00, 3, sender, null, at: afterMidnight));
+
+        var events = await EventsAsync(host, sender);
+        Assert.Equal([3, 2, 0, 3], events.OrderBy(e => e.CreatedAt).Select(e => e.Points));
+        Assert.Equal(4, events.Sum(e => e.Treats));
+    }
+
+    [Fact]
+    public async Task Same_sender_and_recipient_earn_at_most_ten_points_per_baku_month()
+    {
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
+        var sender = Guid.CreateVersion7();
+        var friend = Guid.CreateVersion7();
+        var options = new LeaderboardOptions();
+
+        await HandleAsync(host, options, GiftRedeemed(GiftKind.Items, 8_00, 4, sender, null, recipient: friend, at: At));
+        await HandleAsync(host, options, GiftRedeemed(GiftKind.Items, 8_00, 4, sender, null, recipient: friend, at: At.AddDays(1)));
+        await HandleAsync(host, options, GiftRedeemed(GiftKind.Items, 8_00, 4, sender, null, recipient: friend, at: At.AddDays(2)));
+        await HandleAsync(host, options, GiftRedeemed(GiftKind.Items, 8_00, 4, sender, null, at: At.AddDays(3))); // başqa alıcı
+        await HandleAsync(host, options, GiftRedeemed(GiftKind.Items, 8_00, 4, sender, null, recipient: friend, at: At.AddDays(7))); // dekabr
+
+        Assert.Equal([4, 4, 2, 4, 4], (await EventsAsync(host, sender)).OrderBy(e => e.CreatedAt).Select(e => e.Points));
+    }
+
+    [Fact]
+    public async Task Reversed_redemption_writes_negative_score_events_once()
+    {
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
+        var sender = Guid.CreateVersion7();
+        var redeemed = GiftRedeemed(GiftKind.Items, 9_00, 3, sender, null);
+        Assert.True(await ScoreAsync(host, Message(redeemed)));
+
+        for (var i = 0; i < 2; i++)
+        {
+            await using var scope = host.Services.CreateAsyncScope();
+            var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
+            await ScoreReversal.ReverseAsync(context, ScoringPolicy.GiftRedemptionSource, redeemed.RedemptionId.Value, At.AddMinutes(10), Ct);
+            await context.SaveChangesAsync(Ct);
+        }
+
+        var events = await EventsAsync(host, sender);
+        Assert.Equal(2, events.Count);
+        Assert.Equal((0, 0, 0L), (events.Sum(e => e.Points), events.Sum(e => e.Treats), events.Sum(e => e.Value)));
+        Assert.Equal(-3, Assert.Single(events, e => e.IsReversal).Points);
+    }
+
+    private static GiftRedeemed GiftRedeemed(
+        GiftKind kind,
+        long value,
+        int units,
+        Guid? senderUserId,
+        Guid? corporateId,
+        GiftId? giftId = null,
+        Guid? recipient = null,
+        DateTimeOffset? at = null) => new(
         giftId ?? GiftId.From(Guid.CreateVersion7()),
         GiftRedemptionId.From(Guid.CreateVersion7()),
         BusinessId.From(Guid.CreateVersion7()),
@@ -93,9 +177,17 @@ public sealed class ScoreConsumerTests(PaymentsFixture fixture)
         senderUserId,
         corporateId is null ? null : Guid.CreateVersion7(),
         corporateId,
-        Guid.CreateVersion7(),
+        recipient ?? Guid.CreateVersion7(),
         HasRecipientEmail: true,
-        At);
+        at ?? At);
+
+    private static async Task HandleAsync(ApiTestHost host, LeaderboardOptions options, GiftRedeemed redeemed)
+    {
+        await using var scope = host.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
+        await new ScoreConsumer(Options.Create(options)).HandleAsync(Message(redeemed), context, Ct);
+        await context.SaveChangesAsync(Ct);
+    }
 
     private static async Task<bool> ScoreAsync(ApiTestHost host, IntegrationMessage message)
     {
