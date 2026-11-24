@@ -23,7 +23,17 @@ public interface ILeaderboardRepository
 
     /// <summary>Nişanları yazır; unikal açar eyni dövrdə ikinci nişanı rədd edir.</summary>
     Task AddBadgesAsync(IReadOnlyCollection<BadgeAward> awards, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lövhəni <c>score_events</c>-dən yenidən hesablayır (açıq Postgres tranzaksiyasında): lövhənin sətirləri <c>FOR UPDATE</c> ilə kilidlənir ki,
+    /// eyni anda gələn xal itməsin; yalnız fərqli sətirlər dəyişir, hadisəsi olmayan sətir sıfırlanır (silinmir). Əməliyyat (dəyişiklik olmasa da)
+    /// eyni tranzaksiyada <c>audit_logs</c>-a yazılır.
+    /// </summary>
+    Task<LeaderboardRecompute> RecomputeAsync(LeaderboardBoard board, Guid? actorId, DateTimeOffset now, CancellationToken cancellationToken);
 }
+
+/// <summary>Yenidən hesablamanın nəticəsi: hadisəsi olan qazanan sayı və dəyişən sətirlər.</summary>
+public sealed record LeaderboardRecompute(int Subjects, int Changed);
 
 /// <summary>Lövhədə göstərilə bilən qazanan: yalnız ad (və biznes üçün səhifə slug-u).</summary>
 public sealed record LeaderboardSubject(Guid Id, string DisplayName, string? Slug);

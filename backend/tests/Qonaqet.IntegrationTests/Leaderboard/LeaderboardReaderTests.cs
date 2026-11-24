@@ -111,5 +111,8 @@ public sealed class LeaderboardReaderTests
             throw new NotSupportedException();
 
         public Task AddBadgesAsync(IReadOnlyCollection<BadgeAward> awards, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<LeaderboardRecompute> RecomputeAsync(LeaderboardBoard board, Guid? actorId, DateTimeOffset now, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 }

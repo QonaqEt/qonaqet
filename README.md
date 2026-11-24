@@ -184,6 +184,20 @@ digər mühitlərdə məcburidir.
   bəli/xeyr"); CSR: `GET .../corporate/campaigns`, `.../campaigns/{id}/report[.csv]` (yalnız aqreqatlar). PDF: `POST ...report.pdf` → Worker
   (`corporate-reports`, Playwright) → `GET .../corporate/reports/{id}/file`.
 
+### Reytinq (E11)
+
+- **Xal yalnız təhvildə:** score consumer-i `GiftRedeemed`/`ClaimRedeemed`-dən `score_events` (append-only) yazır; dəyərlər
+  `Leaderboard__Points__*` (məhsul vahidi / hər başlanan 5 AZN 1, donor və biznes claim-i 2, şirkət 1/2).
+- **Anti-gaming:** özünə hədiyyə və yalnız-link hədiyyə (alıcı hesaba əlavə edənə qədər) xal vermir; göndərən→alıcı cütü ayda 10, istifadəçi
+  gündə 300 xal (`Leaderboard__Limits__*`, Bakı vaxtı), artığı `points = 0`; geri alma mənfi hadisə yazır.
+- **Lövhələr:** `leaderboard_entries` (həftə `2026-W48`, ay `2026-11`, `all`) consumer-in tranzaksiyasında upsert olunur; Valkey
+  `lb:{subjectType}:{periodType}:{periodKey}` yalnız keşdir (10 dəq. TTL, boşdursa Postgres-dən qurulur).
+- **API:** `GET /api/v1/leaderboard?subjectType=&periodType=&periodKey=` (top 100 + "Sizin yeriniz"; yalnız ad və xal, opt-out/bloklanmış/aktiv
+  olmayan gizlənir), `PATCH /api/v1/me/leaderboard` (opt-out, ləqəb), `GET /api/v1/me/score` (səviyyə, nişanlar, tarixçə).
+- **Nişanlar:** Worker `leaderboard-badges` (saatlıq) bitmiş Bakı həftəsinin ilk 3-ü və ayın ilk 10-u üçün, idempotent (`badge_awards`).
+- **Yenidən hesablama:** admin `POST /api/v1/admin/leaderboard/recompute {subjectType, periodType, periodKey}` — `score_events`-dən, yalnız fərqli
+  sətirlər dəyişir, audit log-a düşür.
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
@@ -194,7 +208,8 @@ sosial qonaqlıq (E06: gündəlik/askıda təkliflər, atomik claim, limitlər, 
 ödənişlər/ledger (E07: Payriff + Fake gateway, payments/refunds, callback + yenidən yoxlama, ledger + komissiya, payout-lar, uzlaşdırma) və
 hovuzlar/kampaniyalar (E08: remote/hovuz/kampaniya ianələri, hovuz claim-ləri, donor atribusiyası, kampaniya qalığının köçməsi, ictimai statistika) və
 hədiyyələr (E09: məhsul/vauçer/şəbəkə hədiyyələri, ödəniş, link token-ləri, ictimai səhifə, çatdırılma, qismən təhvil, ləğv, müddət bitməsi) və
-korporativ (E10: şirkətlər, toplu sifarişlər + CSV, kart/bank ödənişi, fan-out, PDF/CSV hesabatlar, CSR) hazırdır.
+korporativ (E10: şirkətlər, toplu sifarişlər + CSV, kart/bank ödənişi, fan-out, PDF/CSV hesabatlar, CSR) və
+reytinq (E11: təhvildə xal, anti-gaming, Postgres aqreqatları + Valkey, lövhə API-si, səviyyələr/nişanlar, yenidən hesablama) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 

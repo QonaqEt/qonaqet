@@ -1,8 +1,11 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Features.Leaderboard.Common;
 using Qonaqet.Domain.Leaderboard;
+using Qonaqet.Infrastructure.Messaging.Outbox;
+using Qonaqet.Infrastructure.Persistence.Postgres.Records;
 
 namespace Qonaqet.Infrastructure.Persistence.Postgres.Repositories;
 
@@ -54,6 +57,72 @@ public sealed class LeaderboardRepository(QonaqetDbContext context) : ILeaderboa
         ArgumentNullException.ThrowIfNull(awards);
         context.Set<BadgeAward>().AddRange(awards);
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<LeaderboardRecompute> RecomputeAsync(LeaderboardBoard board, Guid? actorId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(board);
+        if (context.Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("Yenidən hesablama yalnız açıq Postgres tranzaksiyasında işləyir.");
+        }
+
+        if (!LeaderboardPeriod.TryRange(board.PeriodType, board.PeriodKey, out var range))
+        {
+            throw new ArgumentException($"Dövr açarı düzgün deyil: {board.PeriodKey}", nameof(board));
+        }
+
+        var subjectType = board.SubjectType.ToString();
+        var periodType = board.PeriodType.ToString();
+        var existing = await context.Set<LeaderboardEntry>()
+            .FromSqlInterpolated(
+                $"""
+                SELECT * FROM qonaqet.leaderboard_entries
+                WHERE subject_type = {subjectType} AND period_type = {periodType} AND period_key = {board.PeriodKey}
+                FOR UPDATE
+                """)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        var events = context.Set<ScoreEvent>().AsNoTracking().Where(e => e.SubjectType == board.SubjectType);
+        if (range is { } window)
+        {
+            events = events.Where(e => e.CreatedAt >= window.Start && e.CreatedAt < window.End);
+        }
+
+        var totals = await events
+            .GroupBy(e => e.SubjectId)
+            .Select(g => new { SubjectId = g.Key, Points = g.Sum(e => e.Points), Treats = g.Sum(e => e.Treats), Value = g.Sum(e => e.Value) })
+            .ToDictionaryAsync(t => t.SubjectId, cancellationToken).ConfigureAwait(false);
+
+        var changed = 0;
+        foreach (var entry in existing)
+        {
+            var total = totals.GetValueOrDefault(entry.SubjectId);
+            if (entry.Correct(total?.Points ?? 0, total?.Treats ?? 0, total?.Value ?? 0, now))
+            {
+                changed++;
+            }
+        }
+
+        var period = new LeaderboardPeriod(board.PeriodType, board.PeriodKey);
+        foreach (var total in totals.Values.Where(t => existing.TrueForAll(e => e.SubjectId != t.SubjectId)))
+        {
+            context.Set<LeaderboardEntry>().Add(LeaderboardEntry.Create(board.SubjectType, total.SubjectId, period, total.Points, total.Treats, total.Value, now));
+            changed++;
+        }
+
+        context.Add(new AuditLogRecord
+        {
+            Id = Guid.CreateVersion7(),
+            ActorId = actorId,
+            ActorType = actorId is null ? "System" : "User",
+            Action = "Recompute",
+            EntityType = nameof(LeaderboardBoard),
+            Data = JsonSerializer.Serialize(
+                new { board.SubjectType, board.PeriodType, board.PeriodKey, subjects = totals.Count, changed }, OutboxSerializer.JsonOptions),
+            CreatedAt = now,
+        });
+        return new LeaderboardRecompute(totals.Count, changed);
     }
 }
 

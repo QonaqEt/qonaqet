@@ -19,4 +19,7 @@ public interface ILeaderboardStore
 
     /// <summary>Keşlənmiş lövhədə qazananın xalını mütləq dəyərlə yeniləyir; lövhə keşdə yoxdursa heç nə etmir (növbəti oxu qurur).</summary>
     Task SetIfCachedAsync(LeaderboardBoard board, LeaderboardScore score, CancellationToken cancellationToken);
+
+    /// <summary>Lövhəni keşdən çıxarır (keş açarı biznes qeydi deyil); növbəti oxu Postgres-dən qurur.</summary>
+    Task InvalidateAsync(LeaderboardBoard board, CancellationToken cancellationToken);
 }

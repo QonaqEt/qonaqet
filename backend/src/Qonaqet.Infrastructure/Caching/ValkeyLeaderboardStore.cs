@@ -97,6 +97,20 @@ public sealed partial class ValkeyLeaderboardStore(ValkeyConnection connection, 
         }
     }
 
+    public async Task InvalidateAsync(LeaderboardBoard board, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(board);
+        try
+        {
+            var db = await connection.DatabaseAsync().ConfigureAwait(false);
+            await db.KeyExpireAsync(Key(board), TimeSpan.Zero).WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ValkeyCache.IsTransient(ex))
+        {
+            LogUnavailable(ex, "invalidate");
+        }
+    }
+
     private RedisKey Key(LeaderboardBoard board) => connection.Prefix + board.CacheKey;
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Valkey lövhə keşi əlçatan deyil ({Operation}); Postgres işlədilir")]
