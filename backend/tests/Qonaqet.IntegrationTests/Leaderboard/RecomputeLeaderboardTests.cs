@@ -49,7 +49,7 @@ public sealed class RecomputeLeaderboardTests(PaymentsFixture fixture)
             Assert.Equal((2, 2), (result.GetProperty("subjects").GetInt32(), result.GetProperty("changed").GetInt32()));
         }
 
-        Assert.Equal([(drifted, 3), (good, 4), (orphan, 0)], (await WeekAsync(host)).OrderBy(e => e.Points).Select(e => (e.SubjectId, e.Points)));
+        Assert.Equal([(orphan, 0), (drifted, 3), (good, 4)], (await WeekAsync(host)).OrderBy(e => e.Points).Select(e => (e.SubjectId, e.Points)));
 
         using (var again = await host.SendAsync(HttpMethod.Post, "/api/v1/admin/leaderboard/recompute", Access(admin), body))
         {
