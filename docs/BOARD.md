@@ -7,7 +7,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 
 | Epic | Ad | Status | İşləyən | Task-lar | Gözlədiyi |
 |---|---|---|---|---|---|
-| [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 19/19 | — |
+| [E00](epics/E00.md) | Repo, GitHub automation & dev environment | ✅ done | @zahid2000 | 20/20 | — |
 | [E01](epics/E01.md) | Backend foundation | ✅ done | @Tapdiq49 | 17/17 | — |
 | [E02](epics/E02.md) | Identity & users | ✅ done | @Tapdiq49 | 7/7 | — |
 | [E03](epics/E03.md) | Files, email & notifications | ✅ done | @Tapdiq49 | 5/5 | — |
@@ -35,7 +35,7 @@ Yoxdur.
 
 ## E00 — Repo, GitHub automation & dev environment
 
-✅ done · @zahid2000 · 19/19 task
+✅ done · @zahid2000 · 20/20 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -59,6 +59,7 @@ Yoxdur.
 | ✅ | E00-T18 | İş izləmə lokal markdown-a keçir | infra | p0 | M |
 | ✅ | E00-T19 | Dev compose: Postgres 18 volume yolu və Mongo 8.0 LTS | infra | p0 | XS |
 | ✅ | E00-T20 | Epic skriptləri Windows konsolunda (cp1252) işləyir | infra | p1 | XS |
+| ✅ | E00-T21 | ADR 0007 qəbulu: link token-inin müvəqqəti şifrəli nüsxəsi | infra | p1 | XS |
 
 ## E01 — Backend foundation
 

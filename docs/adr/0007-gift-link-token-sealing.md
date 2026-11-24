@@ -1,6 +1,6 @@
 # 0007 — Hədiyyə link token-inin müvəqqəti şifrəli nüsxəsi
 
-- **Status:** Proposed
+- **Status:** Accepted (repo sahibi, 2026-11-24)
 - **Tarix:** 2026-11-21
 - **Qərar verən:** repo sahibi
 - **Əlaqəli:** E09-T02, E09-T03, E09-T05

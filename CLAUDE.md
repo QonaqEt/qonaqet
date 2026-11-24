@@ -501,7 +501,8 @@ General rules:
     - `theme` (`Birthday`, `Love`, `Thanks`, `Family`, `Congrats`, `JustBecause`, `Corporate`), `message?` (≤500 chars)
     - `deliverAt` (now or scheduled, ≤90 days ahead), `expiresAt` (`deliverAt` + `Gifts:ValidityDays`, default 60)
   - Link and status:
-    - `linkTokenHash` (the raw token is 32 random bytes, base64url, never stored)
+    - `linkTokenHash` (the raw token is 32 random bytes, base64url; only its HMAC hash is kept permanently)
+    - `linkTokenSealed?`: a **temporary** AES-256-GCM copy of the token (key `Security:GiftLinkSealSecret`), kept only until the delivery email is sent and the sender has taken the link; cleared on cancel and expiry (ADR 0007). The raw token never appears in logs, the outbox or push.
     - `status` (`AwaitingPayment`, `Scheduled`, `Delivered`, `Opened`, `PartiallyRedeemed`, `Redeemed`, `Expired`, `Refunded`, `Cancelled`)
     - `paymentId?`, `deliveredAt?`, `openedAt?`
   - `expiryAction` (`RefundToPayer` | `DonateToPool`), `expiryPoolId?`
