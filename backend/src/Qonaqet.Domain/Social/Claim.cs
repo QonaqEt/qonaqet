@@ -114,6 +114,7 @@ public sealed class Claim : AggregateRoot<ClaimId>
             CategoryId = offer.CategoryId,
             Title = offer.Title,
             DonorDisplayText = Guard.NotNullOrWhiteSpace(donorDisplayText),
+            FunderUserId = offer.Type == Social.OfferType.Remote ? offer.DonorUserId : null,
             Status = ClaimStatus.Reserved,
             QuotaDate = offer.Type == Social.OfferType.BusinessDaily ? Guard.NotNullOrWhiteSpace(quotaDate) : null,
             ExpiresAt = now + ReservationTtl,
@@ -126,7 +127,7 @@ public sealed class Claim : AggregateRoot<ClaimId>
     /// </summary>
     public static Claim ReserveFromPool(
         Pool pool, BusinessId businessId, CatalogItemId catalogItemId, string title, long priceQepik, Guid recipientUserId, string donorDisplayText,
-        Guid? fundingDonationId, DateTimeOffset now)
+        Guid? fundingDonationId, Guid? funderUserId, Guid? funderCorporateId, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(pool);
         Guard.Utc(now);
@@ -142,6 +143,8 @@ public sealed class Claim : AggregateRoot<ClaimId>
             Title = Guard.NotNullOrWhiteSpace(title),
             DonorDisplayText = Guard.NotNullOrWhiteSpace(donorDisplayText),
             FundingDonationId = fundingDonationId,
+            FunderUserId = funderUserId,
+            FunderCorporateId = funderCorporateId,
             Status = ClaimStatus.Reserved,
             ExpiresAt = now + ReservationTtl,
         };
@@ -151,6 +154,12 @@ public sealed class Claim : AggregateRoot<ClaimId>
 
     /// <summary>Hovuz claim-ində alıcıya adı göstərilən (atribusiya olunan) ianə; yoxdursa anonim/hovuzun öz pulu.</summary>
     public Guid? FundingDonationId { get; private set; }
+
+    /// <summary>Qonaqlığı maliyyələşdirən istifadəçi (snapshot): remote təklifin donoru və ya hovuz claim-ində atribusiya olunan ianənin donoru. Reytinq üçün.</summary>
+    public Guid? FunderUserId { get; private set; }
+
+    /// <summary>Qonaqlığı maliyyələşdirən şirkət (snapshot): şirkətin CSR kampaniyasının hovuzu. Reytinq üçün.</summary>
+    public Guid? FunderCorporateId { get; private set; }
 
     /// <summary>Qısa kodun hash-ini bağlayır (yaradılandan dərhal sonra, yazılmazdan əvvəl; bir dəfə).</summary>
     public void AttachShortCode(string shortCodeHash)
@@ -179,7 +188,8 @@ public sealed class Claim : AggregateRoot<ClaimId>
         RedeemedAt = now;
         RedeemedByStaffId = Guard.NotEmpty(staffUserId);
         MarkUpdated(now, staffUserId);
-        Raise(new ClaimRedeemed(Id, BusinessId, Source, OfferId, OfferType, PoolId, AmountQepik, IsCommissionable, staffUserId, now));
+        Raise(new ClaimRedeemed(
+            Id, BusinessId, Source, OfferId, OfferType, PoolId, AmountQepik, IsCommissionable, staffUserId, FunderUserId, FunderCorporateId, now));
     }
 
     /// <summary>Rezerv bitdi (job): <see cref="ClaimStatus.Reserved"/> → <see cref="ClaimStatus.Expired"/>.</summary>
@@ -223,6 +233,8 @@ public sealed record ClaimRedeemed(
     long? AmountQepik,
     bool Commissionable,
     Guid StaffUserId,
+    Guid? FunderUserId,
+    Guid? FunderCorporateId,
     DateTimeOffset At) : DomainEvent(At);
 
 /// <summary>Hovuzdan məbləğ rezerv edildi → ledger-də hovuz hesabından <c>PoolReserve</c> (−məbləğ).</summary>

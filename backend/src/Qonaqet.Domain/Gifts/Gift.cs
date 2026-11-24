@@ -197,6 +197,9 @@ public sealed class Gift : AggregateRoot<GiftId>
 
     public Guid? CorporateOrderId { get; private set; }
 
+    /// <summary>Korporativ hədiyyədə şirkət (snapshot): reytinqdə şirkətə xal üçün.</summary>
+    public Guid? CorporateId { get; private set; }
+
     public SenderDisplay SenderDisplay { get; private set; }
 
     /// <summary>Göndərənin adı (snapshot); anonim hədiyyədə alıcıya göstərilmir.</summary>
@@ -350,7 +353,7 @@ public sealed class Gift : AggregateRoot<GiftId>
     /// çatdırılma emailinə qədər saxlanılır.
     /// </summary>
     public static Gift CreateForCorporateOrder(
-        GiftContent content, Guid corporateOrderId, string corporateName, Guid? paymentId, GiftRecipient recipient, int recipientIndex, string? message,
+        GiftContent content, Guid corporateOrderId, Guid corporateId, string corporateName, Guid? paymentId, GiftRecipient recipient, int recipientIndex, string? message,
         DateTimeOffset deliverAt, int validityDays, GiftExpiryPlan expiry, GiftLinkSecret link, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(link);
@@ -358,6 +361,7 @@ public sealed class Gift : AggregateRoot<GiftId>
             content, new GiftSender(null, Guard.NotEmpty(corporateOrderId), SenderDisplay.Named, corporateName), recipient, GiftTheme.Corporate, message,
             deliverAt < now ? now : deliverAt, validityDays, expiry, now);
         gift.PaymentId = paymentId;
+        gift.CorporateId = Guard.NotEmpty(corporateId);
         gift.CorporateRecipientIndex = Guard.InRange(recipientIndex, 0, int.MaxValue);
         gift.Status = GiftStatus.Scheduled;
         gift.PaidAt = now;
@@ -604,7 +608,7 @@ public sealed class Gift : AggregateRoot<GiftId>
 
         var redemption = GiftRedemption.Record(Id, businessId, Guard.NotEmpty(staffUserId), redeemedLines, Kind == GiftKind.Voucher ? value : null, value, now);
         Raise(new GiftRedeemed(
-            Id, redemption.Id, businessId, Kind, Scope, value, units, SenderUserId, CorporateOrderId, RecipientUserId, RecipientEmail is not null, now));
+            Id, redemption.Id, businessId, Kind, Scope, value, units, SenderUserId, CorporateOrderId, CorporateId, RecipientUserId, RecipientEmail is not null, now));
         return redemption;
     }
 
@@ -745,6 +749,7 @@ public sealed record GiftRedeemed(
     int Units,
     Guid? SenderUserId,
     Guid? CorporateOrderId,
+    Guid? CorporateId,
     Guid? RecipientUserId,
     bool HasRecipientEmail,
     DateTimeOffset At) : DomainEvent(At);

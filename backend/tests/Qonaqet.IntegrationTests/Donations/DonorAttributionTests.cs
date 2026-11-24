@@ -33,6 +33,12 @@ public sealed class DonorAttributionTests(PaymentsFixture fixture)
         Assert.Equal(0, donations[0]["remainingQepik"].ToInt64());
         Assert.Equal(10_00 - 4_00, donations[1]["remainingQepik"].ToInt64());
 
+        // Reytinq üçün claim maliyyələşdirən donoru snapshot edir (alıcıya verilmir): ilk iki claim Leylanın, üçüncüsü anonim donorun.
+        var claims = await host.Database.GetCollection<BsonDocument>("claims").Find(new BsonDocument()).Sort(new BsonDocument("createdAt", 1)).ToListAsync(Ct);
+        Assert.Equal(
+            [donations[0]["donorUserId"], donations[0]["donorUserId"], donations[1]["donorUserId"]],
+            claims.Select(c => c["funderUserId"]));
+
         using var mine = await host.GetAsync("/api/v1/me/donations/pools", Access(await host.LoginAsync("leyla-donor@example.az")));
         Assert.Equal(5_00, Assert.Single((await host.JsonAsync(mine)).EnumerateArray()).GetProperty("usedQepik").GetInt64());
     }

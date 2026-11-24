@@ -94,8 +94,9 @@ public sealed class ClaimFromPoolHandler(
                 continue;
             }
 
-            var donor = await attribution.ForReservationAsync(pool.Id, cancellationToken).ConfigureAwait(false);
-            var claim = Claim.ReserveFromPool(pool, business.Id, item.Id, item.Title, item.PriceQepik, userId, donor.Text, donor.DonationId, now);
+            var donor = await attribution.ForReservationAsync(pool, cancellationToken).ConfigureAwait(false);
+            var claim = Claim.ReserveFromPool(
+                pool, business.Id, item.Id, item.Title, item.PriceQepik, userId, donor.Text, donor.DonationId, donor.UserId, donor.CorporateId, now);
             presenter.AttachCodes(claim);
             bool added;
             try
