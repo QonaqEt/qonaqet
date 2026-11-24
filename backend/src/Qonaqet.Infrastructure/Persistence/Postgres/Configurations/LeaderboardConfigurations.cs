@@ -37,8 +37,10 @@ public sealed class LeaderboardEntryConfiguration : IEntityTypeConfiguration<Lea
         builder.Property(x => x.PeriodKey).HasMaxLength(16).IsRequired();
 
         // CLAUDE.md: (subject_type, subject_id, period_type, period_key) unikal (upsert hədəfi) və (subject_type, period_type, period_key, points DESC).
-        // Törəmə cədvəldir (score_events-dən yenidən qurulur), soft delete yoxdur → adi indekslər.
-        builder.HasIndex(x => new { x.SubjectType, x.SubjectId, x.PeriodType, x.PeriodKey }).IsUnique();
-        builder.HasIndex(x => new { x.SubjectType, x.PeriodType, x.PeriodKey, x.Points }).IsDescending(false, false, false, true);
+        // Törəmə cədvəldir (score_events-dən yenidən qurulur), soft delete yoxdur → adi indekslər. Adlar açıqdır: avtomatik ad Postgres-in
+        // 63 simvol limitini aşır.
+        builder.HasIndex(x => new { x.SubjectType, x.SubjectId, x.PeriodType, x.PeriodKey }).IsUnique().HasDatabaseName("ux_leaderboard_entries_subject_period");
+        builder.HasIndex(x => new { x.SubjectType, x.PeriodType, x.PeriodKey, x.Points })
+            .IsDescending(false, false, false, true).HasDatabaseName("ix_leaderboard_entries_board_points");
     }
 }

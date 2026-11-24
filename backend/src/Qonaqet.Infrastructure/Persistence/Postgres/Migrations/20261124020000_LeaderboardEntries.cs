@@ -31,10 +31,10 @@ public sealed class LeaderboardEntries : Migration
             constraints: table => table.PrimaryKey("pk_leaderboard_entries", x => x.id));
 
         migrationBuilder.CreateIndex(
-            "ix_leaderboard_entries_subject_type_subject_id_period_type_period_key", "leaderboard_entries",
+            "ux_leaderboard_entries_subject_period", "leaderboard_entries",
             ["subject_type", "subject_id", "period_type", "period_key"], schema, unique: true);
         migrationBuilder.CreateIndex(
-            "ix_leaderboard_entries_subject_type_period_type_period_key_points", "leaderboard_entries",
+            "ix_leaderboard_entries_board_points", "leaderboard_entries",
             ["subject_type", "period_type", "period_key", "points"], schema, descending: [false, false, false, true]);
     }
 }
