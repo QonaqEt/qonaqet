@@ -23,3 +23,22 @@ public sealed class ScoreEventConfiguration : IEntityTypeConfiguration<ScoreEven
         builder.HasIndex(x => new { x.SubjectType, x.SubjectId, x.CreatedAt });
     }
 }
+
+public sealed class LeaderboardEntryConfiguration : IEntityTypeConfiguration<LeaderboardEntry>
+{
+    public void Configure(EntityTypeBuilder<LeaderboardEntry> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.ToTable("leaderboard_entries");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
+        builder.Property(x => x.SubjectType).HasConversion<string>().HasMaxLength(16);
+        builder.Property(x => x.PeriodType).HasConversion<string>().HasMaxLength(16);
+        builder.Property(x => x.PeriodKey).HasMaxLength(16).IsRequired();
+
+        // CLAUDE.md: (subject_type, subject_id, period_type, period_key) unikal (upsert hədəfi) və (subject_type, period_type, period_key, points DESC).
+        // Törəmə cədvəldir (score_events-dən yenidən qurulur), soft delete yoxdur → adi indekslər.
+        builder.HasIndex(x => new { x.SubjectType, x.SubjectId, x.PeriodType, x.PeriodKey }).IsUnique();
+        builder.HasIndex(x => new { x.SubjectType, x.PeriodType, x.PeriodKey, x.Points }).IsDescending(false, false, false, true);
+    }
+}

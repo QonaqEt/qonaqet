@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Qonaqet.Application.Abstractions.Persistence;
+using Qonaqet.Application.Features.Leaderboard.Common;
 using Qonaqet.Domain.Businesses;
 using Qonaqet.Domain.Gifts;
 using Qonaqet.Domain.Leaderboard;
@@ -63,7 +65,7 @@ public sealed class ScoreConsumerTests(PaymentsFixture fixture)
         var business = Guid.CreateVersion7();
         await using var scope = host.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
-        var consumer = new ScoreConsumer(Options.Create(new LeaderboardOptions { Points = new ScorePoints { BusinessClaim = 4 } }));
+        var consumer = new ScoreConsumer(Options.Create(new LeaderboardOptions { Points = new ScorePoints { BusinessClaim = 4 } }), new InMemoryLeaderboardStore());
 
         await consumer.HandleAsync(Message(ClaimRedeemed(business, amount: null, commissionable: false)), context, Ct);
         await context.SaveChangesAsync(Ct);
@@ -148,7 +150,7 @@ public sealed class ScoreConsumerTests(PaymentsFixture fixture)
         {
             await using var scope = host.Services.CreateAsyncScope();
             var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
-            await ScoreReversal.ReverseAsync(context, ScoringPolicy.GiftRedemptionSource, redeemed.RedemptionId.Value, At.AddMinutes(10), Ct);
+            await ScoreReversal.ReverseAsync(context, ScoringPolicy.GiftRedemptionSource, redeemed.RedemptionId.Value, Ct);
             await context.SaveChangesAsync(Ct);
         }
 
@@ -156,6 +158,77 @@ public sealed class ScoreConsumerTests(PaymentsFixture fixture)
         Assert.Equal(2, events.Count);
         Assert.Equal((0, 0, 0L), (events.Sum(e => e.Points), events.Sum(e => e.Treats), events.Sum(e => e.Value)));
         Assert.Equal(-3, Assert.Single(events, e => e.IsReversal).Points);
+    }
+
+    [Fact]
+    public async Task Aggregates_are_upserted_per_week_month_and_all_time_and_a_reversal_subtracts()
+    {
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
+        var sender = Guid.CreateVersion7();
+        var tuesday = GiftRedeemed(GiftKind.Items, 6_00, 3, sender, null, at: At); // 2026-W48
+        var nextWeek = GiftRedeemed(GiftKind.Voucher, 9_00, 0, sender, null, at: At.AddDays(6)); // 30 noyabr, 2026-W49
+
+        Assert.True(await ScoreAsync(host, Message(tuesday)));
+        Assert.True(await ScoreAsync(host, Message(nextWeek)));
+        Assert.False(await ScoreAsync(host, Message(nextWeek))); // dublikat aqreqatı ikiqat artırmır
+
+        Assert.Equal(
+            [("AllTime:all", 5, 2, 15_00L), ("Month:2026-11", 5, 2, 15_00L), ("Week:2026-W48", 3, 1, 6_00L), ("Week:2026-W49", 2, 1, 9_00L)],
+            Rows(await EntriesAsync(host, sender)));
+
+        await using (var scope = host.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
+            await ScoreReversal.ReverseAsync(context, ScoringPolicy.GiftRedemptionSource, tuesday.RedemptionId.Value, Ct);
+            await context.SaveChangesAsync(Ct);
+        }
+
+        Assert.Equal(
+            [("AllTime:all", 2, 1, 9_00L), ("Month:2026-11", 2, 1, 9_00L), ("Week:2026-W48", 0, 0, 0L), ("Week:2026-W49", 2, 1, 9_00L)],
+            Rows(await EntriesAsync(host, sender)));
+
+        static IEnumerable<(string, int, int, long)> Rows(IEnumerable<LeaderboardEntry> entries) =>
+            entries.Select(e => ($"{e.PeriodType}:{e.PeriodKey}", e.Points, e.Treats, e.Value)).Order();
+    }
+
+    [Fact]
+    public async Task Cached_boards_get_the_new_total_after_commit_and_uncached_boards_stay_empty()
+    {
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
+        var sender = Guid.CreateVersion7();
+        var rival = Guid.CreateVersion7();
+        var month = new LeaderboardBoard(ScoreSubjectType.User, LeaderboardPeriodType.Month, "2026-11");
+        var week = new LeaderboardBoard(ScoreSubjectType.User, LeaderboardPeriodType.Week, "2026-W48");
+        var store = new InMemoryLeaderboardStore();
+        await store.ReplaceAsync(month, [new LeaderboardScore(rival, 4)], Ct);
+
+        Assert.True(await ScoreAsync(host, Message(GiftRedeemed(GiftKind.Items, 6_00, 3, sender, null)), store));
+        Assert.True(await ScoreAsync(host, Message(GiftRedeemed(GiftKind.Items, 6_00, 3, sender, null)), store));
+
+        var top = await store.TopAsync(month, 10, sender, Ct);
+        Assert.Equal([new LeaderboardScore(sender, 6), new LeaderboardScore(rival, 4)], top!.Top);
+        Assert.False(store.IsCached(week));
+    }
+
+    [Fact]
+    public async Task Reader_rebuilds_the_board_from_postgres_through_the_api_services()
+    {
+        fixture.SkipIfUnavailable();
+        await using var host = await fixture.HostAsync();
+        var (first, second) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        Assert.True(await ScoreAsync(host, Message(GiftRedeemed(GiftKind.Items, 2_00, 1, first, null))));
+        Assert.True(await ScoreAsync(host, Message(GiftRedeemed(GiftKind.Items, 8_00, 4, second, null))));
+
+        await using var scope = host.Services.CreateAsyncScope();
+        var store = new InMemoryLeaderboardStore();
+        var reader = new LeaderboardReader(store, scope.ServiceProvider.GetRequiredService<ILeaderboardRepository>());
+        var board = await reader.ReadAsync(new LeaderboardBoard(ScoreSubjectType.User, LeaderboardPeriodType.AllTime, "all"), 100, first, Ct);
+
+        Assert.Equal([new LeaderboardScore(second, 4), new LeaderboardScore(first, 1)], board.Top);
+        Assert.Equal((2, 1), (board.Rank, board.Points));
+        Assert.Equal(1, store.Replacements);
     }
 
     private static GiftRedeemed GiftRedeemed(
@@ -185,15 +258,23 @@ public sealed class ScoreConsumerTests(PaymentsFixture fixture)
     {
         await using var scope = host.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
-        await new ScoreConsumer(Options.Create(options)).HandleAsync(Message(redeemed), context, Ct);
+        await new ScoreConsumer(Options.Create(options), new InMemoryLeaderboardStore()).HandleAsync(Message(redeemed), context, Ct);
         await context.SaveChangesAsync(Ct);
     }
 
-    private static async Task<bool> ScoreAsync(ApiTestHost host, IntegrationMessage message)
+    private static async Task<bool> ScoreAsync(ApiTestHost host, IntegrationMessage message, InMemoryLeaderboardStore? store = null)
     {
         await using var scope = host.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
-        return await new InboxProcessor(context).ProcessAsync(new ScoreConsumer(Options.Create(new LeaderboardOptions())), message, host.Clock.UtcNow, Ct);
+        var consumer = new ScoreConsumer(Options.Create(new LeaderboardOptions()), store ?? new InMemoryLeaderboardStore());
+        return await new InboxProcessor(context).ProcessAsync(consumer, message, host.Clock.UtcNow, Ct);
+    }
+
+    private static async Task<IReadOnlyList<LeaderboardEntry>> EntriesAsync(ApiTestHost host, Guid subjectId)
+    {
+        await using var scope = host.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<QonaqetDbContext>();
+        return await context.Set<LeaderboardEntry>().AsNoTracking().Where(e => e.SubjectId == subjectId).ToListAsync(Ct);
     }
 
     private static async Task<IReadOnlyList<ScoreEvent>> EventsAsync(ApiTestHost host, Guid subjectId)

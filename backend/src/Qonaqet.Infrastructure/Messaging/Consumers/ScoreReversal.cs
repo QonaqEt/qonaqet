@@ -13,7 +13,7 @@ public static class ScoreReversal
 {
     /// <summary>Yazılan düzəliş hadisələrinin sayını qaytarır (dəyişikliklər çağıranın <c>SaveChanges</c>-i ilə saxlanılır).</summary>
     public static async Task<int> ReverseAsync(
-        QonaqetDbContext context, string sourceType, Guid sourceId, DateTimeOffset at, CancellationToken cancellationToken)
+        QonaqetDbContext context, string sourceType, Guid sourceId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceType);
@@ -28,7 +28,7 @@ public static class ScoreReversal
         var written = 0;
         foreach (var original in originals.Where(o => !reversed.Any(r => r.SubjectType == o.SubjectType && r.SubjectId == o.SubjectId)))
         {
-            events.Add(ScoreEvent.Reverse(original, at));
+            await LeaderboardAggregates.AddAsync(context, ScoreEvent.Reverse(original), cancellationToken).ConfigureAwait(false);
             written++;
         }
 

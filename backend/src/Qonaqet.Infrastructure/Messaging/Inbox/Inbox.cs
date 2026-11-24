@@ -21,6 +21,15 @@ public interface IIntegrationEventConsumer
     Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Commit-dən sonra törəmə iş görən consumer (məs. Valkey keşini yeniləmək). Yalnız mesaj ilk dəfə emal olunanda çağırılır; xətası
+/// tranzaksiyanı geri qaytarmır, itən keş yeniləməsi növbəti oxuda əsas store-dan bərpa olunmalıdır.
+/// </summary>
+public interface IAfterCommitConsumer
+{
+    Task AfterCommitAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken);
+}
+
 /// <summary>İdempotent inbox: (<c>message_id</c>, <c>consumer</c>) unikal; dublikat atlanır.</summary>
 public sealed class InboxProcessor(QonaqetDbContext context)
 {
@@ -47,6 +56,11 @@ public sealed class InboxProcessor(QonaqetDbContext context)
         await consumer.HandleAsync(message, context, cancellationToken).ConfigureAwait(false);
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (consumer is IAfterCommitConsumer afterCommit)
+        {
+            await afterCommit.AfterCommitAsync(message, context, cancellationToken).ConfigureAwait(false);
+        }
+
         return true;
     }
 }

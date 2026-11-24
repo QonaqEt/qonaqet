@@ -140,13 +140,13 @@ public sealed class ScoringPolicyTests
         var original = ScoreEvent.Award(
             ScoreSubjectType.User, Guid.CreateVersion7(), ScoringPolicy.GiftRedemptionSource, Guid.CreateVersion7(), 3, 1, 9_00, at, Guid.CreateVersion7());
 
-        var reversal = ScoreEvent.Reverse(original, at.AddMinutes(5));
+        var reversal = ScoreEvent.Reverse(original);
 
         Assert.Equal(
-            (original.SubjectId, "GiftRedemptionReversal", original.SourceId, -3, -1, -9_00L, original.RecipientUserId),
-            (reversal.SubjectId, reversal.SourceType, reversal.SourceId, reversal.Points, reversal.Treats, reversal.Value, reversal.RecipientUserId));
+            (original.SubjectId, "GiftRedemptionReversal", original.SourceId, -3, -1, -9_00L, original.RecipientUserId, at),
+            (reversal.SubjectId, reversal.SourceType, reversal.SourceId, reversal.Points, reversal.Treats, reversal.Value, reversal.RecipientUserId, reversal.CreatedAt));
         Assert.True(reversal.IsReversal);
-        Assert.Throws<InvalidOperationException>(() => ScoreEvent.Reverse(reversal, at));
+        Assert.Throws<InvalidOperationException>(() => ScoreEvent.Reverse(reversal));
         Assert.Throws<ArgumentOutOfRangeException>(() => ScoreEvent.Award(ScoreSubjectType.User, Guid.CreateVersion7(), "Gift", Guid.CreateVersion7(), -1, 1, 0, at));
     }
 }
