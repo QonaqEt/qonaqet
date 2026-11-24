@@ -15,6 +15,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# Windows konsolunda (cp1252) ə, ✅ kimi simvollar çap oluna bilsin.
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 EPICS = ROOT / "docs" / "epics"
 
 ICON = {"todo": "⬜", "in-progress": "🔄", "done": "✅", "dropped": "🚫"}
@@ -22,7 +27,7 @@ ICON = {"todo": "⬜", "in-progress": "🔄", "done": "✅", "dropped": "🚫"}
 
 def load(epics_dir: Path = EPICS) -> list[dict]:
     out = subprocess.run([sys.executable, str(ROOT / "scripts/lib/parse-epics.py"), str(epics_dir)],
-                         check=True, capture_output=True, text=True).stdout
+                         check=True, capture_output=True, encoding="utf-8").stdout
     return json.loads(out)
 
 
