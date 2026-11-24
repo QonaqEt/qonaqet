@@ -7,6 +7,7 @@ using Qonaqet.Domain.Leaderboard;
 using Qonaqet.Domain.Users;
 using Qonaqet.Infrastructure.Messaging.Consumers;
 using Qonaqet.Infrastructure.Persistence.Postgres;
+using Qonaqet.IntegrationTests.Businesses;
 using Qonaqet.IntegrationTests.Identity;
 using Qonaqet.IntegrationTests.Payments;
 using Qonaqet.IntegrationTests.Social;
@@ -73,13 +74,14 @@ public sealed class LeaderboardApiTests(PaymentsFixture fixture)
         fixture.SkipIfUnavailable();
         await using var host = await fixture.HostAsync();
         var open = await SocialTestData.ShopAsync(host, "lb-open");
-        var suspended = await SocialTestData.ShopAsync(host, "lb-closed");
+        var (_, suspendedId) = await BusinessTestData.ActiveBusinessAsync(
+            host, open.Admin, "lb-closed@example.az", BusinessTestData.ApplicationBody("Bağlı Kafe", "3100000002"));
         await ScoreAsync(host, ScoreSubjectType.Business, Guid.Parse(open.BusinessId), 4);
-        await ScoreAsync(host, ScoreSubjectType.Business, Guid.Parse(suspended.BusinessId), 6);
+        await ScoreAsync(host, ScoreSubjectType.Business, Guid.Parse(suspendedId), 6);
         await using (var scope = host.Services.CreateAsyncScope())
         {
             var businesses = scope.ServiceProvider.GetRequiredService<IBusinessRepository>();
-            var business = (await businesses.GetAsync(BusinessId.From(Guid.Parse(suspended.BusinessId)), Ct))!;
+            var business = (await businesses.GetAsync(BusinessId.From(Guid.Parse(suspendedId)), Ct))!;
             business.Suspend("test", host.Clock.UtcNow, null);
             await businesses.UpdateAsync(business, Ct);
         }
