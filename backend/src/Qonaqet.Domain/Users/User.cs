@@ -10,6 +10,11 @@ public sealed class User : AggregateRoot<UserId>
 {
     public const int NameMaxLength = 100;
 
+    /// <summary>Reytinq ləqəbinin uzunluğu.</summary>
+    public const int LeaderboardNameMinLength = 2;
+
+    public const int LeaderboardNameMaxLength = 30;
+
     /// <summary>Bir hesabda ən çox bu qədər cihaz token-i saxlanılır; yenisi gələndə ən köhnəsi düşür.</summary>
     public const int MaxFcmTokens = 10;
 
@@ -71,6 +76,31 @@ public sealed class User : AggregateRoot<UserId>
     public string? BlockReason { get; private set; }
 
     public bool ProfileCompleted => !string.IsNullOrWhiteSpace(FirstName);
+
+    /// <summary>Reytinqdə görünmək (default açıq; istifadəçi istənilən vaxt söndürə bilər). Söndürülsə də xal qazanılır, sadəcə lövhədə görünmür.</summary>
+    public bool LeaderboardOptIn { get; private set; } = true;
+
+    /// <summary>Reytinq ləqəbi; yoxdursa lövhədə ad + soyadın ilk hərfi göstərilir.</summary>
+    public string? LeaderboardName { get; private set; }
+
+    /// <summary>Lövhədəki ad: ləqəb, yoxsa "Ad S.", ad hələ verilməyibsə "Qonaq". Email və tam soyad heç vaxt göstərilmir.</summary>
+    public string LeaderboardDisplayName =>
+        LeaderboardName
+        ?? (string.IsNullOrWhiteSpace(FirstName) ? "Qonaq" : string.IsNullOrWhiteSpace(LastName) ? FirstName : $"{FirstName} {LastName[0]}.");
+
+    /// <summary>Reytinq seçimləri: görünmə və ləqəb (<c>null</c> = ləqəbi sil).</summary>
+    public void SetLeaderboardPreferences(bool optIn, string? leaderboardName, DateTimeOffset at)
+    {
+        var name = string.IsNullOrWhiteSpace(leaderboardName) ? null : leaderboardName.Trim();
+        if (name is not null)
+        {
+            Guard.InRange(name.Length, LeaderboardNameMinLength, LeaderboardNameMaxLength);
+        }
+
+        LeaderboardOptIn = optIn;
+        LeaderboardName = name;
+        MarkUpdated(at, Id.Value);
+    }
 
     /// <summary>
     /// Təsdiqlənmiş kateqoriyalar (hər kateqoriyaya bir qeyd). Müddət məntiqidir: <see cref="VerifiedCategory.IsValidAt"/>
