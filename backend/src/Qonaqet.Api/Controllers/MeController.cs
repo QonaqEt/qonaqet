@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Qonaqet.Application.Features.Leaderboard.Commands.UpdateLeaderboardSettings;
+using Qonaqet.Application.Features.Leaderboard.Queries.GetMyScore;
 using Qonaqet.Application.Features.Users.Commands.DeleteMe;
 using Qonaqet.Application.Features.Users.Commands.RegisterFcmToken;
 using Qonaqet.Application.Features.Users.Commands.RemoveFcmToken;
@@ -40,6 +41,10 @@ public sealed class MeController(ISender sender) : ControllerBase
     [HttpPatch("notifications")]
     public async Task<IActionResult> UpdateNotifications(UpdateNotificationPreferencesCommand command, CancellationToken cancellationToken) =>
         (await sender.Send(command, cancellationToken)).ToActionResult();
+
+    [HttpGet("score")]
+    public async Task<IActionResult> GetScore(CancellationToken cancellationToken) =>
+        (await sender.Send(new GetMyScoreQuery(), cancellationToken)).ToActionResult();
 
     [HttpPatch("leaderboard")]
     public async Task<IActionResult> UpdateLeaderboard(UpdateLeaderboardSettingsCommand command, CancellationToken cancellationToken) =>

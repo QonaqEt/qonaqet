@@ -22,6 +22,18 @@ public readonly record struct LeaderboardPeriod(LeaderboardPeriodType Type, stri
     public static IReadOnlyList<LeaderboardPeriod> For(DateTimeOffset at) =>
         [Current(LeaderboardPeriodType.Week, at), Current(LeaderboardPeriodType.Month, at), AllTime];
 
+    /// <summary>Anın dövründən əvvəlki (artıq bitmiş) dövr; bütün zamanların əvvəlkisi yoxdur.</summary>
+    public static LeaderboardPeriod Previous(LeaderboardPeriodType type, DateTimeOffset at)
+    {
+        var today = BakuTime.ToBakuDate(at);
+        return type switch
+        {
+            LeaderboardPeriodType.Week => Current(type, BakuTime.StartOfDayUtc(today.AddDays(-7))),
+            LeaderboardPeriodType.Month => Current(type, BakuTime.StartOfDayUtc(new DateOnly(today.Year, today.Month, 1).AddDays(-1))),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Bütün zamanların əvvəlki dövrü yoxdur."),
+        };
+    }
+
     public static LeaderboardPeriod Current(LeaderboardPeriodType type, DateTimeOffset at)
     {
         var day = BakuTime.ToBakuDate(at).ToDateTime(TimeOnly.MinValue);
