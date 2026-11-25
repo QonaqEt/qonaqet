@@ -18,7 +18,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E08](epics/E08.md) | Pools, campaigns & donations | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E09](epics/E09.md) | Gifting | ✅ done | @Tapdiq49 | 10/10 | — |
 | [E10](epics/E10.md) | Corporate & CSR | ✅ done | @Tapdiq49 | 5/5 | — |
-| [E11](epics/E11.md) | Leaderboard & gamification | 🔄 in-progress | @zahid2000 | 7/8 | — |
+| [E11](epics/E11.md) | Leaderboard & gamification | ✅ done | @zahid2000 | 8/8 | — |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo · 🟢 götürülə bilər | — | 0/4 | — |
 | [E13](epics/E13.md) | Integration platform | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
 | [E14](epics/E14.md) | Mobile foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
@@ -27,7 +27,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E17](epics/E17.md) | Business portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/9 | — |
 | [E18](epics/E18.md) | Admin & corporate portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E19](epics/E19.md) | Landing website (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
-| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E11, E12, E13, E14, E15, E16, E17, E18, E19 |
+| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E12, E13, E14, E15, E16, E17, E18, E19 |
 
 ## Hazırda işlənən task-lar
 
@@ -209,7 +209,7 @@ Yoxdur.
 
 ## E11 — Leaderboard & gamification
 
-🔄 in-progress · @zahid2000 · 7/8 task
+✅ done · @zahid2000 · 8/8 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -220,7 +220,7 @@ Yoxdur.
 | ✅ | E11-T05 | Səviyyələr və nişanlar | backend | p2 | M |
 | ✅ | E11-T06 | Yenidən hesablama əmri | backend | p2 | S |
 | ✅ | E11-T07 | Korporativ hədiyyə xalı alıcı hesabı tələb edir | backend | p2 | XS |
-| ⬜ | E11-T08 | Xal dəyərləri admin tərəfindən tənzimlənir | backend | p2 | M |
+| ✅ | E11-T08 | Xal dəyərləri admin tərəfindən tənzimlənir | backend | p2 | M |
 
 ## E12 — QONAQET Plus
 

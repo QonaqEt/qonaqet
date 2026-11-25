@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Qonaqet.Domain.Leaderboard;
+using Qonaqet.Infrastructure.Persistence.Postgres.Records;
 
 namespace Qonaqet.Infrastructure.Persistence.Postgres.Configurations;
 
@@ -60,5 +61,19 @@ public sealed class BadgeAwardConfiguration : IEntityTypeConfiguration<BadgeAwar
         // Append-only. Unikal açar job-un idempotentliyidir: eyni dövr üçün nişan ikiqat verilmir.
         builder.HasIndex(x => new { x.SubjectType, x.SubjectId, x.Badge, x.PeriodKey }).IsUnique().HasDatabaseName("ux_badge_awards_subject_badge_period");
         builder.HasIndex(x => new { x.SubjectType, x.Badge, x.PeriodKey }).HasDatabaseName("ix_badge_awards_badge_period");
+    }
+}
+
+public sealed class ScorePointSettingConfiguration : IEntityTypeConfiguration<ScorePointSettingRecord>
+{
+    public void Configure(EntityTypeBuilder<ScorePointSettingRecord> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.ToTable("score_point_settings");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
+
+        // Append-only tarixçə; qüvvədə olan versiya ən son created_at-dır.
+        builder.HasIndex(x => x.CreatedAt);
     }
 }

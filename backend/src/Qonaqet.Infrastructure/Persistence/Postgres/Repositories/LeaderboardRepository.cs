@@ -1,9 +1,11 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Features.Leaderboard.Common;
 using Qonaqet.Domain.Leaderboard;
+using Qonaqet.Infrastructure.Messaging.Consumers;
 using Qonaqet.Infrastructure.Messaging.Outbox;
 using Qonaqet.Infrastructure.Persistence.Postgres.Records;
 
@@ -129,10 +131,13 @@ public sealed class LeaderboardRepository(QonaqetDbContext context) : ILeaderboa
 /// <summary>Reytinq sahəsinin DI qeydiyyatı (keş store-u <c>AddValkey</c>-dədir; adlar Mongo-dan oxunur).</summary>
 public static class LeaderboardRegistration
 {
-    public static IServiceCollection AddLeaderboard(this IServiceCollection services)
+    public static IServiceCollection AddLeaderboard(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        services.Configure<LeaderboardOptions>(configuration.GetSection(LeaderboardOptions.SectionName));
         services.AddScoped<ILeaderboardRepository, LeaderboardRepository>();
+        services.AddScoped<IScorePointSettings, ScorePointSettings>();
         services.AddScoped<LeaderboardReader>();
         services.AddScoped<ILeaderboardSubjects, Mongo.Repositories.LeaderboardSubjectsReader>();
         return services;
