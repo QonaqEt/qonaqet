@@ -31,7 +31,9 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 
 ## Hazırda işlənən task-lar
 
-Yoxdur.
+| Task | Ad | Epic sahibi |
+|---|---|---|
+| E13-T08 | Webhook-lar: imza, retry, redeliver | @zahid2000 |
 
 ## E00 — Repo, GitHub automation & dev environment
 
@@ -246,7 +248,7 @@ Yoxdur.
 | ✅ | E13-T05 | Təhvilin geri alınması (reverse) | integration | p1 | M |
 | ✅ | E13-T06 | Kataloq sinxronu | integration | p1 | M |
 | ✅ | E13-T07 | Issuer hədiyyələri və partnyor balansı | integration | p1 | L |
-| ⬜ | E13-T08 | Webhook-lar: imza, retry, redeliver | integration | p1 | L |
+| 🔄 | E13-T08 | Webhook-lar: imza, retry, redeliver | integration | p1 | L |
 | ⬜ | E13-T09 | Sandbox rejimi | integration | p1 | M |
 | ⬜ | E13-T10 | Partner OpenAPI və inteqrasiya təlimatı | integration | p1 | M |
 | ⬜ | E13-T11 | Biznes sahibinin öz inteqrasiya client-ləri | integration | p2 | M |

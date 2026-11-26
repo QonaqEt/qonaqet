@@ -720,6 +720,7 @@ public sealed class Gift : AggregateRoot<GiftId>
         ExpiredAt = Guard.Utc(at);
         TrimSealedToken();
         Touch(at, null);
+        Raise(new GiftExpired(Id, RemainingQepik, at));
         if (RemainingQepik <= 0)
         {
             return;
@@ -853,6 +854,9 @@ public sealed record GiftRedemptionReversed(
 /// <c>PartnerClient</c> hesabına <c>PartnerIssue</c> (+məbləğ).
 /// </summary>
 public sealed record PartnerGiftCredited(GiftId GiftId, Guid PartnerClientId, long AmountQepik, GiftRefundReason Reason, DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>Hədiyyənin müddəti bitdi (qalıq ilə) → issuer partnyora <c>gift.expired</c> webhook-u.</summary>
+public sealed record GiftExpired(GiftId GiftId, long RemainingQepik, DateTimeOffset At) : DomainEvent(At);
 
 /// <summary>Ödəyiciyə refund lazımdır (ləğvdə tam, müddət bitməsində qalıq). Consumer provayderdə refund edir və hədiyyəni işarələyir.</summary>
 public sealed record GiftRefundRequested(GiftId GiftId, Guid PaymentId, long AmountQepik, GiftRefundReason Reason, DateTimeOffset At) : DomainEvent(At);
