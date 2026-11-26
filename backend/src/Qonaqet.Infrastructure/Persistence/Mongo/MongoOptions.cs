@@ -21,4 +21,10 @@ public sealed class MongoOptions
     /// <see cref="ApplyMigrationsOnStartup"/> açıq olduqda işləyir; bütün mühitlərdə default açıqdır.
     /// </summary>
     public bool SeedReferenceData { get; set; } = true;
+
+    /// <summary>
+    /// Development demo datası (QONAQET Plus brendi və kuponları). Default bağlıdır; yalnız dev docker-compose açır — staging/production-da
+    /// heç vaxt.
+    /// </summary>
+    public bool SeedDemoData { get; set; }
 }
