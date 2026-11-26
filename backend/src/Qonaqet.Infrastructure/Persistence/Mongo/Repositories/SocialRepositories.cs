@@ -271,6 +271,7 @@ public static class SocialRegistration
         services.AddScoped<SocialLimits>();
         services.AddScoped<ClaimPresenter>();
         services.AddScoped<RedemptionCodeResolver>();
+        services.AddScoped<CodeRedemption>();
         services.AddScoped<SocialCascade>();
         services.AddScoped<PoolAttribution>();
         services.AddScoped<Application.Features.Donations.Events.PaymentFulfillment>();

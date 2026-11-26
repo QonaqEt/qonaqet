@@ -35,7 +35,7 @@ public sealed class GiftRedemptionService(IGiftRepository gifts, IGiftRedemption
             var redemption = current.Redeem(business.Id, business.AcceptsNetworkVouchers, lines, amountQepik, staffUserId, now);
             if (await transactions.SaveAsync(current, version, cancellationToken, ct => redemptions.AddAsync(redemption, ct)).ConfigureAwait(false))
             {
-                return Preview(current, now, redemption.ValueQepik);
+                return Preview(current, now, redemption.ValueQepik) with { RedemptionId = redemption.Id.Value };
             }
 
             // Uduzan cəhdin hadisələri (GiftRedeemed) heç vaxt outbox-a düşməməlidir.

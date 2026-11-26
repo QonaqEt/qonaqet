@@ -1,6 +1,7 @@
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Common.Errors;
+using Qonaqet.Domain.Businesses;
 using Qonaqet.Domain.Integration;
 using Qonaqet.SharedKernel;
 
@@ -10,7 +11,7 @@ namespace Qonaqet.Application.Features.Integration.Common;
 /// Partner sorğusunun client-i DB-dən oxunur: token 1 saat etibarlıdır, amma ləğv olunmuş client dərhal kəsilir. Bizneslərə giriş
 /// (<c>business_ids</c>) və sandbox rejimi buradan yoxlanılır.
 /// </summary>
-public sealed class PartnerAccess(IIntegrationClientRepository clients, ICurrentUser currentUser)
+public sealed class PartnerAccess(IIntegrationClientRepository clients, IBusinessRepository businesses, ICurrentUser currentUser)
 {
     public async Task<Result<IntegrationClient>> RequireAsync(CancellationToken cancellationToken)
     {
@@ -21,6 +22,24 @@ public sealed class PartnerAccess(IIntegrationClientRepository clients, ICurrent
 
         var client = await clients.GetAsync(IntegrationClientId.From(id), cancellationToken).ConfigureAwait(false);
         return client is null ? IntegrationErrors.ClientRevoked : client;
+    }
+
+    /// <summary>Client + onun <c>business_ids</c>-ində olan biznes. Siyahıda olmayan və mövcud olmayan biznes eyni xətanı alır.</summary>
+    public async Task<Result<(IntegrationClient Client, Business Business)>> RequireBusinessAsync(Guid businessId, CancellationToken cancellationToken)
+    {
+        var client = await RequireAsync(cancellationToken).ConfigureAwait(false);
+        if (client.IsFailure)
+        {
+            return client.Error;
+        }
+
+        if (!client.Value.CanAccessBusiness(businessId))
+        {
+            return IntegrationErrors.BusinessNotAllowed;
+        }
+
+        var business = await businesses.GetAsync(BusinessId.From(businessId), cancellationToken).ConfigureAwait(false);
+        return business is null ? IntegrationErrors.BusinessNotAllowed : (client.Value, business);
     }
 }
 

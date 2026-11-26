@@ -32,7 +32,8 @@ public sealed record RedemptionPreviewDto(
     DateTimeOffset ExpiresAt,
     bool CanRedeem,
     DateTimeOffset? RedeemedAt,
-    GiftRedemptionDetailsDto? Gift = null);
+    GiftRedemptionDetailsDto? Gift = null,
+    Guid? RedemptionId = null);
 
 /// <summary>Hədiyyənin təhvil üçün görünüşü: növ, qalan sətirlər (məhsulda) və ya qalan məbləğ (vauçerdə), indicə təhvil verilən dəyər.</summary>
 public sealed record GiftRedemptionDetailsDto(
