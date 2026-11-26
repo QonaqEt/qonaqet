@@ -44,6 +44,7 @@ public static class MessagingHostRegistration
         services.AddSingleton<IIntegrationEventConsumer, GiftEventsConsumer>();
         services.AddSingleton<IIntegrationEventConsumer, CorporateReportsConsumer>();
         services.AddSingleton<IIntegrationEventConsumer, ScoreConsumer>();
+        services.AddSingleton<IIntegrationEventConsumer, PartnerGiftConsumer>();
         services.AddHostedService<RabbitMqConsumerHost>();
         return services;
     }

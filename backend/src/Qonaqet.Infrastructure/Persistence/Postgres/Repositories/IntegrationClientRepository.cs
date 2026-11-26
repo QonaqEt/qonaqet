@@ -47,6 +47,7 @@ public static class IntegrationRegistration
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<IIntegrationClientRepository, IntegrationClientRepository>();
         services.AddScoped<PartnerAccess>();
+        services.AddScoped<IPartnerFunding, PartnerFunding>();
         services.AddSingleton<IPartnerTokenIssuer, JwtPartnerTokenIssuer>();
         return services;
     }

@@ -36,6 +36,11 @@ public sealed class PaymentFulfillment(IOfferRepository offers, IPoolDonationRep
                 // Pul təhvildə biznesə kredit kimi düşür (GiftRedeemed → RedemptionCredit + komissiya); burada yalnız Scheduled + link.
                 await gifts.OnPaidAsync(GiftId.From(paid.ReferenceId), paid.At, cancellationToken).ConfigureAwait(false);
                 return [];
+            case PaymentPurpose.PartnerTopUp:
+                // Kartla balans artımı: partnyor hesabına PartnerTopUp; mənbə ödənişin özü (bir ödəniş → bir yazı).
+                return [LedgerEntry.Post(
+                    LedgerAccount.PartnerClient(paid.ReferenceId), LedgerEntryType.PartnerTopUp, paid.Amount, "Payment", paid.PaymentId, paid.PaymentId,
+                    "partner-topup", paid.At)];
             case PaymentPurpose.CorporateGiftOrder:
                 // Sifariş Paid olur; hədiyyələri fan-out job-u yaradır. Pul təhvillərdə biznesə kredit kimi düşür.
                 await corporateOrders.OnPaidAsync(CorporateGiftOrderId.From(paid.ReferenceId), paid.At, cancellationToken).ConfigureAwait(false);
