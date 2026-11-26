@@ -33,6 +33,21 @@ public sealed class ConventionTests
     }
 
     [Fact]
+    public void Partner_controllers_live_under_the_partner_prefix_or_oauth()
+    {
+        var routes = typeof(Integration.Api.Program).Assembly.GetTypes()
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
+            .Select(t => (t.Name, Route: t.GetCustomAttribute<RouteAttribute>()?.Template ?? string.Empty))
+            .ToList();
+
+        Assert.NotEmpty(routes);
+        Assert.All(routes, r => Assert.True(
+            r.Route.StartsWith(Integration.Api.Controllers.PartnerRoutes.Prefix + "/", StringComparison.Ordinal)
+                || r.Route.StartsWith(Integration.Api.Controllers.PartnerRoutes.OAuth + "/", StringComparison.Ordinal),
+            $"{r.Name}: {r.Route}"));
+    }
+
+    [Fact]
     public void Controller_rule_catches_injected_persistence_and_state()
     {
         var violations = Rules.ControllerViolations([typeof(FatController), typeof(ThinController)]);
