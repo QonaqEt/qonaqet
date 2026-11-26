@@ -1,3 +1,5 @@
+using Qonaqet.Application.Abstractions.Persistence;
+using Qonaqet.Domain.Leaderboard;
 using Qonaqet.SharedKernel;
 
 namespace Qonaqet.Infrastructure.Persistence.Postgres.Records;
@@ -97,4 +99,63 @@ public sealed class JobRunRecord : IAppendOnly, INotAudited
     public int ItemsProcessed { get; set; }
 
     public string? Error { get; set; }
+}
+
+/// <summary>
+/// <c>score_point_settings</c> (append-only): admin tərəfindən təyin olunan xal dəyərlərinin bir versiyası. Audit interceptor-u hər yeni versiyanı
+/// audit log-a yazır.
+/// </summary>
+public sealed class ScorePointSettingRecord : IAppendOnly
+{
+    public Guid Id { get; set; }
+
+    public int GiftItemUnit { get; set; }
+
+    public int GiftVoucherStep { get; set; }
+
+    public long GiftVoucherStepQepik { get; set; }
+
+    public int DonorClaim { get; set; }
+
+    public int BusinessClaim { get; set; }
+
+    public int CorporateGift { get; set; }
+
+    public int CorporateClaim { get; set; }
+
+    public Guid? CreatedBy { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+
+    public static ScorePointSettingRecord From(ScorePoints points, Guid? actorId, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        return new ScorePointSettingRecord
+        {
+            Id = Guid.CreateVersion7(),
+            GiftItemUnit = points.GiftItemUnit,
+            GiftVoucherStep = points.GiftVoucherStep,
+            GiftVoucherStepQepik = points.GiftVoucherStepQepik,
+            DonorClaim = points.DonorClaim,
+            BusinessClaim = points.BusinessClaim,
+            CorporateGift = points.CorporateGift,
+            CorporateClaim = points.CorporateClaim,
+            CreatedBy = actorId,
+            CreatedAt = now,
+        };
+    }
+
+    public ScorePointsVersion ToVersion() => new(
+        new ScorePoints
+        {
+            GiftItemUnit = GiftItemUnit,
+            GiftVoucherStep = GiftVoucherStep,
+            GiftVoucherStepQepik = GiftVoucherStepQepik,
+            DonorClaim = DonorClaim,
+            BusinessClaim = BusinessClaim,
+            CorporateGift = CorporateGift,
+            CorporateClaim = CorporateClaim,
+        },
+        CreatedAt,
+        CreatedBy);
 }

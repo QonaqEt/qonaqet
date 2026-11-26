@@ -8,6 +8,7 @@ using Qonaqet.Domain.Social;
 using Qonaqet.Infrastructure.Messaging.Inbox;
 using Qonaqet.Infrastructure.Messaging.Outbox;
 using Qonaqet.Infrastructure.Persistence.Postgres;
+using Qonaqet.Infrastructure.Persistence.Postgres.Repositories;
 using Qonaqet.SharedKernel;
 
 namespace Qonaqet.Infrastructure.Messaging.Consumers;
@@ -17,7 +18,7 @@ public sealed class LeaderboardOptions
 {
     public const string SectionName = "Leaderboard";
 
-    /// <summary>Xal dəyərləri (<c>Leaderboard:Points</c>).</summary>
+    /// <summary>Xal dəyərlərinin default-u (<c>Leaderboard:Points</c>); admin təyin edibsə <c>score_point_settings</c> qüvvədədir.</summary>
     public ScorePoints Points { get; set; } = new();
 
     /// <summary>Anti-gaming limitləri (<c>Leaderboard:Limits</c>).</summary>
@@ -49,7 +50,7 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderb
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
 
-        var (awards, at) = Awards(message);
+        var (awards, at) = await AwardsAsync(message, context, cancellationToken).ConfigureAwait(false);
         var events = context.Set<ScoreEvent>();
         foreach (var award in awards)
         {
@@ -72,7 +73,7 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderb
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
 
-        var (awards, at) = Awards(message);
+        var (awards, at) = await AwardsAsync(message, context, cancellationToken).ConfigureAwait(false);
         foreach (var subject in awards.Select(a => (a.SubjectType, a.SubjectId)).Distinct())
         {
             var current = await LeaderboardAggregates.CurrentAsync(context, subject.SubjectType, subject.SubjectId, at, cancellationToken).ConfigureAwait(false);
@@ -83,12 +84,14 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderb
         }
     }
 
-    private (IReadOnlyList<ScoreAward> Awards, DateTimeOffset At) Awards(IntegrationMessage message)
+    /// <summary>Xal dəyərləri təhvil anında qüvvədə olan versiyadır (təkrar çatdırılma eyni nəticəni verir).</summary>
+    private async Task<(IReadOnlyList<ScoreAward> Awards, DateTimeOffset At)> AwardsAsync(
+        IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
     {
-        var policy = new ScoringPolicy(options.Value.Points);
         if (message.Type == GiftRedeemedType)
         {
             var gift = Read<GiftRedeemedPayload>(message);
+            var policy = await PolicyAsync(context, gift.At, cancellationToken).ConfigureAwait(false);
             return (policy.ForGift(new RedeemedGift(
                 gift.GiftId, gift.RedemptionId, gift.Kind, gift.ValueQepik, gift.Units, gift.SenderUserId, gift.CorporateId, gift.RecipientUserId)), gift.At);
         }
@@ -96,12 +99,16 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderb
         if (message.Type == ClaimRedeemedType)
         {
             var claim = Read<ClaimRedeemedPayload>(message);
+            var policy = await PolicyAsync(context, claim.At, cancellationToken).ConfigureAwait(false);
             return (policy.ForClaim(new RedeemedClaim(
                 claim.ClaimId, claim.BusinessId, claim.OfferType, claim.AmountQepik, claim.FunderUserId, claim.FunderCorporateId)), claim.At);
         }
 
         return ([], default);
     }
+
+    private async Task<ScoringPolicy> PolicyAsync(QonaqetDbContext context, DateTimeOffset at, CancellationToken cancellationToken) =>
+        new((await ScorePointSettings.AtAsync(context, options.Value.Points, at, cancellationToken).ConfigureAwait(false)).Points);
 
     private async Task<int> CappedAsync(DbSet<ScoreEvent> events, ScoreAward award, DateTimeOffset at, CancellationToken cancellationToken)
     {

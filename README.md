@@ -188,6 +188,8 @@ digər mühitlərdə məcburidir.
 
 - **Xal yalnız təhvildə:** score consumer-i `GiftRedeemed`/`ClaimRedeemed`-dən `score_events` (append-only) yazır; dəyərlər
   `Leaderboard__Points__*` (məhsul vahidi / hər başlanan 5 AZN 1, donor və biznes claim-i 2, şirkət 1/2).
+- **Xal dəyərləri (admin):** `GET/PUT /api/v1/admin/leaderboard/points` — yeni versiya yalnız sonrakı təhvillərə tətbiq olunur,
+  köhnələri `score_point_settings`-də tarixçə kimi qalır (audit); admin təyin etməyibsə `Leaderboard__Points__*` işləyir.
 - **Anti-gaming:** özünə hədiyyə və yalnız-link hədiyyə (alıcı hesaba əlavə edənə qədər, korporativ də daxil) xal vermir; göndərən→alıcı cütü ayda 10, istifadəçi
   gündə 300 xal (`Leaderboard__Limits__*`, Bakı vaxtı), artığı `points = 0`; geri alma mənfi hadisə yazır.
 - **Lövhələr:** `leaderboard_entries` (həftə `2026-W48`, ay `2026-11`, `all`) consumer-in tranzaksiyasında upsert olunur; Valkey

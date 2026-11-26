@@ -54,7 +54,7 @@ public static class DependencyInjection
         services.AddGifts(configuration);
         services.AddCorporate();
         services.AddPayments(configuration);
-        services.AddLeaderboard();
+        services.AddLeaderboard(configuration);
 
         // HTTP host-ları (AddQonaqetWeb) öz aktorlarını əvvəlcədən qeyd edir; Worker anonim aktor alır.
         services.TryAddSingleton<AnonymousActor>();

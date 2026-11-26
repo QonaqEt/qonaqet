@@ -32,6 +32,22 @@ public interface ILeaderboardRepository
     Task<LeaderboardRecompute> RecomputeAsync(LeaderboardBoard board, Guid? actorId, DateTimeOffset now, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Admin tərəfindən tənzimlənən xal dəyərləri (<c>score_point_settings</c>, append-only tarixçə). Hər dəyişiklik yeni sətirdir; təhvilə həmin anda
+/// qüvvədə olan versiya tətbiq olunur. Admin heç nə təyin etməyibsə <c>Leaderboard:Points</c> konfiqurasiyası işləyir.
+/// </summary>
+public interface IScorePointSettings
+{
+    /// <summary><paramref name="at"/> anında qüvvədə olan dəyərlər.</summary>
+    Task<ScorePointsVersion> AtAsync(DateTimeOffset at, CancellationToken cancellationToken);
+
+    /// <summary>Yeni versiya yazır (audit interceptor-u əməliyyatı audit log-a yazır).</summary>
+    Task<ScorePointsVersion> SetAsync(ScorePoints points, Guid? actorId, DateTimeOffset now, CancellationToken cancellationToken);
+}
+
+/// <summary>Xal dəyərləri və onları kimin, nə vaxt təyin etdiyi (konfiqurasiya default-u üçün <c>null</c>).</summary>
+public sealed record ScorePointsVersion(ScorePoints Points, DateTimeOffset? ChangedAt, Guid? ChangedBy);
+
 /// <summary>Yenidən hesablamanın nəticəsi: hadisəsi olan qazanan sayı və dəyişən sətirlər.</summary>
 public sealed record LeaderboardRecompute(int Subjects, int Changed);
 
