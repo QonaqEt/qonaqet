@@ -145,6 +145,8 @@ public sealed class LedgerTests(PaymentsFixture fixture)
         amount,
         commissionable,
         Guid.CreateVersion7(),
+        null,
+        null,
         new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.Zero));
 
     internal static IntegrationMessage Message(IDomainEvent domainEvent) =>

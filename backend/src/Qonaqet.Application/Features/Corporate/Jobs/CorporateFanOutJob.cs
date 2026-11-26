@@ -67,7 +67,7 @@ public sealed class CorporateFanOutJob(
             {
                 var recipient = order.Recipients[index];
                 var gift = Gift.CreateForCorporateOrder(
-                    order.Content(), order.Id.Value, corporate.Name, order.PaymentId, new GiftRecipient(recipient.Name, recipient.Email), index,
+                    order.Content(), order.Id.Value, order.CorporateId.Value, corporate.Name, order.PaymentId, new GiftRecipient(recipient.Name, recipient.Email), index,
                     order.Message, order.DeliverAt, options.Value.ValidityDays, expiry, links.Issue().Secret, now);
                 gift.AttachShortCode(GiftCodes.ShortCodeHash(codes, gift.Id));
                 batch.Add(gift);

@@ -50,6 +50,34 @@ public sealed class ClaimTests
     }
 
     [Fact]
+    public void Redeemed_event_carries_who_funded_the_treat_for_scoring()
+    {
+        var donor = Guid.CreateVersion7();
+        var remote = Offer.CreateRemote(
+            StronglyTypedId.New<BusinessId>(), StronglyTypedId.New<CategoryId>(), StronglyTypedId.New<Catalog.CatalogItemId>(), "Kofe", 4_00, 2,
+            DonorDisplay.Anonymous, null, donor, Now);
+        var fromRemote = Reserve(remote);
+        var fromDaily = Reserve();
+        var corporate = Guid.CreateVersion7();
+        var pool = Pool.CreateForCampaign(StronglyTypedId.New<CategoryId>(), Guid.CreateVersion7(), Now, null);
+        var fromPool = Claim.ReserveFromPool(
+            pool, StronglyTypedId.New<BusinessId>(), StronglyTypedId.New<Catalog.CatalogItemId>(), "Çay", 2_00, Guid.CreateVersion7(),
+            "Bir xeyirxah insan sizə ısmarladı 💚", Guid.CreateVersion7(), donor, corporate, Now);
+
+        Assert.Equal((donor, (Guid?)null), Funders(fromRemote));
+        Assert.Equal(((Guid?)null, (Guid?)null), Funders(fromDaily));
+        Assert.Equal((donor, corporate), Funders(fromPool));
+    }
+
+    private static (Guid? User, Guid? Corporate) Funders(Claim claim)
+    {
+        claim.DequeueDomainEvents();
+        claim.Redeem(Guid.CreateVersion7(), Now.AddMinutes(1));
+        var evt = Assert.IsType<ClaimRedeemed>(Assert.Single(claim.DequeueDomainEvents()));
+        return (evt.FunderUserId, evt.FunderCorporateId);
+    }
+
+    [Fact]
     public void Expired_reservation_cannot_be_redeemed_and_closed_claims_cannot_change()
     {
         var late = Reserve();

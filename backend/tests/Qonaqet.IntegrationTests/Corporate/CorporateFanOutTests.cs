@@ -32,7 +32,7 @@ public sealed class CorporateFanOutTests(PaymentsFixture fixture)
                 .GetAsync(CorporateGiftOrderId.From(Guid.Parse(orderId)), Ct))!;
             var links = scope.ServiceProvider.GetRequiredService<IGiftLinkTokens>();
             var partial = Enumerable.Range(0, 120).Select(i => Gift.CreateForCorporateOrder(
-                order.Content(), order.Id.Value, "Bakcell", null, new GiftRecipient(order.Recipients[i].Name, order.Recipients[i].Email), i, order.Message,
+                order.Content(), order.Id.Value, order.CorporateId.Value, "Bakcell", null, new GiftRecipient(order.Recipients[i].Name, order.Recipients[i].Email), i, order.Message,
                 order.DeliverAt, 60, new GiftExpiryPlan(order.ExpiryAction, order.ExpiryPoolId), links.Issue().Secret, host.Clock.UtcNow)).ToList();
             Assert.Equal(120, await scope.ServiceProvider.GetRequiredService<IGiftRepository>().AddCorporateBatchAsync(partial, Ct));
         }
