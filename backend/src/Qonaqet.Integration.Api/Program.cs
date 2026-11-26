@@ -17,7 +17,8 @@ public sealed class Program
 
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddQonaqetWeb("partner-v1", "QONAQET Partner API v1");
+        builder.Services.AddQonaqetWeb(PartnerOpenApi.DocumentName, "QONAQET Partner API v1");
+        builder.Services.AddPartnerOpenApiDetails();
         builder.AddQonaqetObservability("qonaqet-integration-api");
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddQonaqetPartnerAuthentication();
