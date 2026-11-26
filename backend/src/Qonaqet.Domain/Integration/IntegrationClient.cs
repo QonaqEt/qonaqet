@@ -31,6 +31,9 @@ public static class PartnerScopes
 
     public static IReadOnlyList<string> All { get; } = [CodesRead, RedemptionsWrite, CatalogWrite, GiftsIssue, GiftsRead, CouponsValidate, Webhooks];
 
+    /// <summary>Biznes sahibinin öz client-lərinə verə biləcəyi scope-lar (kassa/POS inteqrasiyası, E13-T11).</summary>
+    public static IReadOnlyList<string> Business { get; } = [CodesRead, RedemptionsWrite, CatalogWrite, Webhooks];
+
     public static bool IsKnown(string scope) => All.Contains(scope, StringComparer.Ordinal);
 }
 

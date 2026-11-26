@@ -15,6 +15,9 @@ public interface IIntegrationClientRepository
     /// <summary>Client-lər (sahibə görə süzülə bilər), ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<IntegrationClient>> ListAsync(IntegrationOwnerType? ownerType, Guid? ownerId, int limit, CancellationToken cancellationToken);
 
+    /// <summary><c>Business</c> tipli client-lər ki, <c>business_ids</c>-i verilən bizneslərdən ən azı birini əhatə edir; ən yenilər əvvəl.</summary>
+    Task<IReadOnlyList<IntegrationClient>> ListForBusinessesAsync(IReadOnlyCollection<Guid> businessIds, CancellationToken cancellationToken);
+
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
 
