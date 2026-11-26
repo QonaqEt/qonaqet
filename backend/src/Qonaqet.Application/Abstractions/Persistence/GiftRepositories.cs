@@ -51,4 +51,9 @@ public interface IGiftRedemptionRepository
     Task AddAsync(GiftRedemption redemption, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<GiftRedemption>> ListForGiftAsync(GiftId giftId, CancellationToken cancellationToken);
+
+    Task<GiftRedemption?> GetAsync(GiftRedemptionId id, CancellationToken cancellationToken);
+
+    /// <summary>Bu təhvilin tərs yazısı varmı (artıq geri alınıb).</summary>
+    Task<bool> IsReversedAsync(GiftRedemptionId id, CancellationToken cancellationToken);
 }

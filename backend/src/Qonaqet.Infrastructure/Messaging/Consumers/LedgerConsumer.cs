@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Qonaqet.Domain.Gifts;
 using Qonaqet.Domain.Ledger;
@@ -47,11 +48,15 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
 
     public static readonly string GiftExpiryDonatedType = typeof(GiftExpiryDonated).FullName!;
 
+    public static readonly string GiftRedemptionReversedType = typeof(GiftRedemptionReversed).FullName!;
+
+    public static readonly string ClaimRedemptionReversedType = typeof(ClaimRedemptionReversed).FullName!;
+
     public string Name => "ledger";
 
-    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType, GiftRedeemedType, GiftExpiryDonatedType];
+    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType, GiftRedeemedType, GiftExpiryDonatedType, GiftRedemptionReversedType, ClaimRedemptionReversedType];
 
-    public Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
+    public async Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
@@ -70,6 +75,19 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
             entries = LedgerPostings.Redemption(
                 gift.BusinessId, gift.ValueQepik, commissionable: true, "GiftRedemption", gift.RedemptionId, message.MessageId,
                 new CommissionPolicy(options.Value.CommissionPercent), gift.At);
+        }
+        else if (message.Type == GiftRedemptionReversedType)
+        {
+            var reversed = Read<GiftRedemptionReversedPayload>(message);
+            entries = await ReverseRedemptionAsync(context, "GiftRedemption", reversed.RedemptionId, message.MessageId, reversed.At, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else if (message.Type == ClaimRedemptionReversedType)
+        {
+            var reversed = Read<ClaimRedemptionReversedPayload>(message);
+            entries = reversed.Commissionable
+                ? await ReverseRedemptionAsync(context, "Claim", reversed.ClaimId, message.MessageId, reversed.At, cancellationToken).ConfigureAwait(false)
+                : [];
         }
         else if (message.Type == GiftExpiryDonatedType)
         {
@@ -108,7 +126,28 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
         }
 
         context.Set<LedgerEntry>().AddRange(entries);
-        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Geri alınan təhvilin tərs yazıları: təhvilin (<paramref name="refType"/>, <paramref name="refId"/>) <c>RedemptionCredit</c>/<c>Commission</c>
+    /// yazılarının hər hesab üzrə <b>xalis</b> cəmi mənfi işarə ilə yazılır — claim təkrar təhvil/geri alma dövrlərində də düzgündür. Orijinal
+    /// yazılar hələ yoxdursa (hadisələr gecikib) mesaj təkrar emal olunsun deyə xəta atılır.
+    /// </summary>
+    private static async Task<IReadOnlyList<LedgerEntry>> ReverseRedemptionAsync(
+        QonaqetDbContext context, string refType, Guid refId, Guid sourceEventId, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        var net = await context.Set<LedgerEntry>().AsNoTracking()
+            .Where(e => e.RefType == refType && e.RefId == refId && (e.Type == LedgerEntryType.RedemptionCredit || e.Type == LedgerEntryType.Commission))
+            .GroupBy(e => new { e.AccountType, e.AccountId, e.Type })
+            .Select(g => new { g.Key.AccountType, g.Key.AccountId, g.Key.Type, Amount = g.Sum(e => e.Amount) })
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        if (!net.Exists(n => n.Type == LedgerEntryType.RedemptionCredit && n.Amount > 0))
+        {
+            throw new InvalidOperationException($"{refType} {refId}: geri alınacaq ledger yazısı hələ yoxdur.");
+        }
+
+        return [.. net.Where(n => n.Amount != 0).Select(n => LedgerEntry.Post(
+            new LedgerAccount(n.AccountType, n.AccountId), n.Type, -n.Amount, refType, refId, sourceEventId, $"reverse:{n.AccountType}:{n.AccountId:N}:{n.Type}", at))];
     }
 
     private static T Read<T>(IntegrationMessage message) =>
@@ -116,6 +155,10 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
         ?? throw new InvalidOperationException($"Boş {message.Type} mesajı.");
 
     private sealed record GiftExpiryDonatedPayload(Guid GiftId, Guid PoolId, long AmountQepik, DateTimeOffset At);
+
+    private sealed record GiftRedemptionReversedPayload(Guid GiftId, Guid RedemptionId, DateTimeOffset At);
+
+    private sealed record ClaimRedemptionReversedPayload(Guid ClaimId, bool Commissionable, DateTimeOffset At);
 
     private sealed record GiftRedeemedPayload(Guid GiftId, Guid RedemptionId, Guid BusinessId, long ValueQepik, DateTimeOffset At);
 

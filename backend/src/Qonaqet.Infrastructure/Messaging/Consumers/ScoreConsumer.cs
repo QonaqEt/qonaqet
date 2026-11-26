@@ -41,14 +41,23 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderb
 
     public static readonly string ClaimRedeemedType = typeof(ClaimRedeemed).FullName!;
 
+    public static readonly string GiftRedemptionReversedType = typeof(GiftRedemptionReversed).FullName!;
+
+    public static readonly string ClaimRedemptionReversedType = typeof(ClaimRedemptionReversed).FullName!;
+
     public string Name => "score";
 
-    public IReadOnlyCollection<string> EventTypes { get; } = [GiftRedeemedType, ClaimRedeemedType];
+    public IReadOnlyCollection<string> EventTypes { get; } = [GiftRedeemedType, ClaimRedeemedType, GiftRedemptionReversedType, ClaimRedemptionReversedType];
 
     public async Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
+
+        foreach (var (sourceType, sourceId) in ReversedSources(message))
+        {
+            await ScoreReversal.ReverseAsync(context, sourceType, sourceId, cancellationToken).ConfigureAwait(false);
+        }
 
         var (awards, at) = await AwardsAsync(message, context, cancellationToken).ConfigureAwait(false);
         var events = context.Set<ScoreEvent>();
@@ -74,7 +83,21 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderb
         ArgumentNullException.ThrowIfNull(context);
 
         var (awards, at) = await AwardsAsync(message, context, cancellationToken).ConfigureAwait(false);
-        foreach (var subject in awards.Select(a => (a.SubjectType, a.SubjectId)).Distinct())
+        var subjects = awards.Select(a => (a.SubjectType, a.SubjectId)).ToList();
+        foreach (var (sourceType, sourceId) in ReversedSources(message))
+        {
+            // Geri almada təsirlənən qazananlar: orijinal xal hadisələrinin sahibləri; dövrlər orijinal hadisənin vaxtına görədir.
+            var originals = await context.Set<ScoreEvent>().AsNoTracking()
+                .Where(e => e.SourceType == sourceType && e.SourceId == sourceId)
+                .Select(e => new { e.SubjectType, e.SubjectId, e.CreatedAt }).ToListAsync(cancellationToken).ConfigureAwait(false);
+            subjects.AddRange(originals.Select(o => (o.SubjectType, o.SubjectId)));
+            if (originals.Count > 0)
+            {
+                at = originals[0].CreatedAt;
+            }
+        }
+
+        foreach (var subject in subjects.Distinct())
         {
             var current = await LeaderboardAggregates.CurrentAsync(context, subject.SubjectType, subject.SubjectId, at, cancellationToken).ConfigureAwait(false);
             foreach (var (board, score) in current)
@@ -107,6 +130,20 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderb
         return ([], default);
     }
 
+    /// <summary>Geri alma hadisəsinin xal mənbələri: hədiyyədə təhvil (və hədiyyə tam təhvilsiz qalıbsa şirkətin hədiyyə xalı), claim-də claim.</summary>
+    private static IReadOnlyList<(string SourceType, Guid SourceId)> ReversedSources(IntegrationMessage message)
+    {
+        if (message.Type == GiftRedemptionReversedType)
+        {
+            var reversed = Read<GiftRedemptionReversedPayload>(message);
+            return reversed.FullyUnredeemed
+                ? [(ScoringPolicy.GiftRedemptionSource, reversed.RedemptionId), (ScoringPolicy.GiftSource, reversed.GiftId)]
+                : [(ScoringPolicy.GiftRedemptionSource, reversed.RedemptionId)];
+        }
+
+        return message.Type == ClaimRedemptionReversedType ? [(ScoringPolicy.ClaimSource, Read<ClaimReversedPayload>(message).ClaimId)] : [];
+    }
+
     private async Task<ScoringPolicy> PolicyAsync(QonaqetDbContext context, DateTimeOffset at, CancellationToken cancellationToken) =>
         new((await ScorePointSettings.AtAsync(context, options.Value.Points, at, cancellationToken).ConfigureAwait(false)).Points);
 
@@ -136,6 +173,10 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderb
     private static T Read<T>(IntegrationMessage message) =>
         JsonSerializer.Deserialize<T>(message.Payload, OutboxSerializer.JsonOptions)
         ?? throw new InvalidOperationException($"Boş {message.Type} mesajı.");
+
+    private sealed record GiftRedemptionReversedPayload(Guid GiftId, Guid RedemptionId, bool FullyUnredeemed, DateTimeOffset At);
+
+    private sealed record ClaimReversedPayload(Guid ClaimId, DateTimeOffset At);
 
     private sealed record GiftRedeemedPayload(
         Guid GiftId,

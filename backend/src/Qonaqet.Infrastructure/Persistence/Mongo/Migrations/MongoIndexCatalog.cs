@@ -112,6 +112,10 @@ public static class MongoIndexCatalog
             Query("verificationRequests", ("status", 1), ("createdAt", 1)),
             Query("verificationRequests", ("userId", 1), ("categoryId", 1)),
             Query("giftRedemptions", ("giftId", 1)),
+
+            // Bir təhvil ən çox bir dəfə geri alınır (E13-T05): tərs yazının mənbəsi unikaldır.
+            new("giftRedemptions", "ux_giftRedemptions_reversesRedemptionId", new BsonDocument("reversesRedemptionId", 1), Unique: true,
+                ExtraFilter: new BsonDocument("reversesRedemptionId", new BsonDocument("$type", "binData"))),
             Query("giftRedemptions", ("businessId", 1), ("createdAt", 1)),
             Query("otpCodes", ("email", 1), ("createdAt", 1)),
             Query("refreshTokens", ("tokenHash", 1)),

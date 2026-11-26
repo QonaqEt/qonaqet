@@ -109,6 +109,16 @@ public sealed class GiftRedemptionRepository(MongoContext context) : IGiftRedemp
         await _collection.Find(Builders<GiftRedemption>.Filter.And(
                 Builders<GiftRedemption>.Filter.Eq(x => x.IsDeleted, false), Builders<GiftRedemption>.Filter.Eq(x => x.GiftId, giftId)))
             .SortBy(x => x.CreatedAt).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<GiftRedemption?> GetAsync(GiftRedemptionId id, CancellationToken cancellationToken) =>
+        await _collection.Find(Builders<GiftRedemption>.Filter.And(
+                Builders<GiftRedemption>.Filter.Eq(x => x.IsDeleted, false), Builders<GiftRedemption>.Filter.Eq(x => x.Id, id)))
+            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<bool> IsReversedAsync(GiftRedemptionId id, CancellationToken cancellationToken) =>
+        _collection.Find(Builders<GiftRedemption>.Filter.And(
+                Builders<GiftRedemption>.Filter.Eq(x => x.IsDeleted, false), Builders<GiftRedemption>.Filter.Eq(x => x.ReversesRedemptionId, id)))
+            .Limit(1).AnyAsync(cancellationToken);
 }
 
 public static class GiftCollectionNames

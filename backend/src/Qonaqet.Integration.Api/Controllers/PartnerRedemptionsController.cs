@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Qonaqet.Application.Features.Integration.Commands.PartnerRedeem;
+using Qonaqet.Application.Features.Integration.Commands.PartnerReverse;
 using Qonaqet.Application.Features.Integration.Queries.PreviewPartnerCode;
 using Qonaqet.Domain.Gifts;
 using Qonaqet.Infrastructure.Web;
@@ -30,6 +31,11 @@ public sealed class PartnerRedemptionsController(ISender sender) : ControllerBas
             cancellationToken);
         return result.IsSuccess ? StatusCode(StatusCodes.Status201Created, result.Value) : result.ToActionResult();
     }
+
+    /// <summary>Öz təhvilini 15 dəqiqə ərzində geri alır. <c>Idempotency-Key</c> məcburidir.</summary>
+    [HttpPost("redemptions/{redemptionId:guid}/reverse")]
+    public async Task<IActionResult> Reverse(Guid redemptionId, CancellationToken cancellationToken) =>
+        (await sender.Send(new PartnerReverseRedemptionCommand(redemptionId), cancellationToken)).ToActionResult();
 
     public sealed record RedeemRequest(Guid BusinessId, string? Code, IReadOnlyList<GiftLine>? Lines, long? AmountQepik, string? ExternalReference);
 }

@@ -65,6 +65,32 @@ public sealed class PoolDonationRepository(MongoContext context, IAggregateTrack
         }
     }
 
+    public async Task RestoreAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken)
+    {
+        var left = amountQepik;
+        var consumed = Active(Filter.And(
+            Filter.Eq(x => x.PoolId, poolId), Filter.Eq(x => x.Status, PoolDonationStatus.Confirmed), Filter.Where(x => x.RemainingQepik < x.AmountQepik)));
+        var find = Context.Session is { } s ? Collection.Find(s, consumed) : Collection.Find(consumed);
+        foreach (var donation in await find.SortByDescending(x => x.ConfirmedAt).ThenByDescending(x => x.Id).ToListAsync(cancellationToken).ConfigureAwait(false))
+        {
+            if (left <= 0)
+            {
+                return;
+            }
+
+            var give = Math.Min(left, donation.AmountQepik - donation.RemainingQepik);
+            var filter = Filter.And(ById(donation.Id), Filter.Eq(x => x.RemainingQepik, donation.RemainingQepik));
+            var update = Builders<PoolDonation>.Update.Inc(x => x.RemainingQepik, give).Set(x => x.UpdatedAt, Clock.UtcNow);
+            var result = Context.Session is { } session
+                ? await Collection.UpdateOneAsync(session, filter, update, cancellationToken: cancellationToken).ConfigureAwait(false)
+                : await Collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (result.ModifiedCount == 1)
+            {
+                left -= give;
+            }
+        }
+    }
+
     private static FilterDefinition<PoolDonation> Unused(PoolId poolId) => Active(Filter.And(
         Filter.Eq(x => x.PoolId, poolId), Filter.Eq(x => x.Status, PoolDonationStatus.Confirmed), Filter.Gt(x => x.RemainingQepik, 0)));
 

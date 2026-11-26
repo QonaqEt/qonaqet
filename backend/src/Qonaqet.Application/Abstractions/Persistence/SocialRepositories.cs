@@ -60,6 +60,12 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
     /// </summary>
     Task<bool> TryTransitionAsync(Claim claim, ClaimStatus expected, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Geri alınan təhvil: claim-i <c>Redeemed</c>-dən yenidən <c>Reserved</c>-ə yazır. Başqası artıq dəyişibsə
+    /// <see cref="ClaimRestore.Changed"/>; alıcının başqa aktiv rezervi varsa (bir istifadəçiyə bir rezerv) <see cref="ClaimRestore.ActiveReservationExists"/>.
+    /// </summary>
+    Task<ClaimRestore> TryRestoreReservedAsync(Claim claim, CancellationToken cancellationToken);
+
     /// <summary>İstifadəçinin hazırkı <c>Reserved</c> claim-i (müddəti keçmiş olsa da); yoxdursa <c>null</c>.</summary>
     Task<Claim?> FindReservedForUserAsync(Guid userId, CancellationToken cancellationToken);
 
@@ -119,6 +125,12 @@ public interface IPoolDonationRepository : IRepository<PoolDonation, PoolDonatio
     /// </summary>
     Task ConsumeAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// <see cref="ConsumeAsync"/>-in tərsi (geri alınan təhvil): məbləğ ən son xərclənmiş ianələrə qaytarılır (ən yenidən köhnəyə), heç biri
+    /// öz məbləğindən çox olmur.
+    /// </summary>
+    Task RestoreAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
+
     /// <summary>Ianəçinin ianələri, ən yenilər əvvəl.</summary>
     Task<IReadOnlyList<PoolDonation>> ListForDonorAsync(Guid donorUserId, int limit, CancellationToken cancellationToken);
 }
@@ -165,3 +177,10 @@ public interface ISocialStatsReader
 }
 
 public sealed record PoolSummaryRow(Guid CategoryId, long AvailableQepik, long DonatedQepik, long TreatsFunded);
+
+public enum ClaimRestore
+{
+    Restored,
+    Changed,
+    ActiveReservationExists,
+}

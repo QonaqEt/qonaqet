@@ -50,6 +50,9 @@ public interface IPoolRepository : IRepository<Pool, PoolId>
     /// <summary>Təhvildə rezervi xərcləyir: <c>balance −= məbləğ</c>, <c>reserved −= məbləğ</c> (cari tranzaksiyada, şərtli).</summary>
     Task<bool> ConsumeReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
 
+    /// <summary>Geri alınan təhvildə xərclənmiş rezervi bərpa edir: <c>balance += məbləğ</c>, <c>reserved += məbləğ</c> (cari tranzaksiyada).</summary>
+    Task<bool> RestoreReservationAsync(PoolId poolId, long amountQepik, CancellationToken cancellationToken);
+
     /// <summary>
     /// Claim üçün hovuzlar, seçilmə sırası ilə: verilən kateqoriyaların aktiv kampaniya hovuzları (ən tez bitən əvvəl), sonra default hovuzlar.
     /// </summary>
