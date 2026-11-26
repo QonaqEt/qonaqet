@@ -35,7 +35,8 @@ public static class PostgresRegistration
         services.AddScoped<PostgresUnitOfWork>();
         services.AddScoped<IPostgresUnitOfWork>(sp => sp.GetRequiredService<PostgresUnitOfWork>());
         services.AddScoped<PostgresOutbox>();
-        services.AddScoped<IIdempotencyStore, PostgresIdempotencyStore>();
+        services.AddScoped<PostgresIdempotencyStore>();
+        services.AddScoped<IIdempotencyStore, Caching.CachedIdempotencyStore>();
 
         services.AddHostedService<PostgresMigrationHostedService>();
         return services;

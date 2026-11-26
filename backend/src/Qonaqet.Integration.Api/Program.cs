@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Qonaqet.Infrastructure;
 using Qonaqet.Infrastructure.Identity;
 using Qonaqet.Infrastructure.Observability;
@@ -20,10 +21,13 @@ public sealed class Program
         builder.AddQonaqetObservability("qonaqet-integration-api");
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddQonaqetPartnerAuthentication();
+        builder.Services.AddScoped<PartnerIdempotencyFilter>();
+        builder.Services.Configure<MvcOptions>(o => o.Filters.AddService<PartnerIdempotencyFilter>());
 
         var app = builder.Build();
 
         app.UseQonaqetWeb();
+        app.UseMiddleware<PartnerAuditMiddleware>();
 
         app.Run();
         return 0;
