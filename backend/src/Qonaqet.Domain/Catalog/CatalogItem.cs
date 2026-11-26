@@ -18,6 +18,7 @@ public sealed class CatalogItem : AggregateRoot<CatalogItemId>
     public const int TitleMaxLength = 120;
     public const int DescriptionMaxLength = 1000;
     public const int GroupMaxLength = 60;
+    public const int ExternalIdMaxLength = 100;
 
     /// <summary>1 qəpik – 10 000 AZN.</summary>
     public const long MinPriceQepik = 1;
@@ -52,12 +53,36 @@ public sealed class CatalogItem : AggregateRoot<CatalogItemId>
     /// <summary>Hədiyyə kimi seçilə bilər (<c>Items</c> növlü hədiyyələr yalnız belə elementlərdən).</summary>
     public bool IsGiftable { get; private set; }
 
+    /// <summary>Partnyor sisteminin (POS) öz ID-si — kataloq sinxronunda upsert açarı; biznes daxilində unikal. Əl ilə yaradılan məhsulda yoxdur.</summary>
+    public string? ExternalId { get; private set; }
+
     public static bool IsValidPrice(long priceQepik) => priceQepik is >= MinPriceQepik and <= MaxPriceQepik;
 
-    public static CatalogItem Create(BusinessId businessId, CatalogItemDetails details, DateTimeOffset at, Guid? by)
+    public static CatalogItem Create(BusinessId businessId, CatalogItemDetails details, DateTimeOffset at, Guid? by, string? externalId = null)
     {
         ArgumentNullException.ThrowIfNull(details);
-        return new CatalogItem(StronglyTypedId.New<CatalogItemId>(), businessId, details, at, by);
+        if (externalId is not null && !IsValidExternalId(externalId))
+        {
+            throw new ArgumentException("externalId düzgün deyil.", nameof(externalId));
+        }
+
+        return new CatalogItem(StronglyTypedId.New<CatalogItemId>(), businessId, details, at, by) { ExternalId = externalId };
+    }
+
+    public static bool IsValidExternalId(string? externalId) =>
+        !string.IsNullOrWhiteSpace(externalId) && externalId.Length <= ExternalIdMaxLength && externalId == externalId.Trim();
+
+    /// <summary>Sahələr fərqlidirmi (sinxronda dəyişməyən məhsul yazılmır).</summary>
+    public bool Differs(CatalogItemDetails details)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        return Title != details.Title.Trim()
+            || Description != (string.IsNullOrWhiteSpace(details.Description) ? null : details.Description.Trim())
+            || PriceQepik != details.PriceQepik
+            || ImageFileId != details.ImageFileId
+            || Group != (string.IsNullOrWhiteSpace(details.Group) ? null : details.Group.Trim())
+            || IsActive != details.IsActive
+            || IsGiftable != details.IsGiftable;
     }
 
     public void Update(CatalogItemDetails details, DateTimeOffset at, Guid? by)

@@ -81,6 +81,10 @@ public static class MongoIndexCatalog
             Query("users", ("verifiedCategories.validUntil", 1)),
             Query("campaigns", ("categoryId", 1), ("status", 1)),
             Query("catalogItems", ("businessId", 1), ("isActive", 1)),
+
+            // Kataloq sinxronu (E13-T06): externalId biznes daxilində unikaldır; əl ilə yaradılan məhsulda sahə yoxdur.
+            new("catalogItems", "ux_catalogItems_businessId_externalId", new BsonDocument { { "businessId", 1 }, { "externalId", 1 } }, Unique: true,
+                ExtraFilter: new BsonDocument("externalId", new BsonDocument("$type", "string"))),
             Query("claims", ("recipientUserId", 1), ("status", 1), ("createdAt", 1)),
             Query("claims", ("recipientUserId", 1), ("offerId", 1), ("createdAt", 1)),
             Query("claims", ("businessId", 1), ("shortCodeHash", 1)),
