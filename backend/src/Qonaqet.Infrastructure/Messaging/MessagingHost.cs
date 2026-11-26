@@ -45,6 +45,8 @@ public static class MessagingHostRegistration
         services.AddSingleton<IIntegrationEventConsumer, CorporateReportsConsumer>();
         services.AddSingleton<IIntegrationEventConsumer, ScoreConsumer>();
         services.AddSingleton<IIntegrationEventConsumer, PartnerGiftConsumer>();
+        services.Configure<WebhookOptions>(configuration.GetSection(WebhookOptions.SectionName));
+        services.AddSingleton<IIntegrationEventConsumer, WebhookConsumer>();
         services.AddHostedService<RabbitMqConsumerHost>();
         return services;
     }

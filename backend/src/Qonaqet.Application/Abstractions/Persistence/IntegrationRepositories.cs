@@ -36,8 +36,8 @@ public interface IWebhookRepository
 {
     void AddSubscription(WebhookSubscription subscription);
 
-    /// <summary>Silinmiş abunə də qaytarılır (köhnə çatdırılmaları bağlamaq üçün).</summary>
-    Task<WebhookSubscription?> GetSubscriptionAsync(WebhookSubscriptionId id, bool includeDeleted, CancellationToken cancellationToken);
+    /// <summary>Silinməmiş abunə; silinibsə <c>null</c> (köhnə çatdırılmalar bağlanır).</summary>
+    Task<WebhookSubscription?> GetSubscriptionAsync(WebhookSubscriptionId id, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<WebhookSubscription>> ListSubscriptionsAsync(Guid clientId, CancellationToken cancellationToken);
 

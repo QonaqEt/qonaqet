@@ -48,6 +48,10 @@ public static class IntegrationRegistration
         services.AddScoped<IIntegrationClientRepository, IntegrationClientRepository>();
         services.AddScoped<PartnerAccess>();
         services.AddScoped<IPartnerFunding, PartnerFunding>();
+        services.AddScoped<IWebhookRepository, WebhookRepository>();
+        services.AddSingleton<ISecretSealer, AesSecretSealer>();
+        services.AddScoped<IWebhookSender, Integration.HttpWebhookSender>();
+        services.AddHttpClient(Integration.HttpWebhookSender.ClientName, c => c.Timeout = TimeSpan.FromSeconds(10));
         services.AddSingleton<IPartnerTokenIssuer, JwtPartnerTokenIssuer>();
         return services;
     }

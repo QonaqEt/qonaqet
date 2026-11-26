@@ -231,14 +231,16 @@ public sealed class GiftTests
 
         refunded.Expire(refunded.ExpiresAt);
         Assert.Equal(GiftStatus.Expired, refunded.Status);
-        Assert.Equal(30_00, Assert.IsType<GiftRefundRequested>(Assert.Single(refunded.DequeueDomainEvents())).AmountQepik);
+        var expiredEvents = refunded.DequeueDomainEvents();
+        Assert.Equal(30_00, Assert.IsType<GiftExpired>(expiredEvents[0]).RemainingQepik);
+        Assert.Equal(30_00, Assert.IsType<GiftRefundRequested>(Assert.Single(expiredEvents.Skip(1))).AmountQepik);
         Assert.True(refunded.MarkRefunded(30_00, Now));
         Assert.Equal(GiftStatus.Refunded, refunded.Status);
 
         var pool = StronglyTypedId.New<PoolId>();
         var donated = Delivered(GiftContent.ForNetworkVoucher(10_00), new GiftExpiryPlan(GiftExpiryAction.DonateToPool, pool));
         donated.Expire(donated.ExpiresAt);
-        var donation = Assert.IsType<GiftExpiryDonated>(Assert.Single(donated.DequeueDomainEvents()));
+        var donation = Assert.IsType<GiftExpiryDonated>(Assert.Single(donated.DequeueDomainEvents().Skip(1)));
         Assert.Equal((pool, 10_00L), (donation.PoolId, donation.AmountQepik));
         Assert.Equal(10_00, donated.DonatedQepik);
     }

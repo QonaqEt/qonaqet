@@ -37,11 +37,10 @@ public sealed class DispatchWebhooksJob(IWebhookRepository webhooks, ISecretSeal
                 continue; // başqa instans götürdü
             }
 
-            var subscription = await webhooks.GetSubscriptionAsync(WebhookSubscriptionId.From(due.SubscriptionId), includeDeleted: true, cancellationToken)
-                .ConfigureAwait(false);
-            var secret = subscription is { IsDeleted: false } ? sealer.Unseal(WebhookMapping.SecretPurpose, subscription.SecretSealed) : null;
+            var subscription = await webhooks.GetSubscriptionAsync(WebhookSubscriptionId.From(due.SubscriptionId), cancellationToken).ConfigureAwait(false);
+            var secret = subscription is null ? null : sealer.Unseal(WebhookMapping.SecretPurpose, subscription.SecretSealed);
             WebhookDelivery outcome;
-            if (subscription is null || subscription.IsDeleted || secret is null)
+            if (subscription is null || secret is null)
             {
                 outcome = claimed.Abandon("subscription_unavailable", now);
             }

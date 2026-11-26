@@ -119,7 +119,7 @@ public sealed class DeleteWebhookSubscriptionHandler(PartnerAccess access, IWebh
             return client.Error;
         }
 
-        var subscription = await webhooks.GetSubscriptionAsync(request.SubscriptionId, includeDeleted: false, cancellationToken).ConfigureAwait(false);
+        var subscription = await webhooks.GetSubscriptionAsync(request.SubscriptionId, cancellationToken).ConfigureAwait(false);
         if (subscription is null || subscription.ClientId != client.Value.Id.Value)
         {
             return IntegrationErrors.WebhookNotFound;
