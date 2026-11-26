@@ -9,7 +9,8 @@ public readonly record struct GiftRedemptionId(Guid Value) : IStronglyTypedId<Gi
 }
 
 /// <summary>
-/// Hədiyyənin bir təhvili (<c>giftRedemptions</c>, append-only): heç vaxt dəyişmir və silinmir; düzəliş tərs yazı ilə olur (E13 reverse).
+/// Hədiyyənin bir təhvili (<c>giftRedemptions</c>, append-only): heç vaxt dəyişmir və silinmir; düzəliş tərs yazı ilə olur (E13 reverse:
+/// <see cref="ReversesRedemptionId"/>, mənfi dəyər).
 /// Məhsul hədiyyəsində sətirlər, vauçerdə məbləğ saxlanılır; <see cref="ValueQepik"/> hər ikisində təhvilin dəyəridir.
 /// </summary>
 public sealed class GiftRedemption : AggregateRoot<GiftRedemptionId>, IAppendOnly
@@ -40,7 +41,13 @@ public sealed class GiftRedemption : AggregateRoot<GiftRedemptionId>, IAppendOnl
     /// <summary>Vauçerdə təhvil olunan məbləğ; məhsul hədiyyəsində <c>null</c>.</summary>
     public long? AmountQepik { get; private set; }
 
+    /// <summary>Təhvilin dəyəri; tərs yazıda mənfidir (cəmlər avtomatik xalis olur).</summary>
     public long ValueQepik { get; private set; }
+
+    /// <summary>Tərs yazıda geri alınan təhvilin ID-si; adi təhvildə <c>null</c>. Bir təhvil ən çox bir dəfə geri alınır (unikal indeks).</summary>
+    public GiftRedemptionId? ReversesRedemptionId { get; private set; }
+
+    public bool IsReversal => ReversesRedemptionId is not null;
 
     internal static GiftRedemption Record(
         GiftId giftId, BusinessId businessId, Guid staffUserId, IReadOnlyList<GiftLine> lines, long? amountQepik, long valueQepik, DateTimeOffset at) =>
@@ -52,5 +59,17 @@ public sealed class GiftRedemption : AggregateRoot<GiftRedemptionId>, IAppendOnl
             Lines = lines,
             AmountQepik = amountQepik,
             ValueQepik = Guard.Positive(valueQepik),
+        };
+
+    internal static GiftRedemption RecordReversal(GiftRedemption original, Guid actorId, DateTimeOffset at) =>
+        new(StronglyTypedId.New<GiftRedemptionId>(), Guard.Utc(at), actorId)
+        {
+            GiftId = original.GiftId,
+            BusinessId = original.BusinessId,
+            StaffUserId = actorId,
+            Lines = original.Lines,
+            AmountQepik = -original.AmountQepik,
+            ValueQepik = -original.ValueQepik,
+            ReversesRedemptionId = original.Id,
         };
 }

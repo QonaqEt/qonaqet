@@ -34,6 +34,21 @@ public sealed class ClaimTests
     }
 
     [Fact]
+    public void Reversed_redemption_returns_the_claim_to_a_fresh_reservation()
+    {
+        var claim = Reserve();
+        var staff = Guid.CreateVersion7();
+        claim.Redeem(staff, Now.AddMinutes(5));
+        claim.DequeueDomainEvents();
+
+        claim.ReverseRedemption(staff, Now.AddMinutes(10));
+
+        Assert.Equal((ClaimStatus.Reserved, Now.AddMinutes(40), (DateTimeOffset?)null), (claim.Status, claim.ExpiresAt, claim.RedeemedAt));
+        Assert.IsType<ClaimRedemptionReversed>(Assert.Single(claim.DequeueDomainEvents()));
+        Assert.Throws<InvalidOperationException>(() => claim.ReverseRedemption(staff, Now.AddMinutes(11)));
+    }
+
+    [Fact]
     public void Redeem_raises_one_event_and_cannot_repeat()
     {
         var claim = Reserve();

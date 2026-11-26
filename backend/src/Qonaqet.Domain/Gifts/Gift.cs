@@ -81,6 +81,16 @@ public sealed class GiftItem
 
         RedeemedQty += qty;
     }
+
+    internal void Unredeem(int qty)
+    {
+        if (qty <= 0 || qty > RedeemedQty)
+        {
+            throw new InvalidOperationException("Geri alınan miqdar təhvil olunandan çoxdur.");
+        }
+
+        RedeemedQty -= qty;
+    }
 }
 
 /// <summary>Təhvildə seçilən sətir (məhsul hədiyyəsi).</summary>
@@ -612,6 +622,37 @@ public sealed class Gift : AggregateRoot<GiftId>
         return redemption;
     }
 
+    /// <summary>
+    /// Təhvilin geri alınması (Partner API, 15 dəqiqə ərzində): təhvil olunan sətirlər/məbləğ qalığa qayıdır, status yenidən hesablanır və
+    /// <see cref="GiftRedemptionReversed"/> qaldırılır (ledger və xal düzəlişi). Qayıdan tərs <see cref="GiftRedemption"/> (mənfi dəyər) eyni
+    /// tranzaksiyada yazılmalıdır — append-only jurnalda orijinal dəyişmir.
+    /// </summary>
+    public GiftRedemption ReverseRedemption(GiftRedemption original, Guid actorId, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+        if (original.GiftId != Id || original.IsReversal)
+        {
+            throw new InvalidOperationException("Bu hədiyyənin təhvili deyil.");
+        }
+
+        if (Kind == GiftKind.Items)
+        {
+            foreach (var line in original.Lines)
+            {
+                _items.First(i => i.CatalogItemId == line.CatalogItemId).Unredeem(line.Qty);
+            }
+        }
+
+        RemainingQepik += original.ValueQepik;
+        RedeemedQepik -= original.ValueQepik;
+        Status = RedeemedQepik > 0 ? GiftStatus.PartiallyRedeemed : OpenedAt is not null ? GiftStatus.Opened : GiftStatus.Delivered;
+        Touch(now, actorId);
+
+        var reversal = GiftRedemption.RecordReversal(original, Guard.NotEmpty(actorId), now);
+        Raise(new GiftRedemptionReversed(Id, original.Id, reversal.Id, original.BusinessId, original.ValueQepik, CorporateId, RedeemedQepik == 0, now));
+        return reversal;
+    }
+
     /// <summary>Göndərənin ləğvi: yalnız <c>Scheduled</c>; tam refund tələb olunur.</summary>
     public void Cancel(DateTimeOffset at, Guid? by)
     {
@@ -752,6 +793,20 @@ public sealed record GiftRedeemed(
     Guid? CorporateId,
     Guid? RecipientUserId,
     bool HasRecipientEmail,
+    DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>
+/// Təhvil geri alındı (Partner API reverse). Ledger: orijinal təhvilin <c>RedemptionCredit</c>/<c>Commission</c> yazılarının tərsi; xal:
+/// orijinal təhvilin xalı geri alınır, hədiyyə tam təhvilsiz qalıbsa şirkətin hədiyyə xalı da. Webhook: <c>redemption.reversed</c>.
+/// </summary>
+public sealed record GiftRedemptionReversed(
+    GiftId GiftId,
+    GiftRedemptionId RedemptionId,
+    GiftRedemptionId ReversalId,
+    BusinessId BusinessId,
+    long ValueQepik,
+    Guid? CorporateId,
+    bool FullyUnredeemed,
     DateTimeOffset At) : DomainEvent(At);
 
 /// <summary>Ödəyiciyə refund lazımdır (ləğvdə tam, müddət bitməsində qalıq). Consumer provayderdə refund edir və hədiyyəni işarələyir.</summary>

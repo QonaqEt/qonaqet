@@ -193,6 +193,25 @@ public sealed class Claim : AggregateRoot<ClaimId>
             FunderUserId == RecipientUserId ? null : FunderUserId, FunderCorporateId, now));
     }
 
+    /// <summary>
+    /// Təhvilin geri alınması (Partner API, 15 dəqiqə ərzində): <see cref="ClaimStatus.Redeemed"/> → <see cref="ClaimStatus.Reserved"/>, yeni
+    /// 30 dəqiqəlik rezerv; <see cref="ClaimRedemptionReversed"/> qaldırılır (ledger və xal düzəlişi).
+    /// </summary>
+    public void ReverseRedemption(Guid actorId, DateTimeOffset now)
+    {
+        if (Status != ClaimStatus.Redeemed)
+        {
+            throw new InvalidOperationException($"Claim {Status} vəziyyətindədir, təhvil olunmayıb.");
+        }
+
+        Status = ClaimStatus.Reserved;
+        RedeemedAt = null;
+        RedeemedByStaffId = null;
+        ExpiresAt = now + ReservationTtl;
+        MarkUpdated(now, actorId);
+        Raise(new ClaimRedemptionReversed(Id, BusinessId, PoolId, AmountQepik, IsCommissionable, now));
+    }
+
     /// <summary>Rezerv bitdi (job): <see cref="ClaimStatus.Reserved"/> → <see cref="ClaimStatus.Expired"/>.</summary>
     public void Expire(DateTimeOffset now)
     {
@@ -238,6 +257,13 @@ public sealed record ClaimRedeemed(
     Guid? FunderUserId,
     Guid? FunderCorporateId,
     DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>
+/// Claim-in təhvili geri alındı: ledger-də orijinal kredit/komissiyanın tərsi (pullu mənbədə), xal geri alınır, webhook
+/// <c>redemption.reversed</c>. Hovuz claim-ində rezerv hovuzda eyni tranzaksiyada bərpa olunur (ledger-də hovuz dəyişmir — hələ rezervdədir).
+/// </summary>
+public sealed record ClaimRedemptionReversed(
+    ClaimId ClaimId, BusinessId BusinessId, PoolId? PoolId, long? AmountQepik, bool Commissionable, DateTimeOffset At) : DomainEvent(At);
 
 /// <summary>Hovuzdan məbləğ rezerv edildi → ledger-də hovuz hesabından <c>PoolReserve</c> (−məbləğ).</summary>
 public sealed record PoolClaimReserved(ClaimId ClaimId, PoolId PoolId, long AmountQepik, DateTimeOffset At) : DomainEvent(At);

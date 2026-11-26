@@ -19,6 +19,16 @@ public static class IntegrationErrors
     /// <summary>Biznes client-in <c>business_ids</c>-ində deyil (mövcudluğu açıqlanmır).</summary>
     public static readonly Error BusinessNotAllowed = Error.Forbidden("business_not_allowed", "Bu client bu biznes adından işləyə bilməz.");
 
+    /// <summary>Təhvil tapılmadı və ya bu client tərəfindən edilməyib.</summary>
+    public static readonly Error RedemptionNotFound = Error.NotFound("redemption_not_found", "Təhvil tapılmadı.");
+
+    public static readonly Error ReverseWindowPassed = Error.Conflict("reverse_window_passed", "Təhvil yalnız 15 dəqiqə ərzində geri alına bilər.");
+
+    public static readonly Error AlreadyReversed = Error.Conflict("already_reversed", "Bu təhvil artıq geri alınıb.");
+
+    /// <summary>Claim geri qayıda bilmir: alıcının artıq başqa aktiv rezervi var.</summary>
+    public static readonly Error ReverseConflict = Error.Conflict("reverse_conflict", "Təhvil geri alına bilmədi: claim-in sahibinin başqa aktiv rezervi var.");
+
     /// <summary>Token-in client-i ləğv olunub.</summary>
     public static readonly Error ClientRevoked = Error.Unauthorized("invalid_client", "Bu client ləğv olunub.");
 }

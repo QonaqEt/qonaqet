@@ -166,6 +166,29 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
         }
     }
 
+    public async Task<ClaimRestore> TryRestoreReservedAsync(Claim claim, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await TryReplaceAsync(claim, Filter.Eq(x => x.Status, ClaimStatus.Redeemed), cancellationToken).ConfigureAwait(false)
+                ? ClaimRestore.Restored
+                : ClaimRestore.Changed;
+        }
+        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey
+            && ex.WriteError.Message.Contains(OneReservedIndex, StringComparison.Ordinal))
+        {
+            return ClaimRestore.ActiveReservationExists;
+        }
+        catch (MongoCommandException ex) when (ex.Code == 11000 && ex.Message.Contains(OneReservedIndex, StringComparison.Ordinal))
+        {
+            return ClaimRestore.ActiveReservationExists;
+        }
+        catch (MongoException ex) when (Context.Session is not null && ex.HasErrorLabel("TransientTransactionError"))
+        {
+            return ClaimRestore.Changed;
+        }
+    }
+
     public async Task<Claim?> FindReservedForUserAsync(Guid userId, CancellationToken cancellationToken)
     {
         var found = await FindAsync(
@@ -272,6 +295,7 @@ public static class SocialRegistration
         services.AddScoped<ClaimPresenter>();
         services.AddScoped<RedemptionCodeResolver>();
         services.AddScoped<CodeRedemption>();
+        services.AddScoped<RedemptionReversal>();
         services.AddScoped<SocialCascade>();
         services.AddScoped<PoolAttribution>();
         services.AddScoped<Application.Features.Donations.Events.PaymentFulfillment>();
