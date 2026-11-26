@@ -48,7 +48,7 @@ public sealed class PartnerTestHost : IAsyncDisposable
 
     public HttpClient Client { get; }
 
-    public InMemoryRateLimitStore RateLimits { get; } = new();
+    public CountingRateLimitStore RateLimits { get; } = new();
 
     public IServiceProvider Services => _factory.Services;
 
@@ -98,5 +98,19 @@ public sealed class PartnerTestHost : IAsyncDisposable
     {
         Client.Dispose();
         await _factory.DisposeAsync().ConfigureAwait(false);
+    }
+}
+
+/// <summary>Sayan rate limit store-u (partition başına pəncərə sayğacı): client limitini yoxlamaq üçün.</summary>
+public sealed class CountingRateLimitStore : IRateLimitStore
+{
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> _counts = new(StringComparer.Ordinal);
+
+    public Task<RateLimitDecision> TryAcquireAsync(string partitionKey, int permitLimit, TimeSpan window, CancellationToken cancellationToken)
+    {
+        var count = _counts.AddOrUpdate(partitionKey, 1, (_, c) => c + 1);
+        return Task.FromResult(count <= permitLimit
+            ? new RateLimitDecision(true, permitLimit - count, TimeSpan.Zero)
+            : new RateLimitDecision(false, 0, window));
     }
 }
