@@ -195,7 +195,7 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
         // İndeks: (businessId, status), partial isDeleted = false.
         var filter = Active(Filter.And(
             Filter.Eq(x => x.BusinessId, businessId), Filter.Eq(x => x.Status, ClaimStatus.Redeemed),
-            Filter.Gte(x => x.RedeemedAt, from), Filter.Lt(x => x.RedeemedAt, to)));
+            Filter.Gte(x => x.RedeemedAt, from), Filter.Lte(x => x.RedeemedAt, to)));
         var items = await Collection.Find(filter).SortByDescending(x => x.RedeemedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
         var total = await Collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken).ConfigureAwait(false);
         return (items, total);

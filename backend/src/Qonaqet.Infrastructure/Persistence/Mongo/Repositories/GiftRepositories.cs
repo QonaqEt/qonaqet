@@ -129,7 +129,7 @@ public sealed class GiftRedemptionRepository(MongoContext context) : IGiftRedemp
             Builders<GiftRedemption>.Filter.Eq(x => x.IsDeleted, false),
             Builders<GiftRedemption>.Filter.Eq(x => x.BusinessId, businessId),
             Builders<GiftRedemption>.Filter.Gte(x => x.CreatedAt, from),
-            Builders<GiftRedemption>.Filter.Lt(x => x.CreatedAt, to));
+            Builders<GiftRedemption>.Filter.Lte(x => x.CreatedAt, to));
         var items = await _collection.Find(filter).SortByDescending(x => x.CreatedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
         var total = await _collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken).ConfigureAwait(false);
         return (items, total);
