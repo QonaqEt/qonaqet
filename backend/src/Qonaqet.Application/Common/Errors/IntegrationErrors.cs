@@ -29,6 +29,11 @@ public static class IntegrationErrors
     /// <summary>Claim geri qayıda bilmir: alıcının artıq başqa aktiv rezervi var.</summary>
     public static readonly Error ReverseConflict = Error.Conflict("reverse_conflict", "Təhvil geri alına bilmədi: claim-in sahibinin başqa aktiv rezervi var.");
 
+    public static readonly Error InsufficientPartnerBalance =
+        Error.Conflict("insufficient_partner_balance", "Partnyor balansı bu hədiyyə üçün kifayət etmir. Balansı artırın.");
+
+    public static readonly Error TopUpInvalid = Error.Validation("top_up_invalid", "Balans artımı 10 ilə 100 000 AZN arasında olmalıdır.");
+
     /// <summary>Token-in client-i ləğv olunub.</summary>
     public static readonly Error ClientRevoked = Error.Unauthorized("invalid_client", "Bu client ləğv olunub.");
 }

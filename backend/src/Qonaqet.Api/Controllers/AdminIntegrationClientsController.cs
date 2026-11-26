@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Qonaqet.Application.Features.Integration.Commands.AdminIntegrationClients;
+using Qonaqet.Application.Features.Integration.Commands.PartnerTopUp;
 using Qonaqet.Domain.Integration;
 using Qonaqet.Infrastructure.Web;
 using Qonaqet.SharedKernel.Messaging;
@@ -36,6 +37,18 @@ public sealed class AdminIntegrationClientsController(ISender sender) : Controll
     [HttpDelete("{clientId:guid}")]
     public async Task<IActionResult> Revoke(Guid clientId, CancellationToken cancellationToken) =>
         (await sender.Send(new RevokeIntegrationClientCommand(IntegrationClientId.From(clientId)), cancellationToken)).ToActionResult();
+
+    /// <summary>Bank köçürməsinin təsdiqi: partnyor balansına <c>PartnerTopUp</c>. <c>Idempotency-Key</c> məcburidir.</summary>
+    [HttpPost("{clientId:guid}/top-ups")]
+    public async Task<IActionResult> ConfirmTopUp(Guid clientId, TopUpRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return (await sender.Send(
+            new ConfirmPartnerTopUpCommand(IntegrationClientId.From(clientId), request.AmountQepik, request.BankReference ?? string.Empty), cancellationToken))
+            .ToActionResult();
+    }
+
+    public sealed record TopUpRequest(long AmountQepik, string? BankReference);
 
     public sealed record ClientRequest(
         string? Name,

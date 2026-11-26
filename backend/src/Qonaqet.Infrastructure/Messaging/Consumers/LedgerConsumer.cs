@@ -50,11 +50,13 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
 
     public static readonly string GiftRedemptionReversedType = typeof(GiftRedemptionReversed).FullName!;
 
+    public static readonly string PartnerGiftCreditedType = typeof(PartnerGiftCredited).FullName!;
+
     public static readonly string ClaimRedemptionReversedType = typeof(ClaimRedemptionReversed).FullName!;
 
     public string Name => "ledger";
 
-    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType, GiftRedeemedType, GiftExpiryDonatedType, GiftRedemptionReversedType, ClaimRedemptionReversedType];
+    public IReadOnlyCollection<string> EventTypes { get; } = [ClaimRedeemedType, PaymentRefundedType, PoolClaimReservedType, PoolReservationReleasedType, CampaignRolledOverType, GiftRedeemedType, GiftExpiryDonatedType, GiftRedemptionReversedType, ClaimRedemptionReversedType, PartnerGiftCreditedType];
 
     public async Task HandleAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
     {
@@ -88,6 +90,14 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
             entries = reversed.Commissionable
                 ? await ReverseRedemptionAsync(context, "Claim", reversed.ClaimId, message.MessageId, reversed.At, cancellationToken).ConfigureAwait(false)
                 : [];
+        }
+        else if (message.Type == PartnerGiftCreditedType)
+        {
+            // Issuer hədiyyəsinin qalığı partnyor balansına qayıdır; hər səbəb üçün bir dəfə (mənbə hədiyyə + səbəb).
+            var credited = Read<PartnerGiftCreditedPayload>(message);
+            entries = [LedgerEntry.Post(
+                LedgerAccount.PartnerClient(credited.PartnerClientId), LedgerEntryType.PartnerIssue, credited.AmountQepik, "Gift", credited.GiftId,
+                credited.GiftId, $"partner-credit-{credited.Reason}", credited.At)];
         }
         else if (message.Type == GiftExpiryDonatedType)
         {
@@ -155,6 +165,8 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
         ?? throw new InvalidOperationException($"Boş {message.Type} mesajı.");
 
     private sealed record GiftExpiryDonatedPayload(Guid GiftId, Guid PoolId, long AmountQepik, DateTimeOffset At);
+
+    private sealed record PartnerGiftCreditedPayload(Guid GiftId, Guid PartnerClientId, long AmountQepik, GiftRefundReason Reason, DateTimeOffset At);
 
     private sealed record GiftRedemptionReversedPayload(Guid GiftId, Guid RedemptionId, DateTimeOffset At);
 

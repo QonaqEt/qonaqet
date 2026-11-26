@@ -152,7 +152,8 @@ public sealed class GiftContent
 }
 
 /// <summary>Göndərən: şəxs (<paramref name="UserId"/>) və ya korporativ sifariş; <paramref name="Name"/> snapshot-dır (korporativdə şirkətin adı).</summary>
-public sealed record GiftSender(Guid? UserId, Guid? CorporateOrderId, SenderDisplay Display, string Name);
+/// <param name="PartnerClientId">Issuer partnyorun (bank, çatdırılma tətbiqi) inteqrasiya client-i (E13).</param>
+public sealed record GiftSender(Guid? UserId, Guid? CorporateOrderId, SenderDisplay Display, string Name, Guid? PartnerClientId = null);
 
 /// <summary>Alıcı: ad məcburidir; email yoxdursa göndərən linki özü paylaşır.</summary>
 public sealed record GiftRecipient(string Name, string? Email);
@@ -171,6 +172,8 @@ public sealed record GiftExpiryPlan(GiftExpiryAction Action, PoolId? PoolId);
 /// </summary>
 public sealed class Gift : AggregateRoot<GiftId>
 {
+    public const int ExternalReferenceMaxLength = 100;
+
     private List<GiftItem> _items = [];
 
     private Gift(GiftId id, DateTimeOffset createdAt, Guid? createdBy)
@@ -255,6 +258,12 @@ public sealed class Gift : AggregateRoot<GiftId>
 
     public long RedeemedQepik { get; private set; }
 
+    /// <summary>Issuer partnyorun client-i: hədiyyə partnyorun ön ödənişli balansından ödənilib (E13-T07); ləğv/müddət qalığı balansa qayıdır.</summary>
+    public Guid? PartnerClientId { get; private set; }
+
+    /// <summary>Partnyorun öz istinadı (sifariş/əməliyyat nömrəsi), olduğu kimi qaytarılır.</summary>
+    public string? ExternalReference { get; private set; }
+
     public GiftExpiryAction ExpiryAction { get; private set; }
 
     public PoolId? ExpiryPoolId { get; private set; }
@@ -306,9 +315,9 @@ public sealed class Gift : AggregateRoot<GiftId>
         ArgumentNullException.ThrowIfNull(expiry);
         Guard.Utc(now);
         Guard.Utc(deliverAt);
-        if (sender.UserId is null && sender.CorporateOrderId is null)
+        if (sender.UserId is null && sender.CorporateOrderId is null && sender.PartnerClientId is null)
         {
-            throw new ArgumentException("Göndərən şəxs və ya korporativ sifariş olmalıdır.", nameof(sender));
+            throw new ArgumentException("Göndərən şəxs, korporativ sifariş və ya partnyor olmalıdır.", nameof(sender));
         }
 
         if (!Enum.IsDefined(theme) || !Enum.IsDefined(sender.Display) || !Enum.IsDefined(expiry.Action))
@@ -378,6 +387,28 @@ public sealed class Gift : AggregateRoot<GiftId>
         gift.SetLink(link);
         gift.LinkRevealedAt = now;
         gift.TrimSealedToken();
+        return gift;
+    }
+
+    /// <summary>
+    /// Issuer partnyorun hədiyyəsi (Partner API): şəxsi hədiyyə modeli, göndərən partnyordur. <c>AwaitingPayment</c>-də yaranır; balansdan
+    /// silinmə təsdiqlənəndə (<c>PartnerGiftFunded</c>) <see cref="ConfirmPaid"/> ilə <c>Scheduled</c> olur. Qalıq müddət bitəndə və ləğvdə
+    /// partnyorun balansına qayıdır.
+    /// </summary>
+    public static Gift CreateForPartner(
+        GiftContent content, Guid partnerClientId, string partnerName, GiftRecipient recipient, GiftTheme theme, string? message,
+        DateTimeOffset deliverAt, int validityDays, string? externalReference, DateTimeOffset now)
+    {
+        if (externalReference is { Length: > ExternalReferenceMaxLength })
+        {
+            throw new ArgumentException("externalReference çox uzundur.", nameof(externalReference));
+        }
+
+        var gift = Create(
+            content, new GiftSender(null, null, SenderDisplay.Named, partnerName, Guard.NotEmpty(partnerClientId)), recipient, theme, message, deliverAt,
+            validityDays, new GiftExpiryPlan(GiftExpiryAction.RefundToPayer, null), now);
+        gift.PartnerClientId = partnerClientId;
+        gift.ExternalReference = string.IsNullOrWhiteSpace(externalReference) ? null : externalReference.Trim();
         return gift;
     }
 
@@ -671,6 +702,10 @@ public sealed class Gift : AggregateRoot<GiftId>
             RefundReason = GiftRefundReason.Cancelled;
             Raise(new GiftRefundRequested(Id, paymentId, AmountQepik, GiftRefundReason.Cancelled, at));
         }
+        else if (PartnerClientId is { } partner)
+        {
+            Raise(new PartnerGiftCredited(Id, partner, AmountQepik, GiftRefundReason.Cancelled, at));
+        }
     }
 
     /// <summary>Müddət bitdi: <c>Expired</c>; qalıq <see cref="ExpiryAction"/>-a uyğun refund tələb olunur və ya hovuza bağışlanır.</summary>
@@ -695,6 +730,10 @@ public sealed class Gift : AggregateRoot<GiftId>
             RefundDueQepik = RemainingQepik;
             RefundReason = GiftRefundReason.Expired;
             Raise(new GiftRefundRequested(Id, paymentId, RemainingQepik, GiftRefundReason.Expired, at));
+        }
+        else if (ExpiryAction == GiftExpiryAction.RefundToPayer && PartnerClientId is { } partner)
+        {
+            Raise(new PartnerGiftCredited(Id, partner, RemainingQepik, GiftRefundReason.Expired, at));
         }
         else if (ExpiryPoolId is { } poolId)
         {
@@ -808,6 +847,12 @@ public sealed record GiftRedemptionReversed(
     Guid? CorporateId,
     bool FullyUnredeemed,
     DateTimeOffset At) : DomainEvent(At);
+
+/// <summary>
+/// Issuer partnyorun hədiyyəsinin qalığı onun ön ödənişli balansına qayıdır (ləğvdə tam məbləğ, müddət bitəndə qalıq) → ledger-də
+/// <c>PartnerClient</c> hesabına <c>PartnerIssue</c> (+məbləğ).
+/// </summary>
+public sealed record PartnerGiftCredited(GiftId GiftId, Guid PartnerClientId, long AmountQepik, GiftRefundReason Reason, DateTimeOffset At) : DomainEvent(At);
 
 /// <summary>Ödəyiciyə refund lazımdır (ləğvdə tam, müddət bitməsində qalıq). Consumer provayderdə refund edir və hədiyyəni işarələyir.</summary>
 public sealed record GiftRefundRequested(GiftId GiftId, Guid PaymentId, long AmountQepik, GiftRefundReason Reason, DateTimeOffset At) : DomainEvent(At);

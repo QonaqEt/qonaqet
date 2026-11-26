@@ -35,6 +35,9 @@ public readonly record struct LedgerAccount(LedgerAccountType Type, Guid Id)
     public static LedgerAccount Business(Guid businessId) => new(LedgerAccountType.Business, Guard.NotEmpty(businessId));
 
     public static LedgerAccount Pool(Guid poolId) => new(LedgerAccountType.Pool, Guard.NotEmpty(poolId));
+
+    /// <summary>Issuer partnyorun ön ödənişli balansı (E13).</summary>
+    public static LedgerAccount PartnerClient(Guid clientId) => new(LedgerAccountType.PartnerClient, Guard.NotEmpty(clientId));
 }
 
 /// <summary>
