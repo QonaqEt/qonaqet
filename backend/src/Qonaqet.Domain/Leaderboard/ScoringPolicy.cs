@@ -70,7 +70,8 @@ public sealed record ScoreAward(
 /// Təhvil hadisəsindən xal: yalnız real qonaqlıq sayılır, ona görə xal alışda yox, təhvildə verilir.
 /// <list type="bullet">
 /// <item>Hədiyyə: göndərənə vahid başına (məhsul) və ya hər başlanan 5 AZN üçün (vauçer) xal; şirkətə hədiyyə başına bir dəfə.
-/// Göndərən özü alıcıdırsa və ya alıcının təsdiqlənmiş hesabı yoxdursa (yalnız link), göndərən xal almır.</item>
+/// Göndərən özü alıcıdırsa və ya alıcının təsdiqlənmiş hesabı yoxdursa (yalnız link), göndərən xal almır; şirkət də yalnız alıcının
+/// təsdiqlənmiş hesabı olduqda xal alır.</item>
 /// <item>Claim: <c>BusinessDaily</c>/<c>Suspended</c> → biznesə; remote/hovuz → donora; CSR kampaniyası → şirkətə.</item>
 /// </list>
 /// </summary>
@@ -94,7 +95,7 @@ public sealed class ScoringPolicy(ScorePoints points)
             awards.Add(new ScoreAward(ScoreSubjectType.User, senderId, GiftRedemptionSource, redeemed.RedemptionId, earned, redeemed.ValueQepik, recipientId));
         }
 
-        if (redeemed.CorporateId is { } corporateId)
+        if (redeemed is { CorporateId: { } corporateId, RecipientUserId: not null })
         {
             awards.Add(new ScoreAward(ScoreSubjectType.Corporate, corporateId, GiftSource, redeemed.GiftId, points.CorporateGift, redeemed.ValueQepik));
         }

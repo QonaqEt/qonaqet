@@ -39,7 +39,7 @@ public sealed class ScoringPolicyTests
         var gift = Guid.CreateVersion7();
         var corporate = Guid.CreateVersion7();
 
-        var award = Assert.Single(Policy.ForGift(new RedeemedGift(gift, Guid.CreateVersion7(), GiftKind.Voucher, 20_00, 0, null, corporate, null)));
+        var award = Assert.Single(Policy.ForGift(new RedeemedGift(gift, Guid.CreateVersion7(), GiftKind.Voucher, 20_00, 0, null, corporate, Guid.CreateVersion7())));
 
         Assert.Equal(new ScoreAward(ScoreSubjectType.Corporate, corporate, ScoringPolicy.GiftSource, gift, 1, 20_00), award);
     }
@@ -111,12 +111,13 @@ public sealed class ScoringPolicyTests
     }
 
     [Fact]
-    public void Corporate_gift_still_scores_the_company_when_the_recipient_has_no_account()
+    public void Corporate_gift_scores_the_company_only_after_the_recipient_has_an_account()
     {
+        var gift = Guid.CreateVersion7();
         var corporate = Guid.CreateVersion7();
 
-        var award = Assert.Single(Policy.ForGift(new RedeemedGift(Guid.CreateVersion7(), Guid.CreateVersion7(), GiftKind.Voucher, 20_00, 0, null, corporate, null)));
-
+        Assert.Empty(Policy.ForGift(new RedeemedGift(gift, Guid.CreateVersion7(), GiftKind.Voucher, 20_00, 0, null, corporate, null)));
+        var award = Assert.Single(Policy.ForGift(new RedeemedGift(gift, Guid.CreateVersion7(), GiftKind.Voucher, 20_00, 0, null, corporate, Guid.CreateVersion7())));
         Assert.Equal(ScoreSubjectType.Corporate, award.SubjectType);
     }
 
