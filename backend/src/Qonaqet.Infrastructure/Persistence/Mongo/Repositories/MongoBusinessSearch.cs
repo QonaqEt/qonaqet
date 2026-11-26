@@ -64,7 +64,10 @@ public sealed class MongoBusinessSearch(MongoContext context) : IBusinessSearch
     /// <summary>Yalnız silinməmiş və aktiv bizneslər; bərabərlik sahələri partial indekslərin sırası ilə.</summary>
     private static BsonDocument Filter(BusinessSearchCriteria criteria)
     {
-        var filter = new BsonDocument { { "isDeleted", false }, { "status", nameof(BusinessStatus.Active) } };
+        var filter = new BsonDocument
+        {
+            { "isDeleted", false }, { "status", nameof(BusinessStatus.Active) }, { "isSandbox", new BsonDocument("$ne", true) },
+        };
         if (criteria.AcceptsPool is { } pool)
         {
             filter.Add("acceptsPool", pool);

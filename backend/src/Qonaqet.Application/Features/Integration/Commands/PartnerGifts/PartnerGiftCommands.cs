@@ -80,6 +80,7 @@ public sealed class PartnerIssueGiftValidator : Validator<PartnerIssueGiftComman
 public sealed class PartnerIssueGiftHandler(
     PartnerAccess access,
     GiftPricing pricing,
+    IBusinessRepository businesses,
     IGiftRepository gifts,
     IRedemptionCodes codes,
     IPartnerFunding funding,
@@ -112,9 +113,15 @@ public sealed class PartnerIssueGiftHandler(
         }
 
         var partner = client.Value;
+        if (content.Value.BusinessId is { } businessId
+            && (await businesses.GetAsync(businessId, cancellationToken).ConfigureAwait(false))?.IsSandbox != partner.IsSandbox)
+        {
+            return IntegrationErrors.SandboxMismatch; // sandbox issuer yalnız sandbox biznesdə, real issuer yalnız real biznesdə
+        }
+
         var gift = Gift.CreateForPartner(
             content.Value, partner.Id.Value, partner.Name, new GiftRecipient(request.RecipientName, request.RecipientEmail), request.Theme, request.Message,
-            deliverAt, options.Value.ValidityDays, request.ExternalReference, now);
+            deliverAt, options.Value.ValidityDays, request.ExternalReference, partner.IsSandbox, now);
         gift.AttachShortCode(GiftCodes.ShortCodeHash(codes, gift.Id));
         await gifts.AddAsync(gift, cancellationToken).ConfigureAwait(false);
 

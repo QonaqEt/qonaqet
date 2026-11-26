@@ -30,6 +30,7 @@ public sealed class LedgerOptions
 /// </list>
 /// <item><see cref="GiftRedeemed"/>: hədiyyə həmişə onlayn ödənilib → təhvil verən biznesə <c>RedemptionCredit</c> + 7% <c>Commission</c>
 /// (şəbəkə vauçerində kredit vauçerin alındığı yerə yox, təhvil verən biznesə düşür).</item>
+/// Sandbox hədiyyələrinin təhvili və geri alınması (E13-T09) ledger-ə yazılmır.
 /// <item><see cref="GiftExpiryDonated"/>: müddəti bitən hədiyyənin qalığı hovuza <c>GiftExpiryDonation</c> (+).</item>
 /// </summary>
 public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrationEventConsumer
@@ -73,16 +74,21 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
         }
         else if (message.Type == GiftRedeemedType)
         {
+            // Sandbox hədiyyəsi (E13-T09) real ledger-ə yazılmır.
             var gift = Read<GiftRedeemedPayload>(message);
-            entries = LedgerPostings.Redemption(
-                gift.BusinessId, gift.ValueQepik, commissionable: true, "GiftRedemption", gift.RedemptionId, message.MessageId,
-                new CommissionPolicy(options.Value.CommissionPercent), gift.At);
+            entries = gift.Sandbox
+                ? []
+                : LedgerPostings.Redemption(
+                    gift.BusinessId, gift.ValueQepik, commissionable: true, "GiftRedemption", gift.RedemptionId, message.MessageId,
+                    new CommissionPolicy(options.Value.CommissionPercent), gift.At);
         }
         else if (message.Type == GiftRedemptionReversedType)
         {
             var reversed = Read<GiftRedemptionReversedPayload>(message);
-            entries = await ReverseRedemptionAsync(context, "GiftRedemption", reversed.RedemptionId, message.MessageId, reversed.At, cancellationToken)
-                .ConfigureAwait(false);
+            entries = reversed.Sandbox
+                ? []
+                : await ReverseRedemptionAsync(context, "GiftRedemption", reversed.RedemptionId, message.MessageId, reversed.At, cancellationToken)
+                    .ConfigureAwait(false);
         }
         else if (message.Type == ClaimRedemptionReversedType)
         {
@@ -168,11 +174,11 @@ public sealed class LedgerConsumer(IOptions<LedgerOptions> options) : IIntegrati
 
     private sealed record PartnerGiftCreditedPayload(Guid GiftId, Guid PartnerClientId, long AmountQepik, GiftRefundReason Reason, DateTimeOffset At);
 
-    private sealed record GiftRedemptionReversedPayload(Guid GiftId, Guid RedemptionId, DateTimeOffset At);
+    private sealed record GiftRedemptionReversedPayload(Guid GiftId, Guid RedemptionId, DateTimeOffset At, bool Sandbox);
 
     private sealed record ClaimRedemptionReversedPayload(Guid ClaimId, bool Commissionable, DateTimeOffset At);
 
-    private sealed record GiftRedeemedPayload(Guid GiftId, Guid RedemptionId, Guid BusinessId, long ValueQepik, DateTimeOffset At);
+    private sealed record GiftRedeemedPayload(Guid GiftId, Guid RedemptionId, Guid BusinessId, long ValueQepik, DateTimeOffset At, bool Sandbox);
 
     private sealed record ClaimRedeemedPayload(Guid ClaimId, Guid BusinessId, long? AmountQepik, bool Commissionable, DateTimeOffset At);
 
