@@ -18,7 +18,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E08](epics/E08.md) | Pools, campaigns & donations | ✅ done | @Tapdiq49 | 6/6 | — |
 | [E09](epics/E09.md) | Gifting | ✅ done | @Tapdiq49 | 10/10 | — |
 | [E10](epics/E10.md) | Corporate & CSR | ✅ done | @Tapdiq49 | 5/5 | — |
-| [E11](epics/E11.md) | Leaderboard & gamification | 🔄 in-progress | @zahid2000 | 2/6 | — |
+| [E11](epics/E11.md) | Leaderboard & gamification | 🔄 in-progress | @zahid2000 | 3/6 | — |
 | [E12](epics/E12.md) | QONAQET Plus | ⬜ todo · 🟢 götürülə bilər | — | 0/4 | — |
 | [E13](epics/E13.md) | Integration platform | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
 | [E14](epics/E14.md) | Mobile foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
@@ -209,13 +209,13 @@ Yoxdur.
 
 ## E11 — Leaderboard & gamification
 
-🔄 in-progress · @zahid2000 · 2/6 task
+🔄 in-progress · @zahid2000 · 3/6 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
 | ✅ | E11-T01 | Score consumer-i və score_events | backend | p1 | L |
 | ✅ | E11-T02 | Anti-gaming qaydaları | backend | p1 | M |
-| ⬜ | E11-T03 | Postgres aqreqatları və Valkey ZSET-lər | backend | p1 | M |
+| ✅ | E11-T03 | Postgres aqreqatları və Valkey ZSET-lər | backend | p1 | M |
 | ⬜ | E11-T04 | Lövhə API-si və məxfilik | backend | p1 | M |
 | ⬜ | E11-T05 | Səviyyələr və nişanlar | backend | p2 | M |
 | ⬜ | E11-T06 | Yenidən hesablama əmri | backend | p2 | S |

@@ -17,6 +17,7 @@ public static class ValkeyRegistration
         services.AddSingleton<ICache, ValkeyCache>();
         services.AddSingleton<IDistributedLock, ValkeyDistributedLock>();
         services.AddSingleton<IRateLimitStore, ValkeyRateLimitStore>();
+        services.AddSingleton<ILeaderboardStore, ValkeyLeaderboardStore>();
         return services;
     }
 }

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Domain.Gifts;
 using Qonaqet.Domain.Leaderboard;
 using Qonaqet.Domain.Social;
@@ -30,8 +31,10 @@ public sealed class LeaderboardOptions
 /// təhvil olunan korporativ hədiyyə şirkətə yalnız bir dəfə xal verir.
 /// İstifadəçi xalına anti-gaming limitləri tətbiq olunur (<see cref="ScoreLimits"/>): Bakı günündə 300, göndərən→alıcı cütü üçün Bakı
 /// ayında 10. Limitdən artıq qalan hadisə yenə yazılır (qonaqlıq sayılır), sadəcə xalı azaldılır və ya <c>0</c> olur.
+/// Eyni tranzaksiyada <c>leaderboard_entries</c> aqreqatları upsert olunur (<see cref="LeaderboardAggregates"/>); commit-dən sonra Valkey
+/// lövhələrindəki xal mütləq dəyərlə yenilənir (yalnız keşdə olan lövhələr — qalanını oxu Postgres-dən qurur).
 /// </summary>
-public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options) : IIntegrationEventConsumer
+public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options, ILeaderboardStore store) : IIntegrationEventConsumer, IAfterCommitConsumer
 {
     public static readonly string GiftRedeemedType = typeof(GiftRedeemed).FullName!;
 
@@ -46,28 +49,7 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options) : IInteg
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(context);
 
-        var policy = new ScoringPolicy(options.Value.Points);
-        IReadOnlyList<ScoreAward> awards;
-        DateTimeOffset at;
-        if (message.Type == GiftRedeemedType)
-        {
-            var gift = Read<GiftRedeemedPayload>(message);
-            awards = policy.ForGift(new RedeemedGift(
-                gift.GiftId, gift.RedemptionId, gift.Kind, gift.ValueQepik, gift.Units, gift.SenderUserId, gift.CorporateId, gift.RecipientUserId));
-            at = gift.At;
-        }
-        else if (message.Type == ClaimRedeemedType)
-        {
-            var claim = Read<ClaimRedeemedPayload>(message);
-            awards = policy.ForClaim(new RedeemedClaim(
-                claim.ClaimId, claim.BusinessId, claim.OfferType, claim.AmountQepik, claim.FunderUserId, claim.FunderCorporateId));
-            at = claim.At;
-        }
-        else
-        {
-            return;
-        }
-
+        var (awards, at) = Awards(message);
         var events = context.Set<ScoreEvent>();
         foreach (var award in awards)
         {
@@ -77,10 +59,48 @@ public sealed class ScoreConsumer(IOptions<LeaderboardOptions> options) : IInteg
             if (!exists)
             {
                 var points = award.SubjectType == ScoreSubjectType.User ? await CappedAsync(events, award, at, cancellationToken).ConfigureAwait(false) : award.Points;
-                events.Add(ScoreEvent.Award(
-                    award.SubjectType, award.SubjectId, award.SourceType, award.SourceId, points, treats: 1, award.Value, at, award.RecipientUserId));
+                var scoreEvent = ScoreEvent.Award(
+                    award.SubjectType, award.SubjectId, award.SourceType, award.SourceId, points, treats: 1, award.Value, at, award.RecipientUserId);
+                await LeaderboardAggregates.AddAsync(context, scoreEvent, cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    /// <summary>Commit-dən sonra: qazananların hadisə dövrlərindəki yeni xalı keşlənmiş lövhələrə yazılır (idempotent, mütləq dəyər).</summary>
+    public async Task AfterCommitAsync(IntegrationMessage message, QonaqetDbContext context, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        ArgumentNullException.ThrowIfNull(context);
+
+        var (awards, at) = Awards(message);
+        foreach (var subject in awards.Select(a => (a.SubjectType, a.SubjectId)).Distinct())
+        {
+            var current = await LeaderboardAggregates.CurrentAsync(context, subject.SubjectType, subject.SubjectId, at, cancellationToken).ConfigureAwait(false);
+            foreach (var (board, score) in current)
+            {
+                await store.SetIfCachedAsync(board, score, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private (IReadOnlyList<ScoreAward> Awards, DateTimeOffset At) Awards(IntegrationMessage message)
+    {
+        var policy = new ScoringPolicy(options.Value.Points);
+        if (message.Type == GiftRedeemedType)
+        {
+            var gift = Read<GiftRedeemedPayload>(message);
+            return (policy.ForGift(new RedeemedGift(
+                gift.GiftId, gift.RedemptionId, gift.Kind, gift.ValueQepik, gift.Units, gift.SenderUserId, gift.CorporateId, gift.RecipientUserId)), gift.At);
+        }
+
+        if (message.Type == ClaimRedeemedType)
+        {
+            var claim = Read<ClaimRedeemedPayload>(message);
+            return (policy.ForClaim(new RedeemedClaim(
+                claim.ClaimId, claim.BusinessId, claim.OfferType, claim.AmountQepik, claim.FunderUserId, claim.FunderCorporateId)), claim.At);
+        }
+
+        return ([], default);
     }
 
     private async Task<int> CappedAsync(DbSet<ScoreEvent> events, ScoreAward award, DateTimeOffset at, CancellationToken cancellationToken)

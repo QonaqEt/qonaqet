@@ -89,9 +89,10 @@ public sealed class ScoreEvent : IAppendOnly
 
     /// <summary>
     /// Refund və ya geri alınan təhvil üçün düzəliş: əsl hadisənin xal, qonaqlıq və dəyərini mənfi ilə yazır (silinmir, append-only).
-    /// Açar <c>{SourceType}Reversal</c> olduğundan eyni mənbə yalnız bir dəfə geri alınır.
+    /// Açar <c>{SourceType}Reversal</c> olduğundan eyni mənbə yalnız bir dəfə geri alınır. Anı əsl hadisəninkidir: düzəliş həmin günün,
+    /// həftənin və ayın cəmindən çıxılır, ona görə <c>score_events</c>-dən yenidən hesablama artımlı aqreqatlarla eyni nəticə verir.
     /// </summary>
-    public static ScoreEvent Reverse(ScoreEvent original, DateTimeOffset at)
+    public static ScoreEvent Reverse(ScoreEvent original)
     {
         ArgumentNullException.ThrowIfNull(original);
         if (original.IsReversal)
@@ -108,6 +109,6 @@ public sealed class ScoreEvent : IAppendOnly
             -original.Treats,
             -original.Value,
             original.RecipientUserId,
-            at);
+            original.CreatedAt);
     }
 }

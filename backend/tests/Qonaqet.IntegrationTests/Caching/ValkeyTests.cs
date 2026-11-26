@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Qonaqet.Application.Abstractions.Services;
+using Qonaqet.Domain.Leaderboard;
 using Qonaqet.Infrastructure.Caching;
 
 namespace Qonaqet.IntegrationTests.Caching;
@@ -196,6 +197,58 @@ public sealed class ValkeyTests(ValkeyFixture fixture)
         }
 
         Assert.Equal([200, 200, 429], codes);
+    }
+
+    [Fact]
+    public async Task Leaderboard_sorted_set_is_replaced_atomically_ranked_and_expires()
+    {
+        fixture.SkipIfUnavailable();
+        await using var connection = fixture.Connect(Prefix());
+        var store = new ValkeyLeaderboardStore(connection, NullLogger<ValkeyLeaderboardStore>.Instance);
+        var board = new LeaderboardBoard(ScoreSubjectType.User, LeaderboardPeriodType.Week, "2026-W48");
+        var (a, b, c) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+
+        Assert.Null(await store.TopAsync(board, 10, a, Ct));
+        await store.SetIfCachedAsync(board, new LeaderboardScore(a, 50), Ct);
+        Assert.Null(await store.TopAsync(board, 10, a, Ct)); // keşdə olmayan lövhə yaradılmır
+
+        await store.ReplaceAsync(board, [new LeaderboardScore(a, 3), new LeaderboardScore(b, 9), new LeaderboardScore(c, 3)], Ct);
+        await store.SetIfCachedAsync(board, new LeaderboardScore(a, 4), Ct);
+        var snapshot = await store.TopAsync(board, 2, a, Ct);
+
+        Assert.Equal([new LeaderboardScore(b, 9), new LeaderboardScore(a, 4)], snapshot!.Top);
+        Assert.Equal((2, 4), (snapshot.Rank, snapshot.Points));
+        var db = await connection.DatabaseAsync();
+        var ttl = await db.KeyTimeToLiveAsync(connection.Prefix + board.CacheKey);
+        Assert.InRange(ttl!.Value, TimeSpan.FromMinutes(1), ValkeyLeaderboardStore.TimeToLive);
+    }
+
+    [Fact]
+    public async Task Leaderboard_ties_follow_reverse_member_order()
+    {
+        fixture.SkipIfUnavailable();
+        await using var connection = fixture.Connect(Prefix());
+        var store = new ValkeyLeaderboardStore(connection, NullLogger<ValkeyLeaderboardStore>.Instance);
+        var board = new LeaderboardBoard(ScoreSubjectType.Business, LeaderboardPeriodType.AllTime, "all");
+        var ids = Enumerable.Range(0, 6).Select(_ => Guid.NewGuid()).ToList();
+
+        await store.ReplaceAsync(board, [.. ids.Select(id => new LeaderboardScore(id, 2))], Ct);
+
+        Assert.Equal(
+            ids.Select(id => id.ToString()).OrderDescending(StringComparer.Ordinal),
+            (await store.TopAsync(board, 10, null, Ct))!.Top.Select(s => s.SubjectId.ToString()));
+    }
+
+    [Fact]
+    public async Task Unreachable_valkey_leaderboard_is_a_miss()
+    {
+        await using var connection = fixture.Connect(Prefix(), "127.0.0.1:1");
+        var store = new ValkeyLeaderboardStore(connection, NullLogger<ValkeyLeaderboardStore>.Instance);
+        var board = new LeaderboardBoard(ScoreSubjectType.User, LeaderboardPeriodType.AllTime, "all");
+
+        await store.ReplaceAsync(board, [new LeaderboardScore(Guid.NewGuid(), 1)], Ct);
+        await store.SetIfCachedAsync(board, new LeaderboardScore(Guid.NewGuid(), 1), Ct);
+        Assert.Null(await store.TopAsync(board, 10, null, Ct));
     }
 
     private sealed record Sample(string Name, long AmountQepik);
