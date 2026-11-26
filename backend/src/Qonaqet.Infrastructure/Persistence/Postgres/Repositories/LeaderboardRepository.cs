@@ -20,7 +20,7 @@ public sealed class LeaderboardRepository(QonaqetDbContext context) : ILeaderboa
     }
 }
 
-/// <summary>Reytinq sahəsinin DI qeydiyyatı (keş store-u <c>AddValkey</c>-dədir).</summary>
+/// <summary>Reytinq sahəsinin DI qeydiyyatı (keş store-u <c>AddValkey</c>-dədir; adlar Mongo-dan oxunur).</summary>
 public static class LeaderboardRegistration
 {
     public static IServiceCollection AddLeaderboard(this IServiceCollection services)
@@ -28,6 +28,7 @@ public static class LeaderboardRegistration
         ArgumentNullException.ThrowIfNull(services);
         services.AddScoped<ILeaderboardRepository, LeaderboardRepository>();
         services.AddScoped<LeaderboardReader>();
+        services.AddScoped<ILeaderboardSubjects, Mongo.Repositories.LeaderboardSubjectsReader>();
         return services;
     }
 }
