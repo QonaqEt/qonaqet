@@ -82,14 +82,16 @@ public sealed class Coupon : AggregateRoot<CouponId>
 
     public bool IsActive { get; private set; }
 
-    public static Coupon Create(BrandId brandId, CouponCodeType codeType, string? sharedCode, CouponDetails details, DateTimeOffset at, Guid? by)
+    /// <param name="id">Yalnız seed üçün sabit id; default yeni id.</param>
+    public static Coupon Create(
+        BrandId brandId, CouponCodeType codeType, string? sharedCode, CouponDetails details, DateTimeOffset at, Guid? by, CouponId? id = null)
     {
         if ((codeType == CouponCodeType.Shared) != (sharedCode is not null))
         {
             throw new ArgumentException("Ortaq kod yalnız Shared kuponda olur və orada mütləqdir.", nameof(sharedCode));
         }
 
-        var coupon = new Coupon(StronglyTypedId.New<CouponId>(), Guard.Utc(at), by)
+        var coupon = new Coupon(id ?? StronglyTypedId.New<CouponId>(), Guard.Utc(at), by)
         {
             BrandId = brandId,
             CodeType = codeType,

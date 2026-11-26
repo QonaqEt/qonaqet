@@ -200,6 +200,16 @@ digər mühitlərdə məcburidir.
 - **Yenidən hesablama:** admin `POST /api/v1/admin/leaderboard/recompute {subjectType, periodType, periodKey}` — `score_events`-dən, yalnız fərqli
   sətirlər dəyişir, audit log-a düşür.
 
+### QONAQET Plus (E12)
+
+- **Admin:** `/api/v1/admin/brands` (yarat, dəyiş, `POST .../brands/{id}/users {email}` → `BrandUser`), `/api/v1/admin/coupons` (hamıya və ya
+  `eligibleCategoryIds`, `Shared` / `Unique`, `perUserLimit`, etibarlılıq), `POST .../coupons/{id}/codes {codes[]}` (≤ 5000, təkrarlar atlanır).
+- **İstifadəçi:** `GET /api/v1/coupons` (yalnız uyğun, etibarlı, brendi aktiv kuponlar + verilmiş kodlar), `POST /api/v1/coupons/{id}/reveal` —
+  ortaq kod və ya atomik təyin olunan unikal kod; `(couponId, assignedUserId, slot)` unikal indeksi paralel sorğularda da limiti saxlayır.
+- **Brend:** `GET /api/v1/brand/coupons` (saylar), `POST /api/v1/brand/coupons/validate {code}` — unikal kod bir dəfə işarələnir
+  (`already_redeemed`), audit log-a düşür, müştəri məlumatı qaytarılmır.
+- **Demo seed:** `Mongo__SeedDemoData=true` (yalnız dev compose) 1 brend + 2 kupon yaradır (`QONAQET-PLUS`, `DEMO-0001…0020`).
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
@@ -211,7 +221,8 @@ sosial qonaqlıq (E06: gündəlik/askıda təkliflər, atomik claim, limitlər, 
 hovuzlar/kampaniyalar (E08: remote/hovuz/kampaniya ianələri, hovuz claim-ləri, donor atribusiyası, kampaniya qalığının köçməsi, ictimai statistika) və
 hədiyyələr (E09: məhsul/vauçer/şəbəkə hədiyyələri, ödəniş, link token-ləri, ictimai səhifə, çatdırılma, qismən təhvil, ləğv, müddət bitməsi) və
 korporativ (E10: şirkətlər, toplu sifarişlər + CSV, kart/bank ödənişi, fan-out, PDF/CSV hesabatlar, CSR) və
-reytinq (E11: təhvildə xal, anti-gaming, Postgres aqreqatları + Valkey, lövhə API-si, səviyyələr/nişanlar, yenidən hesablama) hazırdır.
+reytinq (E11: təhvildə xal, anti-gaming, Postgres aqreqatları + Valkey, lövhə API-si, səviyyələr/nişanlar, yenidən hesablama) və
+QONAQET Plus (E12: brendlər, kuponlar, atomik kod açılışı, brend yoxlaması, demo seed) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 

@@ -39,9 +39,10 @@ public sealed class Brand : AggregateRoot<BrandId>
 
     public bool IsActive { get; private set; }
 
-    public static Brand Create(BrandDetails details, DateTimeOffset at, Guid? by)
+    /// <param name="id">Yalnız seed üçün sabit id; default yeni id.</param>
+    public static Brand Create(BrandDetails details, DateTimeOffset at, Guid? by, BrandId? id = null)
     {
-        var brand = new Brand(StronglyTypedId.New<BrandId>(), Guard.Utc(at), by);
+        var brand = new Brand(id ?? StronglyTypedId.New<BrandId>(), Guard.Utc(at), by);
         brand.Apply(details);
         return brand;
     }
