@@ -18,5 +18,5 @@ PR ilə təsdiqlənir (`CLAUDE.md` → "How Claude Code works", 7).
 | [0004](./0004-work-tracking-in-markdown.md) | İş izləmə repo-dakı markdown-dadır | Accepted | komanda böyüyəndə |
 | [0005](./0005-test-runner-microsoft-testing-platform.md) | Test runner: Microsoft.Testing.Platform + CodeCoverage | Proposed | coverage lisenziyası dəyişəndə |
 | [0006](./0006-hand-written-ef-migrations.md) | EF Core migrasiyaları əl ilə yazılır | Proposed | Design paketi allowlist-ə düşəndə |
-| [0007](./0007-gift-link-token-sealing.md) | Hədiyyə link token-inin müvəqqəti şifrəli nüsxəsi | Proposed | — |
+| [0007](./0007-gift-link-token-sealing.md) | Hədiyyə link token-inin müvəqqəti şifrəli nüsxəsi | Accepted | — |
 | [0008](./0008-webhook-secret-sealing.md) | Webhook imza secret-i hash yox, şifrəli saxlanılır | Proposed | — |
