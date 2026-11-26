@@ -22,8 +22,8 @@ public sealed class PostgresStoreTests(PostgresFixture fixture)
         await context.Database.MigrateAsync(Ct); // idempotent
 
         var columns = await QueryAsync(connection,
-            "SELECT table_name, column_name, data_type, character_maximum_length, is_nullable FROM information_schema.columns WHERE table_schema = 'qonaqet' AND table_name <> '__ef_migrations_history'",
-            r => $"{r.GetString(0)}.{r.GetString(1)}:{Normalize(r.GetString(2), r.IsDBNull(3) ? null : r.GetInt32(3))}:{r.GetString(4)}");
+            "SELECT table_name, column_name, data_type, character_maximum_length, is_nullable, udt_name FROM information_schema.columns WHERE table_schema = 'qonaqet' AND table_name <> '__ef_migrations_history'",
+            r => $"{r.GetString(0)}.{r.GetString(1)}:{Normalize(r.GetString(2), r.IsDBNull(3) ? null : r.GetInt32(3), r.GetString(5))}:{r.GetString(4)}");
 
         var expected = context.Model.GetEntityTypes().SelectMany(e => e.GetProperties().Select(p =>
             $"{e.GetTableName()}.{p.GetColumnName()}:{p.GetColumnType()}:{(p.IsNullable ? "YES" : "NO")}"));
@@ -148,9 +148,10 @@ public sealed class PostgresStoreTests(PostgresFixture fixture)
         return context;
     }
 
-    private static string Normalize(string dataType, int? length) => dataType switch
+    private static string Normalize(string dataType, int? length, string udtName) => dataType switch
     {
         "character varying" => $"character varying({length})",
+        "ARRAY" => $"{udtName.TrimStart('_')}[]", // _uuid → uuid[], _text → text[]
         _ => dataType,
     };
 

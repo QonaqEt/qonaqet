@@ -31,7 +31,7 @@ public static class IntegrationSecrets
 
     public const int SecretBytes = 32;
 
-    public const int ClientIdBytes = 12;
+    public const int ClientIdBytes = 16;
 
     public static string NewClientId(ISecureRandom random, bool sandbox)
     {
