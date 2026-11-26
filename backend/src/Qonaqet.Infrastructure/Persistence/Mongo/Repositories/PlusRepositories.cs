@@ -95,6 +95,27 @@ public sealed class CouponCodeRepository(MongoContext context, IAggregateTracker
             return (CouponCodeAssignment.SlotTaken, null);
         }
     }
+
+    public async Task<CouponCode?> FindByCodeAsync(IReadOnlyCollection<CouponId> couponIds, string code, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(couponIds);
+        if (couponIds.Count == 0)
+        {
+            return null;
+        }
+
+        return await Collection.Find(Active(Filter.And(Filter.In(x => x.CouponId, couponIds), Filter.Eq(x => x.Code, code))))
+            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<bool> TryMarkUsedAsync(CouponCodeId id, Guid usedBy, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var result = await Collection.UpdateOneAsync(
+            Active(Filter.And(ById(id), Filter.Eq(x => x.UsedAt, null))),
+            Builders<CouponCode>.Update.Set(x => x.UsedAt, now).Set(x => x.UsedBy, usedBy).Set(x => x.UpdatedAt, now),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.ModifiedCount == 1;
+    }
 }
 
 public static class PlusCollectionNames
@@ -115,6 +136,7 @@ public static class PlusRegistration
         services.AddScoped<ICouponCodeRepository, CouponCodeRepository>();
         services.AddScoped<CouponCategories>();
         services.AddScoped<Application.Features.Plus.Queries.GetCoupons.PlusCatalog>();
+        services.AddScoped<Application.Features.Plus.Common.BrandAccess>();
         return services;
     }
 }

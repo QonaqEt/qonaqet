@@ -41,6 +41,12 @@ public interface ICouponCodeRepository : IRepository<CouponCode, CouponCodeId>
     /// </summary>
     Task<(CouponCodeAssignment Outcome, CouponCode? Code)> TryAssignAsync(
         CouponId couponId, Guid userId, int slot, DateTimeOffset now, CancellationToken cancellationToken);
+
+    /// <summary>Bu kuponlardan birinin kodu (brend yoxlaması üçün).</summary>
+    Task<CouponCode?> FindByCodeAsync(IReadOnlyCollection<CouponId> couponIds, string code, CancellationToken cancellationToken);
+
+    /// <summary>Kodu yalnız hələ istifadə olunmayıbsa istifadə olunmuş kimi işarələyir (tək şərtli atomik yeniləmə).</summary>
+    Task<bool> TryMarkUsedAsync(CouponCodeId id, Guid usedBy, DateTimeOffset now, CancellationToken cancellationToken);
 }
 
 public enum CouponCodeAssignment

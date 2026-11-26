@@ -33,5 +33,13 @@ public static class PlusErrors
 
     public static readonly Error SoldOut = Error.Conflict("coupon_sold_out", "Bu kuponun kodları bitib.");
 
+    /// <summary>Cari istifadəçi heç bir brendə bağlı deyil.</summary>
+    public static readonly Error NoBrand = Error.Forbidden("brand_access_denied", "Hesabınız brendə bağlı deyil.");
+
+    /// <summary>Kod bu brendin kuponlarında yoxdur və ya heç bir istifadəçiyə verilməyib.</summary>
+    public static readonly Error CodeNotFound = Error.NotFound("coupon_code_not_found", "Bu kod tapılmadı.");
+
+    public static readonly Error AlreadyRedeemed = Error.Conflict("already_redeemed", "Bu kod artıq istifadə olunub.");
+
     public static readonly Error TooManyCodes = Error.Validation("coupon_codes_too_many", "Bir dəfəyə 1–5000 kod yükləmək olar.");
 }
