@@ -137,6 +137,7 @@ public static class PlusRegistration
         services.AddScoped<CouponCategories>();
         services.AddScoped<Application.Features.Plus.Queries.GetCoupons.PlusCatalog>();
         services.AddScoped<Application.Features.Plus.Common.BrandAccess>();
+        services.AddScoped<Application.Features.Plus.Common.CouponValidation>();
         return services;
     }
 }

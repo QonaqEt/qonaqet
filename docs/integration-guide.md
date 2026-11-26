@@ -100,6 +100,9 @@ Tez-tez rast gəlinənlər: `invalid_client`, `invalid_scope`, `business_not_all
 - `POST /partner/v1/redemptions` — `{ businessId, code, lines[] | amountQepik, externalReference? }`. Qaydalar kassadakı işçi ilə
   eynidir: qismən təhvil, şəbəkə vauçeri yalnız `acceptsNetworkVouchers` olan biznesdə, claim kodu birdəfəlikdir.
 - `POST /partner/v1/redemptions/{id}/reverse` — 15 dəqiqə ərzində; qalıq bərpa olunur, ledger və xal tərs yazılır.
+- `GET /partner/v1/redemptions?businessId=&from=&to=&page=&pageSize=` — biznesdəki təhvillər (hədiyyə və claim; geri alma mənfi dəyərlə,
+  `reversesRedemptionId` ilə), ən yenilər əvvəl; default son 7 gün, ən çox 92 gün (`range_invalid`). `byThisClient` təhvili sizin
+  sisteminizin etdiyini göstərir; kimin (işçi, alıcı) etdiyi qaytarılmır. Gündəlik kassa uzlaşması üçündür.
 - Client yalnız öz `business_ids`-indəki bizneslərə müraciət edir (`business_not_allowed`).
 
 ## Kataloq sinxronu
@@ -140,6 +143,21 @@ Idempotency-Key: order-77812
 - İstifadə olunmamış qalıq müddət bitəndə balansa qayıdır.
 - `GET /partner/v1/balance`, `GET /partner/v1/ledger`; balans artımı: bank köçürməsi (admin təsdiqləyir) və ya kart
   (`POST /partner/v1/balance/top-ups` → `paymentUrl`).
+
+## Kupon yoxlaması (QONAQET Plus brendləri)
+
+Brendə bağlı client (`ownerType = Brand`, scope `coupons:validate`) müştərinin göstərdiyi kodu yoxlayır:
+
+```http
+POST /partner/v1/coupons/validate
+Idempotency-Key: pos-check-5512
+
+{ "couponId": "0196...", "code": "BRAVO-7Q2K" }
+```
+
+- Unikal kod: müştəriyə verilmiş olmalıdır; uğurlu yoxlamada **istifadə olunmuş** kimi işarələnir, təkrar yoxlama `already_redeemed`.
+- Ortaq kod: yalnız etibarlılıq təsdiqlənir. Müddəti keçmiş kupon: `coupon_expired`; tapılmayan kod: `coupon_code_not_found`.
+- Yalnız öz brendinizin kuponları; cavabda müştərinin məlumatı yoxdur.
 
 ## Webhook-lar
 

@@ -20,14 +20,14 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E10](epics/E10.md) | Corporate & CSR | ✅ done | @Tapdiq49 | 5/5 | — |
 | [E11](epics/E11.md) | Leaderboard & gamification | ✅ done | @zahid2000 | 8/8 | — |
 | [E12](epics/E12.md) | QONAQET Plus | ✅ done | @zahid2000 | 4/4 | — |
-| [E13](epics/E13.md) | Integration platform | 🔄 in-progress | @zahid2000 | 11/12 | — |
+| [E13](epics/E13.md) | Integration platform | ✅ done | @zahid2000 | 12/12 | — |
 | [E14](epics/E14.md) | Mobile foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
 | [E15](epics/E15.md) | Mobile user features | ⬜ todo | — | 0/10 | E14 |
 | [E16](epics/E16.md) | Mobile business mode | ⬜ todo | — | 0/5 | E14 |
 | [E17](epics/E17.md) | Business portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/9 | — |
 | [E18](epics/E18.md) | Admin & corporate portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/6 | — |
 | [E19](epics/E19.md) | Landing website (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
-| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E13, E14, E15, E16, E17, E18, E19 |
+| [E20](epics/E20.md) | Production readiness | ⬜ todo | — | 0/7 | E14, E15, E16, E17, E18, E19 |
 
 ## Hazırda işlənən task-lar
 
@@ -235,7 +235,7 @@ Yoxdur.
 
 ## E13 — Integration platform
 
-🔄 in-progress · @zahid2000 · 11/12 task
+✅ done · @zahid2000 · 12/12 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
@@ -250,7 +250,7 @@ Yoxdur.
 | ✅ | E13-T09 | Sandbox rejimi | integration | p1 | M |
 | ✅ | E13-T10 | Partner OpenAPI və inteqrasiya təlimatı | integration | p1 | M |
 | ✅ | E13-T11 | Biznes sahibinin öz inteqrasiya client-ləri | integration | p2 | M |
-| ⬜ | E13-T12 | Təhvil siyahısı və brend kupon yoxlaması (Partner API) | integration | p1 | S |
+| ✅ | E13-T12 | Təhvil siyahısı və brend kupon yoxlaması (Partner API) | integration | p1 | S |
 
 ## E14 — Mobile foundation
 
