@@ -139,7 +139,7 @@ internal static class PartnerTestData
     public static async Task<(JsonElement Admin, JsonElement Client, string Secret)> ClientAsync(
         ApiTestHost api, string prefix, string[] scopes, Guid[]? businessIds = null, bool sandbox = false, int rateLimitPerMinute = 120)
     {
-        var admin = await RolesTests.LoginAsAdminAsync(api, $"{prefix}-admin@example.az");
+        var admin = await RolesTests.LoginAsAdminAsync(api, $"{prefix}-partner-admin@example.az");
         using var create = await api.SendAsync(HttpMethod.Post, "/api/v1/admin/integration-clients", Access(admin), new
         {
             name = $"{prefix} POS",
