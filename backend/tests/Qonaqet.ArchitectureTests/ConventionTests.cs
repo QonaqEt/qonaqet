@@ -42,7 +42,8 @@ public sealed class ConventionTests
 
         Assert.NotEmpty(routes);
         Assert.All(routes, r => Assert.True(
-            r.Route.StartsWith(Integration.Api.Controllers.PartnerRoutes.Prefix + "/", StringComparison.Ordinal)
+            r.Route == Integration.Api.Controllers.PartnerRoutes.Prefix
+                || r.Route.StartsWith(Integration.Api.Controllers.PartnerRoutes.Prefix + "/", StringComparison.Ordinal)
                 || r.Route.StartsWith(Integration.Api.Controllers.PartnerRoutes.OAuth + "/", StringComparison.Ordinal),
             $"{r.Name}: {r.Route}"));
     }
