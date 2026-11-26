@@ -36,6 +36,21 @@ public sealed class IntegrationClientRepository(QonaqetDbContext context) : IInt
         return await query.OrderByDescending(c => c.CreatedAt).Take(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<IntegrationClient>> ListForBusinessesAsync(IReadOnlyCollection<Guid> businessIds, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(businessIds);
+        if (businessIds.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = businessIds.ToList();
+        return await context.Set<IntegrationClient>().AsNoTracking()
+            .Where(c => c.OwnerType == IntegrationOwnerType.Business && EF.Property<List<Guid>>(c, "_businessIds").Any(b => ids.Contains(b)))
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken) => context.SaveChangesAsync(cancellationToken);
 }
 
