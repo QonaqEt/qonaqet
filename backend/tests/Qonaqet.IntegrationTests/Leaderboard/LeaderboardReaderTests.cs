@@ -96,5 +96,20 @@ public sealed class LeaderboardReaderTests
             Reads++;
             return Task.FromResult<IReadOnlyList<LeaderboardScore>>(scores);
         }
+
+        public Task<IReadOnlyDictionary<LeaderboardPeriod, int>> PointsAsync(
+            ScoreSubjectType subjectType, Guid subjectId, IReadOnlyCollection<LeaderboardPeriod> periods, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<ScoreEvent>> HistoryAsync(ScoreSubjectType subjectType, Guid subjectId, int limit, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<bool> BadgesAwardedAsync(ScoreSubjectType subjectType, BadgeType badge, string periodKey, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<BadgeAward>> BadgesAsync(ScoreSubjectType subjectType, Guid subjectId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public Task AddBadgesAsync(IReadOnlyCollection<BadgeAward> awards, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

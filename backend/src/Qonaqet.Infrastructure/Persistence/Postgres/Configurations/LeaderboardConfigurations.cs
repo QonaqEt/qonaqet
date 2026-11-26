@@ -44,3 +44,21 @@ public sealed class LeaderboardEntryConfiguration : IEntityTypeConfiguration<Lea
             .IsDescending(false, false, false, true).HasDatabaseName("ix_leaderboard_entries_board_points");
     }
 }
+
+public sealed class BadgeAwardConfiguration : IEntityTypeConfiguration<BadgeAward>
+{
+    public void Configure(EntityTypeBuilder<BadgeAward> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.ToTable("badge_awards");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedNever();
+        builder.Property(x => x.SubjectType).HasConversion<string>().HasMaxLength(16);
+        builder.Property(x => x.Badge).HasConversion<string>().HasMaxLength(16);
+        builder.Property(x => x.PeriodKey).HasMaxLength(16).IsRequired();
+
+        // Append-only. Unikal açar job-un idempotentliyidir: eyni dövr üçün nişan ikiqat verilmir.
+        builder.HasIndex(x => new { x.SubjectType, x.SubjectId, x.Badge, x.PeriodKey }).IsUnique().HasDatabaseName("ux_badge_awards_subject_badge_period");
+        builder.HasIndex(x => new { x.SubjectType, x.Badge, x.PeriodKey }).HasDatabaseName("ix_badge_awards_badge_period");
+    }
+}
