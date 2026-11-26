@@ -189,7 +189,8 @@ public sealed class Claim : AggregateRoot<ClaimId>
         RedeemedByStaffId = Guard.NotEmpty(staffUserId);
         MarkUpdated(now, staffUserId);
         Raise(new ClaimRedeemed(
-            Id, BusinessId, Source, OfferId, OfferType, PoolId, AmountQepik, IsCommissionable, staffUserId, FunderUserId, FunderCorporateId, now));
+            Id, BusinessId, Source, OfferId, OfferType, PoolId, AmountQepik, IsCommissionable, staffUserId,
+            FunderUserId == RecipientUserId ? null : FunderUserId, FunderCorporateId, now));
     }
 
     /// <summary>Rezerv bitdi (job): <see cref="ClaimStatus.Reserved"/> → <see cref="ClaimStatus.Expired"/>.</summary>
@@ -221,7 +222,8 @@ public sealed class Claim : AggregateRoot<ClaimId>
 
 /// <summary>
 /// Claim təhvil verildi. Alıcının kimliyi hadisədə yoxdur. <see cref="Commissionable"/> = <c>false</c> (gündəlik/askıda) olduqda ledger
-/// consumer-i heç nə yazmır; pullu mənbədə (E08) kredit + komissiya yazır.
+/// consumer-i heç nə yazmır; pullu mənbədə (E08) kredit + komissiya yazır. <see cref="FunderUserId"/> donor özü alıcıdırsa boşdur
+/// (özünə ısmarlamaq xal vermir).
 /// </summary>
 public sealed record ClaimRedeemed(
     ClaimId ClaimId,

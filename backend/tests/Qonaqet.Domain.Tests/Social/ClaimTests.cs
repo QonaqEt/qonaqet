@@ -69,6 +69,18 @@ public sealed class ClaimTests
         Assert.Equal((donor, corporate), Funders(fromPool));
     }
 
+    [Fact]
+    public void Donor_who_claims_their_own_remote_treat_is_not_named_as_the_funder()
+    {
+        var donor = Guid.CreateVersion7();
+        var remote = Offer.CreateRemote(
+            StronglyTypedId.New<BusinessId>(), StronglyTypedId.New<CategoryId>(), StronglyTypedId.New<Catalog.CatalogItemId>(), "Kofe", 4_00, 2,
+            DonorDisplay.Anonymous, null, donor, Now);
+        var own = Claim.ReserveFromOffer(remote, donor, "Bir xeyirxah insan sizə ısmarladı 💚", "2026-11-20", Now);
+
+        Assert.Equal(((Guid?)null, (Guid?)null), Funders(own));
+    }
+
     private static (Guid? User, Guid? Corporate) Funders(Claim claim)
     {
         claim.DequeueDomainEvents();
