@@ -34,6 +34,16 @@ public static class IntegrationErrors
 
     public static readonly Error TopUpInvalid = Error.Validation("top_up_invalid", "Balans artımı 10 ilə 100 000 AZN arasında olmalıdır.");
 
+    public static readonly Error WebhookUrlInvalid = Error.Validation("webhook_url_invalid", "Webhook URL-i HTTPS olmalıdır (≤ 500 simvol).");
+
+    public static readonly Error WebhookLimitReached = Error.Conflict("webhook_limit_reached", "Client başına ən çox 10 webhook abunəsi ola bilər.");
+
+    public static readonly Error WebhookNotFound = Error.NotFound("webhook_not_found", "Webhook abunəsi tapılmadı.");
+
+    public static readonly Error WebhookDeliveryNotFound = Error.NotFound("webhook_delivery_not_found", "Çatdırılma tapılmadı.");
+
+    public static readonly Error WebhookDeliveryBusy = Error.Conflict("webhook_delivery_busy", "Çatdırılma elə indi göndərilir; bir az sonra yenidən cəhd edin.");
+
     /// <summary>Token-in client-i ləğv olunub.</summary>
     public static readonly Error ClientRevoked = Error.Unauthorized("invalid_client", "Bu client ləğv olunub.");
 }
