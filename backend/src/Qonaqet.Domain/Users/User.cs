@@ -54,6 +54,9 @@ public sealed class User : AggregateRoot<UserId>
     /// <summary>Korporativ istifadəçi üçün şirkət (E10 təyin edir).</summary>
     public Guid? CorporateId { get; private set; }
 
+    /// <summary>Brend istifadəçisi üçün QONAQET Plus brendi (E12 təyin edir).</summary>
+    public Guid? BrandId { get; private set; }
+
     /// <summary>Push üçün cihaz token-ləri (köhnədən yeniyə).</summary>
     public IReadOnlyList<string> FcmTokens
     {
@@ -273,6 +276,30 @@ public sealed class User : AggregateRoot<UserId>
 
         _roles = ordered;
         CorporateId = corporateId;
+        MarkUpdated(at, by);
+        return true;
+    }
+
+    /// <summary>
+    /// İstifadəçini brendə bağlayır və <see cref="Role.BrandUser"/> rolu verir; <c>null</c> bağlılığı və rolu götürür. Dəyişiklik yoxdursa
+    /// <c>false</c>.
+    /// </summary>
+    public bool AssignBrand(Guid? brandId, DateTimeOffset at, Guid? by)
+    {
+        var roles = _roles.Where(r => r != Role.BrandUser).ToList();
+        if (brandId is not null)
+        {
+            roles.Add(Role.BrandUser);
+        }
+
+        var ordered = roles.Distinct().Order().ToList();
+        if (ordered.SequenceEqual(_roles.Order()) && BrandId == brandId)
+        {
+            return false;
+        }
+
+        _roles = ordered;
+        BrandId = brandId;
         MarkUpdated(at, by);
         return true;
     }

@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddSocial();
         services.AddGifts(configuration);
         services.AddCorporate();
+        services.AddPlus();
         services.AddPayments(configuration);
         services.AddLeaderboard(configuration);
 

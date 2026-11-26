@@ -49,6 +49,15 @@ public static class MongoIndexCatalog
             Unique("businessMemberships", ("businessId", 1), ("userId", 1)),
             Unique("couponCodes", ("couponId", 1), ("code", 1)),
 
+            // Bir istifadəçinin bir kupondakı hər kod "yeri" bir dəfə: paralel açılışlarda da perUserLimit aşılmır (E12-T02).
+            new("couponCodes", "ux_couponCodes_couponId_assignedUserId_slot",
+                new BsonDocument { { "couponId", 1 }, { "assignedUserId", 1 }, { "slot", 1 } }, Unique: true,
+                ExtraFilter: new BsonDocument("slot", new BsonDocument("$type", "int"))),
+            Query("couponCodes", ("couponId", 1), ("assignedUserId", 1)),
+            Query("couponCodes", ("couponId", 1), ("usedAt", 1)),
+            Query("coupons", ("brandId", 1), ("createdAt", 1)),
+            Query("coupons", ("isActive", 1), ("validUntil", 1)),
+
             // Ödənilməmiş hədiyyənin hələ token-i yoxdur (null): unikallıq yalnız mövcud hash-lərə aiddir.
             new("gifts", "ux_gifts_linkTokenHash", new BsonDocument("linkTokenHash", 1), Unique: true,
                 ExtraFilter: new BsonDocument("linkTokenHash", new BsonDocument("$type", "string"))),
