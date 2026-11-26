@@ -189,6 +189,18 @@ public sealed class ClaimRepository(MongoContext context, IAggregateTracker trac
         }
     }
 
+    public async Task<(IReadOnlyList<Claim> Items, long Total)> ListRedeemedAtBusinessAsync(
+        BusinessId businessId, DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken)
+    {
+        // İndeks: (businessId, status), partial isDeleted = false.
+        var filter = Active(Filter.And(
+            Filter.Eq(x => x.BusinessId, businessId), Filter.Eq(x => x.Status, ClaimStatus.Redeemed),
+            Filter.Gte(x => x.RedeemedAt, from), Filter.Lte(x => x.RedeemedAt, to)));
+        var items = await Collection.Find(filter).SortByDescending(x => x.RedeemedAt).Limit(limit).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var total = await Collection.CountDocumentsAsync(filter, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return (items, total);
+    }
+
     public async Task<Claim?> FindReservedForUserAsync(Guid userId, CancellationToken cancellationToken)
     {
         var found = await FindAsync(

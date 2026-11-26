@@ -210,6 +210,27 @@ digər mühitlərdə məcburidir.
   (`already_redeemed`), audit log-a düşür, müştəri məlumatı qaytarılmır.
 - **Demo seed:** `Mongo__SeedDemoData=true` (yalnız dev compose) 1 brend + 2 kupon yaradır (`QONAQET-PLUS`, `DEMO-0001…0020`).
 
+### İnteqrasiya platforması — Partner API (E13)
+
+Ayrıca host `Qonaqet.Integration.Api` (`/partner/v1`, OAuth2 `POST /oauth/token`). Tam təlimat:
+**[`docs/integration-guide.md`](docs/integration-guide.md)**, sandbox: [`docs/partner-sandbox.md`](docs/partner-sandbox.md).
+
+- **Client-lər:** admin `/api/v1/admin/integration-clients` (yarat, secret rotasiyası 24 saat üst-üstə, ləğv, partnyor balansının artımı);
+  biznes sahibi `/api/v1/business/integrations/clients` (yalnız öz biznesləri və biznes scope-ları). Secret yalnız hash kimi saxlanılır.
+- **Təhlükəsizlik:** scope-lar, client başına rate limit (Valkey), hər POST-da məcburi `Idempotency-Key` (eyni body → eyni cavab, fərqli → 409),
+  hər çağırış `audit_logs`-a; cavablarda şəxsi məlumat yoxdur.
+- **Kassa/POS:** `GET codes/{code}`, `POST redemptions` (qismən də), `POST redemptions/{id}/reverse` (15 dəq.), `GET redemptions`,
+  `PUT/GET catalog/{businessId}` (`externalId` üzrə, `prune`).
+- **Issuer-lər:** `POST gifts` ön ödənişli partnyor balansından (`PartnerIssue`), `GET gifts/{id}`, `POST gifts/{id}/cancel`, `GET balance`,
+  `GET ledger`, kartla artım (`PartnerTopUp`).
+- **Brendlər:** `POST coupons/validate`.
+- **Webhook-lar:** `GET/POST/DELETE webhooks`, çatdırılma jurnalı və redeliver; imza `sha256=HMAC(secret, timestamp + "." + body)`, retry
+  1 d … 24 s, sonra `Failed` (Worker `webhook-dispatch`). İmza secret-i şifrəli saxlanılır (ADR 0008). Yoxlama nümunələri C#/JS/PHP:
+  [`docs/integration-samples/`](docs/integration-samples/).
+- **Sandbox:** `qc_test_…` client-lər yalnız sandbox bizneslərlə və Fake gateway ilə; `POST sandbox/test-codes` test vauçeri verir; ledger-ə
+  təsir yoxdur.
+- **OpenAPI:** "QONAQET Partner API v1" — CI artefaktı `partner-openapi` (Postman/Insomnia import, OAuth2 sxemi daxil).
+
 ## Vəziyyət
 
 Backend təməli (E01), hesab/giriş (E02: OTP, JWT + refresh rotasiyası, rollar, profil, FCM token-ləri, bloklama) və
@@ -222,7 +243,9 @@ hovuzlar/kampaniyalar (E08: remote/hovuz/kampaniya ianələri, hovuz claim-ləri
 hədiyyələr (E09: məhsul/vauçer/şəbəkə hədiyyələri, ödəniş, link token-ləri, ictimai səhifə, çatdırılma, qismən təhvil, ləğv, müddət bitməsi) və
 korporativ (E10: şirkətlər, toplu sifarişlər + CSV, kart/bank ödənişi, fan-out, PDF/CSV hesabatlar, CSR) və
 reytinq (E11: təhvildə xal, anti-gaming, Postgres aqreqatları + Valkey, lövhə API-si, səviyyələr/nişanlar, yenidən hesablama) və
-QONAQET Plus (E12: brendlər, kuponlar, atomik kod açılışı, brend yoxlaması, demo seed) hazırdır.
+QONAQET Plus (E12: brendlər, kuponlar, atomik kod açılışı, brend yoxlaması, demo seed) və
+inteqrasiya platforması (E13: Partner API host-u, client credentials + scope-lar, kod/təhvil/geri alma, kataloq sinxronu, issuer hədiyyələri +
+partnyor balansı, webhook-lar, sandbox, OpenAPI + təlimat, sahibin öz client-ləri) hazırdır.
 İş `docs/epics/*.md`-də izlənir; ümumi görünüş **[`docs/BOARD.md`](docs/BOARD.md)**. Hər PR bir task-a aiddir (`Task: Exx-Tnn`),
 hər developer eyni anda bir epic saxlayır (`scripts/epic.py status`).
 

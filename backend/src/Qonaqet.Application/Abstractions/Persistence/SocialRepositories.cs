@@ -69,6 +69,10 @@ public interface IClaimRepository : IRepository<Claim, ClaimId>
     /// <summary>İstifadəçinin hazırkı <c>Reserved</c> claim-i (müddəti keçmiş olsa da); yoxdursa <c>null</c>.</summary>
     Task<Claim?> FindReservedForUserAsync(Guid userId, CancellationToken cancellationToken);
 
+    /// <summary>Biznesdə <c>[from, to]</c> aralığında təhvil olunmuş claim-lər, ən yenilər əvvəl, ən çox <paramref name="limit"/>; və ümumi say.</summary>
+    Task<(IReadOnlyList<Claim> Items, long Total)> ListRedeemedAtBusinessAsync(
+        BusinessId businessId, DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken);
+
     /// <summary>
     /// Rezervi bağlayır (<c>Expired</c>/<c>Cancelled</c>): yalnız sənəd hələ <c>Reserved</c>-dirsə, <b>tranzaksiyadan kənarda</b> atomik.
     /// Qalib gələn tək çağırış <c>true</c> alır və vahidi o qaytarır — rezerv heç vaxt iki dəfə buraxılmır.

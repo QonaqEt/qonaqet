@@ -1,3 +1,4 @@
+using Qonaqet.Domain.Businesses;
 using Qonaqet.Domain.Gifts;
 
 namespace Qonaqet.Application.Abstractions.Persistence;
@@ -56,4 +57,8 @@ public interface IGiftRedemptionRepository
 
     /// <summary>Bu təhvilin tərs yazısı varmı (artıq geri alınıb).</summary>
     Task<bool> IsReversedAsync(GiftRedemptionId id, CancellationToken cancellationToken);
+
+    /// <summary>Biznesdəki təhvillər (tərs yazılar daxil) <c>[from, to]</c> aralığında, ən yenilər əvvəl, ən çox <paramref name="limit"/>; və ümumi say.</summary>
+    Task<(IReadOnlyList<GiftRedemption> Items, long Total)> ListAtBusinessAsync(
+        BusinessId businessId, DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken);
 }

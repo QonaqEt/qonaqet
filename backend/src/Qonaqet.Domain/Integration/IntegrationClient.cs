@@ -13,6 +13,9 @@ public enum IntegrationOwnerType
     Business,
     Corporate,
     Partner,
+
+    /// <summary>QONAQET Plus brendi (<c>OwnerId</c> = brend): <c>coupons/validate</c> (E13-T12).</summary>
+    Brand,
 }
 
 /// <summary>Partner API scope-ları (OAuth2 <c>scope</c>).</summary>

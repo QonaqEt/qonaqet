@@ -48,6 +48,10 @@ public static class IntegrationErrors
     public static readonly Error SandboxMismatch =
         Error.Validation("sandbox_mismatch", "Sandbox (test) client-i, hədiyyəsi və biznesi yalnız bir-biri ilə işləyir; real biznesdə istifadə olunmur.");
 
+    public static readonly Error BrandClientRequired = Error.Forbidden("brand_client_required", "Kupon yoxlaması yalnız brendə bağlı client-lər üçündür.");
+
+    public static readonly Error RangeInvalid = Error.Validation("range_invalid", "Tarix aralığı düzgün deyil (from < to, ən çox 92 gün).");
+
     public static readonly Error SandboxOnly = Error.Forbidden("sandbox_only", "Bu əməliyyat yalnız sandbox client-ləri üçündür.");
 
     /// <summary>Token-in client-i ləğv olunub.</summary>
