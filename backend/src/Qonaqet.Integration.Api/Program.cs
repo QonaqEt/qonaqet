@@ -1,4 +1,5 @@
 using Qonaqet.Infrastructure;
+using Qonaqet.Infrastructure.Identity;
 using Qonaqet.Infrastructure.Observability;
 using Qonaqet.Infrastructure.Web;
 
@@ -18,6 +19,7 @@ public sealed class Program
         builder.Services.AddQonaqetWeb("partner-v1", "QONAQET Partner API v1");
         builder.AddQonaqetObservability("qonaqet-integration-api");
         builder.Services.AddInfrastructure(builder.Configuration);
+        builder.Services.AddQonaqetPartnerAuthentication();
 
         var app = builder.Build();
 
