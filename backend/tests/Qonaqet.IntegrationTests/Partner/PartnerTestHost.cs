@@ -41,6 +41,7 @@ public sealed class PartnerTestHost : IAsyncDisposable
                 s.AddSingleton<IRateLimitStore>(RateLimits);
                 s.RemoveAll<IClock>();
                 s.AddSingleton<IClock>(api.Clock);
+                s.AddControllers().AddApplicationPart(typeof(PartnerTestHost).Assembly);
             });
         });
         Client = _factory.CreateClient();

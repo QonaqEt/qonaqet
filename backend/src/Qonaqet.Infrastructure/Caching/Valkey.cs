@@ -36,6 +36,19 @@ public sealed class ValkeyConnection(IOptions<ValkeyOptions> options) : IAsyncDi
 
     public string Prefix => options.Value.KeyPrefix;
 
+    /// <summary>
+    /// Bağlantı hazırdır və qoşuludur. Bloklamır: ilk çağırış qoşulmanı arxa planda başladır və <c>false</c> qaytarır. Sıx yollarda (məs.
+    /// idempotency) Valkey işləmədikdə hər sorğunun timeout gözləməməsi üçün.
+    /// </summary>
+    public bool IsAvailable
+    {
+        get
+        {
+            var connecting = _connection.Value;
+            return connecting.IsCompletedSuccessfully && connecting.Result.IsConnected;
+        }
+    }
+
     public async Task<IDatabase> DatabaseAsync() => (await _connection.Value.ConfigureAwait(false)).GetDatabase();
 
     public async ValueTask DisposeAsync()
