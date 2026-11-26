@@ -138,11 +138,11 @@ class ParsingAndBoardTests(unittest.TestCase):
         for name, text in files.items():
             (tmp / f"{name}.md").write_text(text, encoding="utf-8")
         return subprocess.run([sys.executable, str(ROOT / "scripts/lib/parse-epics.py"), str(tmp)],
-                              capture_output=True, text=True)
+                              capture_output=True, encoding="utf-8")
 
     def test_repo_epics_parse_with_status_and_dependencies(self) -> None:
         epics = json.loads(subprocess.run([sys.executable, str(ROOT / "scripts/lib/parse-epics.py")],
-                                          cwd=ROOT, check=True, capture_output=True, text=True).stdout)
+                                          cwd=ROOT, check=True, capture_output=True, encoding="utf-8").stdout)
         graph = {e["id"]: e["depends"] for e in epics}
         self.assertEqual(graph["E01"], [])
         self.assertEqual(set(graph["E20"]), {f"E{i:02d}" for i in range(20)})
@@ -164,7 +164,7 @@ class ParsingAndBoardTests(unittest.TestCase):
         self.assertEqual(out[0]["tasks"][0]["status"], "done")
 
     def test_committed_board_is_up_to_date(self) -> None:
-        result = subprocess.run([sys.executable, str(ROOT / "scripts/board.py"), "--check"], capture_output=True, text=True)
+        result = subprocess.run([sys.executable, str(ROOT / "scripts/board.py"), "--check"], capture_output=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stdout)
 
 

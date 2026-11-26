@@ -35,7 +35,7 @@ Epics = dict[str, dict]  # epic id → parse-epics çıxışı
 
 
 def parse_dir(directory: Path) -> Epics:
-    out = subprocess.run([sys.executable, str(PARSER), str(directory)], check=True, capture_output=True, text=True).stdout
+    out = subprocess.run([sys.executable, str(PARSER), str(directory)], check=True, capture_output=True, encoding="utf-8").stdout
     return {e["id"]: e for e in json.loads(out)}
 
 
@@ -47,7 +47,7 @@ def base_epics(base_sha: str, repo: Path = ROOT) -> Epics:
         for name in names:
             if re.fullmatch(r"docs/epics/E\d{2}\.md", name):
                 text = subprocess.run(["git", "show", f"{base_sha}:{name}"], cwd=repo, check=True,
-                                      capture_output=True, text=True).stdout
+                                      capture_output=True, encoding="utf-8").stdout
                 Path(tmp, Path(name).name).write_text(text, encoding="utf-8")
         return parse_dir(Path(tmp)) if any(Path(tmp).iterdir()) else {}
 

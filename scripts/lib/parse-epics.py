@@ -10,6 +10,10 @@ import pathlib
 import re
 import sys
 
+# Windows konsolu cp1252 ola bilər: çıxış həmişə UTF-8-dir, çağıranlar da UTF-8 ilə oxuyur.
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 AREAS = {
     "backend", "integration", "mobile", "web-landing",
     "web-business", "web-admin", "infra", "design",

@@ -31,6 +31,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# Windows konsolunda (cp1252) ə, ✅ kimi simvollar çap oluna bilsin.
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 STATUSES = ("todo", "in-progress", "done", "dropped")
 
 
@@ -46,7 +51,7 @@ class Epics:
     # ---------------------------------------------------------- oxuma
     def load(self) -> dict[str, dict]:
         out = subprocess.run([sys.executable, str(ROOT / "scripts/lib/parse-epics.py"), str(self.dir)],
-                             check=True, capture_output=True, text=True).stdout
+                             check=True, capture_output=True, encoding="utf-8").stdout
         return {e["id"]: e for e in json.loads(out)}
 
     def path(self, epic_id: str) -> Path:

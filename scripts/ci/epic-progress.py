@@ -45,7 +45,7 @@ def github_api(repo: str, token: str) -> Api:
 
 def done_epics(epics_dir: Path = ROOT / "docs" / "epics") -> list[str]:
     out = subprocess.run([sys.executable, str(ROOT / "scripts/lib/parse-epics.py"), str(epics_dir)],
-                         check=True, capture_output=True, text=True).stdout
+                         check=True, capture_output=True, encoding="utf-8").stdout
     return [e["id"] for e in json.loads(out) if e["status"] == "done"]
 
 
