@@ -16,6 +16,9 @@ public static class IntegrationErrors
     public static readonly Error ClientInvalid = Error.Validation(
         "integration_client_invalid", "Ad, scope-lar (məlum siyahıdan), bizneslər (≤ 200) və rate limit (10–6000/dəq) düzgün olmalıdır.");
 
+    /// <summary>Biznes client-in <c>business_ids</c>-ində deyil (mövcudluğu açıqlanmır).</summary>
+    public static readonly Error BusinessNotAllowed = Error.Forbidden("business_not_allowed", "Bu client bu biznes adından işləyə bilməz.");
+
     /// <summary>Token-in client-i ləğv olunub.</summary>
     public static readonly Error ClientRevoked = Error.Unauthorized("invalid_client", "Bu client ləğv olunub.");
 }

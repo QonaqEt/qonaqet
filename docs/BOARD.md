@@ -20,7 +20,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E10](epics/E10.md) | Corporate & CSR | ✅ done | @Tapdiq49 | 5/5 | — |
 | [E11](epics/E11.md) | Leaderboard & gamification | ✅ done | @zahid2000 | 8/8 | — |
 | [E12](epics/E12.md) | QONAQET Plus | ✅ done | @zahid2000 | 4/4 | — |
-| [E13](epics/E13.md) | Integration platform | 🔄 in-progress | @zahid2000 | 3/11 | — |
+| [E13](epics/E13.md) | Integration platform | 🔄 in-progress | @zahid2000 | 4/11 | — |
 | [E14](epics/E14.md) | Mobile foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
 | [E15](epics/E15.md) | Mobile user features | ⬜ todo | — | 0/10 | E14 |
 | [E16](epics/E16.md) | Mobile business mode | ⬜ todo | — | 0/5 | E14 |
@@ -235,14 +235,14 @@ Yoxdur.
 
 ## E13 — Integration platform
 
-🔄 in-progress · @zahid2000 · 3/11 task
+🔄 in-progress · @zahid2000 · 4/11 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
 | ✅ | E13-T01 | Integration.Api host-u | integration | p1 | M |
 | ✅ | E13-T02 | Client credentials və scope-lar | integration | p1 | L |
 | ✅ | E13-T03 | Idempotency-Key filtri və audit | integration | p1 | M |
-| ⬜ | E13-T04 | Kod yoxlama və təhvil | integration | p1 | L |
+| ✅ | E13-T04 | Kod yoxlama və təhvil | integration | p1 | L |
 | ⬜ | E13-T05 | Təhvilin geri alınması (reverse) | integration | p1 | M |
 | ⬜ | E13-T06 | Kataloq sinxronu | integration | p1 | M |
 | ⬜ | E13-T07 | Issuer hədiyyələri və partnyor balansı | integration | p1 | L |

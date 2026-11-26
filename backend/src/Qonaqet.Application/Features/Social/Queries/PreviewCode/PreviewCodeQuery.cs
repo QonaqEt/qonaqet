@@ -19,34 +19,12 @@ public sealed record PreviewCodeQuery(BusinessId BusinessId, string Code) : IQue
     public override string ToString() => nameof(PreviewCodeQuery);
 }
 
-public sealed class PreviewCodeHandler(BusinessAccess access, RedemptionCodeResolver resolver, IClock clock)
-    : IQueryHandler<PreviewCodeQuery, RedemptionPreviewDto>
+public sealed class PreviewCodeHandler(BusinessAccess access, CodeRedemption redemption) : IQueryHandler<PreviewCodeQuery, RedemptionPreviewDto>
 {
     public async Task<Result<RedemptionPreviewDto>> Handle(PreviewCodeQuery request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         var grant = await access.RequireAsync(request.BusinessId, BusinessPermission.Operate, cancellationToken).ConfigureAwait(false);
-        if (grant.IsFailure)
-        {
-            return grant.Error;
-        }
-
-        var resolved = await resolver.ResolveAnyAsync(request.BusinessId, request.Code, cancellationToken).ConfigureAwait(false);
-        if (resolved.IsFailure)
-        {
-            return resolved.Error;
-        }
-
-        if (resolved.Value.Gift is { } gift)
-        {
-            if (gift.Scope == GiftScope.Network && !grant.Value.Business.AcceptsNetworkVouchers)
-            {
-                return GiftErrors.NetworkNotAccepted;
-            }
-
-            return GiftRedemptionService.Preview(gift, clock.UtcNow);
-        }
-
-        return await resolver.PreviewAsync(resolved.Value.Claim!, clock.UtcNow, cancellationToken).ConfigureAwait(false);
+        return grant.IsFailure ? grant.Error : await redemption.PreviewAsync(grant.Value.Business, request.Code, cancellationToken).ConfigureAwait(false);
     }
 }
