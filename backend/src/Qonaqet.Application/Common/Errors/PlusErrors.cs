@@ -24,5 +24,14 @@ public static class PlusErrors
     /// <summary>Kod siyahısı yalnız <c>Unique</c> kupona yüklənir.</summary>
     public static readonly Error CodesNotUnique = Error.Conflict("coupon_not_unique", "Bu kupon ortaq koddur — ayrıca kod yüklənmir.");
 
+    public static readonly Error CouponExpired = Error.Conflict("coupon_expired", "Bu kuponun müddəti bitib və ya hələ başlamayıb.");
+
+    public static readonly Error CouponNotEligible =
+        Error.Forbidden("category_not_eligible", "Bu kupon sizin statusunuza uyğun deyil. Statusunuzu profildə təsdiqləyə bilərsiniz.");
+
+    public static readonly Error LimitReached = Error.Conflict("limit_reached", "Bu kupondan ala biləcəyiniz kodların sayına çatdınız.");
+
+    public static readonly Error SoldOut = Error.Conflict("coupon_sold_out", "Bu kuponun kodları bitib.");
+
     public static readonly Error TooManyCodes = Error.Validation("coupon_codes_too_many", "Bir dəfəyə 1–5000 kod yükləmək olar.");
 }
