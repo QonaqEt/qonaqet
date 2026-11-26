@@ -50,6 +50,12 @@ public sealed class InMemoryLeaderboardStore : ILeaderboardStore
         return Task.CompletedTask;
     }
 
+    public Task InvalidateAsync(LeaderboardBoard board, CancellationToken cancellationToken)
+    {
+        _boards.TryRemove(board.CacheKey, out _);
+        return Task.CompletedTask;
+    }
+
     public Task SetIfCachedAsync(LeaderboardBoard board, LeaderboardScore score, CancellationToken cancellationToken)
     {
         if (!Unavailable && _boards.TryGetValue(board.CacheKey, out var scores))

@@ -22,6 +22,53 @@ public readonly record struct LeaderboardPeriod(LeaderboardPeriodType Type, stri
     public static IReadOnlyList<LeaderboardPeriod> For(DateTimeOffset at) =>
         [Current(LeaderboardPeriodType.Week, at), Current(LeaderboardPeriodType.Month, at), AllTime];
 
+    /// <summary>
+    /// Açarın dövrü əhatə etdiyi UTC aralığı <c>[Start, End)</c>, Bakı təqvimi ilə; bütün zamanlar üçün <c>null</c> (aralıq yoxdur).
+    /// Açar düzgün deyilsə <c>false</c>.
+    /// </summary>
+    public static bool TryRange(LeaderboardPeriodType type, string key, out (DateTimeOffset Start, DateTimeOffset End)? range)
+    {
+        range = null;
+        if (string.IsNullOrEmpty(key))
+        {
+            return false;
+        }
+
+        switch (type)
+        {
+            case LeaderboardPeriodType.AllTime:
+                return key == AllTime.Key;
+            case LeaderboardPeriodType.Week:
+                if (key.Length != 8 || key[4] != '-' || key[5] != 'W'
+                    || !int.TryParse(key.AsSpan(0, 4), NumberStyles.None, CultureInfo.InvariantCulture, out var isoYear)
+                    || !int.TryParse(key.AsSpan(6, 2), NumberStyles.None, CultureInfo.InvariantCulture, out var week)
+                    || isoYear < 2000 || week < 1 || week > ISOWeek.GetWeeksInYear(isoYear))
+                {
+                    return false;
+                }
+
+                var monday = DateOnly.FromDateTime(ISOWeek.ToDateTime(isoYear, week, DayOfWeek.Monday));
+                range = (BakuTime.StartOfDayUtc(monday), BakuTime.StartOfDayUtc(monday.AddDays(7)));
+                return true;
+            case LeaderboardPeriodType.Month:
+                if (key.Length != 7 || key[4] != '-'
+                    || !int.TryParse(key.AsSpan(0, 4), NumberStyles.None, CultureInfo.InvariantCulture, out var year)
+                    || !int.TryParse(key.AsSpan(5, 2), NumberStyles.None, CultureInfo.InvariantCulture, out var month)
+                    || year < 2000 || month < 1 || month > 12)
+                {
+                    return false;
+                }
+
+                var first = new DateOnly(year, month, 1);
+                range = (BakuTime.StartOfDayUtc(first), BakuTime.StartOfDayUtc(first.AddMonths(1)));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public static bool IsValidKey(LeaderboardPeriodType type, string key) => TryRange(type, key, out _);
+
     /// <summary>Anın dövründən əvvəlki (artıq bitmiş) dövr; bütün zamanların əvvəlkisi yoxdur.</summary>
     public static LeaderboardPeriod Previous(LeaderboardPeriodType type, DateTimeOffset at)
     {
@@ -84,4 +131,35 @@ public sealed class LeaderboardEntry
     public long Value { get; private set; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
+
+    /// <summary>Yenidən hesablamada qeydi olmayan qazanan üçün sətir (adi yolda sətirləri consumer-in upsert-i yaradır).</summary>
+    public static LeaderboardEntry Create(
+        ScoreSubjectType subjectType, Guid subjectId, LeaderboardPeriod period, int points, int treats, long value, DateTimeOffset at) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(),
+            SubjectType = subjectType,
+            SubjectId = Guard.NotEmpty(subjectId),
+            PeriodType = period.Type,
+            PeriodKey = Guard.NotNullOrWhiteSpace(period.Key),
+            Points = points,
+            Treats = treats,
+            Value = value,
+            UpdatedAt = Guard.Utc(at),
+        };
+
+    /// <summary><c>score_events</c>-dən hesablanmış cəmlə düzəldir; cəm eynidirsə heç nə dəyişmir və <c>false</c> qaytarır.</summary>
+    public bool Correct(int points, int treats, long value, DateTimeOffset at)
+    {
+        if (Points == points && Treats == treats && Value == value)
+        {
+            return false;
+        }
+
+        Points = points;
+        Treats = treats;
+        Value = value;
+        UpdatedAt = Guard.Utc(at);
+        return true;
+    }
 }

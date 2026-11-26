@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Features.Leaderboard.Common;
@@ -30,24 +29,10 @@ public sealed record LeaderboardItemDto(int Rank, string DisplayName, int Points
 /// <summary>"Sizin yeriniz: #N". Pəncərədən kənardadırsa yer gizlənənlər daxil təxminidir.</summary>
 public sealed record LeaderboardMeDto(int Rank, int Points);
 
-public sealed partial class GetLeaderboardValidator : Validator<GetLeaderboardQuery>
+public sealed class GetLeaderboardValidator : Validator<GetLeaderboardQuery>
 {
     public GetLeaderboardValidator() =>
-        Rule("periodKey", x => x.PeriodKey is null || IsValidKey(x.PeriodType, x.PeriodKey), "period_key_invalid", "Dövr açarı düzgün deyil.");
-
-    private static bool IsValidKey(LeaderboardPeriodType type, string key) => type switch
-    {
-        LeaderboardPeriodType.Week => WeekKey().IsMatch(key),
-        LeaderboardPeriodType.Month => MonthKey().IsMatch(key),
-        LeaderboardPeriodType.AllTime => key == LeaderboardPeriod.AllTime.Key,
-        _ => false,
-    };
-
-    [GeneratedRegex(@"^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$")]
-    private static partial Regex WeekKey();
-
-    [GeneratedRegex(@"^\d{4}-(0[1-9]|1[0-2])$")]
-    private static partial Regex MonthKey();
+        Rule("periodKey", x => x.PeriodKey is null || LeaderboardPeriod.IsValidKey(x.PeriodType, x.PeriodKey), "period_key_invalid", "Dövr açarı düzgün deyil.");
 }
 
 public sealed class GetLeaderboardHandler(
