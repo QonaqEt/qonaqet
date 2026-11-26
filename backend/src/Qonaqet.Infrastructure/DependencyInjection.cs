@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddGifts(configuration);
         services.AddCorporate();
         services.AddPlus();
+        services.AddIntegration();
         services.AddPayments(configuration);
         services.AddLeaderboard(configuration);
 

@@ -1,8 +1,10 @@
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
+using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Infrastructure.Caching;
 using Qonaqet.SharedKernel;
 
@@ -35,6 +37,14 @@ public static class RateLimitPolicies
     /// <summary>Provayder callback-i (anonim, imzasız): IP başına dəqiqədə 120.</summary>
     public const string PaymentCallback = "payment-callback";
 
+    /// <summary>
+    /// Partner API: client başına dəqiqədə client-in öz limiti (<c>integration_clients.rate_limit_per_minute</c>, token-in <c>rate_limit</c>
+    /// claim-indən). Token yoxdursa IP başına dəqiqədə 30.
+    /// </summary>
+    public const string Partner = "partner";
+
+    public const int PartnerAnonymousLimit = 30;
+
     public static readonly Error RateLimited = Error.TooManyRequests("rate_limited", "Çox sayda sorğu. Bir az sonra yenidən cəhd edin.");
 
     public static IServiceCollection AddQonaqetRateLimits(this IServiceCollection services)
@@ -61,11 +71,30 @@ public static class RateLimitPolicies
             o.AddValkeyFixedWindowPolicy(Payment, UserOrIp, 60, TimeSpan.FromMinutes(1));
             o.AddValkeyFixedWindowPolicy(GiftLink, UserOrIp, 30, TimeSpan.FromMinutes(1));
             o.AddValkeyFixedWindowPolicy(PaymentCallback, ClientIp, 120, TimeSpan.FromMinutes(1));
+            o.AddPolicy(Partner, context =>
+            {
+                var (key, limit) = PartnerPartition(context);
+                return RateLimitPartition.Get(
+                    $"{Partner}:{key}",
+                    k => new ValkeyWindowRateLimiter(context.RequestServices.GetRequiredService<IRateLimitStore>(), k, limit, TimeSpan.FromMinutes(1)));
+            });
         });
     }
 
     private static string UserOrIp(HttpContext context) =>
         context.User.FindFirst("sub")?.Value is { Length: > 0 } sub ? $"u:{sub}" : $"ip:{ClientIp(context)}";
+
+    private static (string Key, int Limit) PartnerPartition(HttpContext context)
+    {
+        if (context.User.FindFirst("sub")?.Value is { Length: > 0 } sub
+            && int.TryParse(context.User.FindFirst("rate_limit")?.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var limit)
+            && limit > 0)
+        {
+            return ($"c:{sub}:{limit}", limit);
+        }
+
+        return ($"ip:{ClientIp(context)}", PartnerAnonymousLimit);
+    }
 
     private static string ClientIp(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

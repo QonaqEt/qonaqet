@@ -36,6 +36,15 @@ public interface IAccessTokenIssuer
 
 public sealed record AccessToken(string Token, DateTimeOffset ExpiresAt);
 
+/// <summary>
+/// Partner API token-i (OAuth2 client credentials): 1 saatlıq JWT, ayrıca audience (<c>qonaqet-partner</c>) — tətbiq token-i partner host-unda,
+/// partner token-i tətbiq host-unda qəbul olunmur. Rollar: <c>PartnerClient</c> + verilmiş scope-lar.
+/// </summary>
+public interface IPartnerTokenIssuer
+{
+    AccessToken Issue(Domain.Integration.IntegrationClient client, IReadOnlyList<string> scopes, DateTimeOffset now);
+}
+
 /// <summary>Push bildirişi (FCM).</summary>
 public sealed record PushMessage(string Title, string Body, IReadOnlyDictionary<string, string>? Data = null);
 

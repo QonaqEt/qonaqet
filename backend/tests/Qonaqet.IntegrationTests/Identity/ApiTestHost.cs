@@ -25,6 +25,8 @@ public sealed class ApiTestHost : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(mongo);
         DatabaseName = "t_" + Guid.NewGuid().ToString("N")[..12];
+        MongoConnectionString = mongo.ConnectionString;
+        PostgresConnectionString = postgres;
         Database = mongo.Client.GetDatabase(DatabaseName);
         _factory = new WebApplicationFactory<Api.Program>().WithWebHostBuilder(b =>
         {
@@ -57,6 +59,11 @@ public sealed class ApiTestHost : IAsyncDisposable
     }
 
     public string DatabaseName { get; }
+
+    /// <summary>Eyni bazalara qoşulan ikinci host (Partner API) üçün.</summary>
+    public string MongoConnectionString { get; }
+
+    public string? PostgresConnectionString { get; }
 
     public IMongoDatabase Database { get; }
 
