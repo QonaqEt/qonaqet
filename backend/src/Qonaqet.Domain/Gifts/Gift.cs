@@ -264,6 +264,9 @@ public sealed class Gift : AggregateRoot<GiftId>
     /// <summary>Partnyorun öz istinadı (sifariş/əməliyyat nömrəsi), olduğu kimi qaytarılır.</summary>
     public string? ExternalReference { get; private set; }
 
+    /// <summary>Sandbox client-in hədiyyəsi (E13-T09): yalnız sandbox bizneslərdə təhvil olunur, ledger-ə yazılmır.</summary>
+    public bool IsSandbox { get; private set; }
+
     public GiftExpiryAction ExpiryAction { get; private set; }
 
     public PoolId? ExpiryPoolId { get; private set; }
@@ -397,7 +400,7 @@ public sealed class Gift : AggregateRoot<GiftId>
     /// </summary>
     public static Gift CreateForPartner(
         GiftContent content, Guid partnerClientId, string partnerName, GiftRecipient recipient, GiftTheme theme, string? message,
-        DateTimeOffset deliverAt, int validityDays, string? externalReference, DateTimeOffset now)
+        DateTimeOffset deliverAt, int validityDays, string? externalReference, bool isSandbox, DateTimeOffset now)
     {
         if (externalReference is { Length: > ExternalReferenceMaxLength })
         {
@@ -409,6 +412,24 @@ public sealed class Gift : AggregateRoot<GiftId>
             validityDays, new GiftExpiryPlan(GiftExpiryAction.RefundToPayer, null), now);
         gift.PartnerClientId = partnerClientId;
         gift.ExternalReference = string.IsNullOrWhiteSpace(externalReference) ? null : externalReference.Trim();
+        gift.IsSandbox = isSandbox;
+        return gift;
+    }
+
+    /// <summary>
+    /// Sandbox test kodu (Partner API sandbox, E13-T09): heç kim ödəmir — partnyor balansına bağlı deyil, ləğvdə/müddət bitəndə heç nə qayıtmır,
+    /// yalnız sandbox biznesdə təhvil olunur və ledger-ə yazılmır.
+    /// </summary>
+    public static Gift CreateSandboxTestVoucher(
+        BusinessId businessId, long amountQepik, Guid partnerClientId, string partnerName, int validityDays, DateTimeOffset now)
+    {
+        // Göndərən partnyordur, amma PartnerClientId bağlanmır: balansdan silinmə olmayıb, ona görə heç nə geri qayıtmır.
+        var gift = Create(
+            GiftContent.ForBusinessVoucher(businessId, amountQepik), new GiftSender(null, null, SenderDisplay.Named, partnerName, Guard.NotEmpty(partnerClientId)),
+            new GiftRecipient("Sandbox test", null), GiftTheme.JustBecause, "Sandbox test kodu", now, validityDays,
+            new GiftExpiryPlan(GiftExpiryAction.RefundToPayer, null), now);
+        gift.ExternalReference = "sandbox-test";
+        gift.IsSandbox = true;
         return gift;
     }
 
@@ -649,7 +670,8 @@ public sealed class Gift : AggregateRoot<GiftId>
 
         var redemption = GiftRedemption.Record(Id, businessId, Guard.NotEmpty(staffUserId), redeemedLines, Kind == GiftKind.Voucher ? value : null, value, now);
         Raise(new GiftRedeemed(
-            Id, redemption.Id, businessId, Kind, Scope, value, units, SenderUserId, CorporateOrderId, CorporateId, RecipientUserId, RecipientEmail is not null, now));
+            Id, redemption.Id, businessId, Kind, Scope, value, units, SenderUserId, CorporateOrderId, CorporateId, RecipientUserId, RecipientEmail is not null, now,
+            IsSandbox));
         return redemption;
     }
 
@@ -680,7 +702,8 @@ public sealed class Gift : AggregateRoot<GiftId>
         Touch(now, actorId);
 
         var reversal = GiftRedemption.RecordReversal(original, Guard.NotEmpty(actorId), now);
-        Raise(new GiftRedemptionReversed(Id, original.Id, reversal.Id, original.BusinessId, original.ValueQepik, CorporateId, RedeemedQepik == 0, now));
+        Raise(new GiftRedemptionReversed(
+            Id, original.Id, reversal.Id, original.BusinessId, original.ValueQepik, CorporateId, RedeemedQepik == 0, now, IsSandbox));
         return reversal;
     }
 
@@ -833,7 +856,8 @@ public sealed record GiftRedeemed(
     Guid? CorporateId,
     Guid? RecipientUserId,
     bool HasRecipientEmail,
-    DateTimeOffset At) : DomainEvent(At);
+    DateTimeOffset At,
+    bool Sandbox = false) : DomainEvent(At);
 
 /// <summary>
 /// Təhvil geri alındı (Partner API reverse). Ledger: orijinal təhvilin <c>RedemptionCredit</c>/<c>Commission</c> yazılarının tərsi; xal:
@@ -847,7 +871,8 @@ public sealed record GiftRedemptionReversed(
     long ValueQepik,
     Guid? CorporateId,
     bool FullyUnredeemed,
-    DateTimeOffset At) : DomainEvent(At);
+    DateTimeOffset At,
+    bool Sandbox = false) : DomainEvent(At);
 
 /// <summary>
 /// Issuer partnyorun hədiyyəsinin qalığı onun ön ödənişli balansına qayıdır (ləğvdə tam məbləğ, müddət bitəndə qalıq) → ledger-də

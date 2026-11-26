@@ -39,6 +39,7 @@ public sealed class LeaderboardSubjectsReader(IMongoDatabase database) : ILeader
                 break;
             case ScoreSubjectType.Business:
                 filter.Add("status", nameof(BusinessStatus.Active));
+                filter.Add("isSandbox", new BsonDocument("$ne", true));
                 var businesses = await database.GetCollection<Business>(BusinessCollectionNames.Businesses).Find(filter)
                     .ToListAsync(cancellationToken).ConfigureAwait(false);
                 subjects = [.. businesses.Select(b => new LeaderboardSubject(b.Id.Value, b.Name, b.Slug))];

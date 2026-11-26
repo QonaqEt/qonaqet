@@ -114,6 +114,12 @@ public sealed class Business : AggregateRoot<BusinessId>
 
     public bool IsActive => Status == BusinessStatus.Active;
 
+    /// <summary>
+    /// Test (sandbox) biznesi (E13-T09): yalnız sandbox inteqrasiya client-ləri və sandbox hədiyyələri ilə işləyir; ictimai axtarışda və
+    /// reytinqdə görünmür, təhvilləri ledger-ə yazılmır.
+    /// </summary>
+    public bool IsSandbox { get; private set; }
+
     public static Business Submit(BusinessProfile profile, string slug, Guid applicantUserId, DateTimeOffset at)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -159,6 +165,19 @@ public sealed class Business : AggregateRoot<BusinessId>
         SuspendReason = Guard.NotNullOrWhiteSpace(reason).Trim();
         MarkUpdated(at, by);
         Raise(new BusinessSuspended(Id, at));
+        return true;
+    }
+
+    /// <summary>Admin biznesi sandbox kimi işarələyir və ya geri qaytarır. Dəyişiklik yoxdursa <c>false</c>.</summary>
+    public bool SetSandbox(bool isSandbox, DateTimeOffset at, Guid? by)
+    {
+        if (IsSandbox == isSandbox)
+        {
+            return false;
+        }
+
+        IsSandbox = isSandbox;
+        MarkUpdated(at, by);
         return true;
     }
 

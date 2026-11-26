@@ -38,6 +38,11 @@ public sealed class CodeRedemption(
 
         if (resolved.Value.Gift is { } gift)
         {
+            if (gift.IsSandbox != business.IsSandbox)
+            {
+                return IntegrationErrors.SandboxMismatch;
+            }
+
             if (gift.Scope == GiftScope.Network && !business.AcceptsNetworkVouchers)
             {
                 return GiftErrors.NetworkNotAccepted;
@@ -67,6 +72,11 @@ public sealed class CodeRedemption(
 
         if (resolved.Value.Gift is { } gift)
         {
+            if (gift.IsSandbox != business.IsSandbox)
+            {
+                return IntegrationErrors.SandboxMismatch;
+            }
+
             return await giftRedemptions.RedeemAsync(gift, business, lines, amountQepik, actorId, cancellationToken).ConfigureAwait(false);
         }
 

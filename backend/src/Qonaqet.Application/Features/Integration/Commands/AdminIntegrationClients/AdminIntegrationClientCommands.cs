@@ -3,6 +3,7 @@ using Qonaqet.Application.Abstractions.Persistence;
 using Qonaqet.Application.Abstractions.Services;
 using Qonaqet.Application.Common.Errors;
 using Qonaqet.Application.Features.Integration.Common;
+using Qonaqet.Domain.Businesses;
 using Qonaqet.Domain.Integration;
 using Qonaqet.Domain.Users;
 using Qonaqet.SharedKernel;
@@ -50,12 +51,23 @@ public sealed class CreateIntegrationClientValidator : Validator<CreateIntegrati
 }
 
 public sealed class CreateIntegrationClientHandler(
-    IIntegrationClientRepository clients, ISecretHasher hasher, ISecureRandom random, ICurrentUser currentUser, IClock clock)
+    IIntegrationClientRepository clients, IBusinessRepository businesses, ISecretHasher hasher, ISecureRandom random, ICurrentUser currentUser, IClock clock)
     : ICommandHandler<CreateIntegrationClientCommand, IntegrationClientSecretDto>
 {
     public async Task<Result<IntegrationClientSecretDto>> Handle(CreateIntegrationClientCommand request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        // Sandbox client yalnız sandbox bizneslərə, real client yalnız real bizneslərə bağlanır (E13-T09).
+        foreach (var businessId in request.BusinessIds.Distinct())
+        {
+            var business = await businesses.GetAsync(BusinessId.From(businessId), cancellationToken).ConfigureAwait(false);
+            if (business is not null && business.IsSandbox != request.IsSandbox)
+            {
+                return IntegrationErrors.SandboxMismatch;
+            }
+        }
+
         var secret = IntegrationSecrets.NewSecret(random);
         var client = IntegrationClient.Create(
             request.Name, IntegrationSecrets.NewClientId(random, request.IsSandbox), hasher.Hash(IntegrationSecrets.Purpose, secret), request.OwnerType,

@@ -24,7 +24,10 @@ public sealed class PartnerAccess(IIntegrationClientRepository clients, IBusines
         return client is null ? IntegrationErrors.ClientRevoked : client;
     }
 
-    /// <summary>Client + onun <c>business_ids</c>-ində olan biznes. Siyahıda olmayan və mövcud olmayan biznes eyni xətanı alır.</summary>
+    /// <summary>
+    /// Client + onun <c>business_ids</c>-ində olan biznes. Siyahıda olmayan və mövcud olmayan biznes eyni xətanı alır; sandbox client yalnız
+    /// sandbox biznesə, real client yalnız real biznesə çıxır (<c>sandbox_mismatch</c>).
+    /// </summary>
     public async Task<Result<(IntegrationClient Client, Business Business)>> RequireBusinessAsync(Guid businessId, CancellationToken cancellationToken)
     {
         var client = await RequireAsync(cancellationToken).ConfigureAwait(false);
@@ -39,7 +42,12 @@ public sealed class PartnerAccess(IIntegrationClientRepository clients, IBusines
         }
 
         var business = await businesses.GetAsync(BusinessId.From(businessId), cancellationToken).ConfigureAwait(false);
-        return business is null ? IntegrationErrors.BusinessNotAllowed : (client.Value, business);
+        if (business is null)
+        {
+            return IntegrationErrors.BusinessNotAllowed;
+        }
+
+        return business.IsSandbox == client.Value.IsSandbox ? (client.Value, business) : IntegrationErrors.SandboxMismatch;
     }
 }
 

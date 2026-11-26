@@ -44,6 +44,12 @@ public static class IntegrationErrors
 
     public static readonly Error WebhookDeliveryBusy = Error.Conflict("webhook_delivery_busy", "Çatdırılma elə indi göndərilir; bir az sonra yenidən cəhd edin.");
 
+    /// <summary>Sandbox və real dünya qarışmır (E13-T09): sandbox client/hədiyyə yalnız sandbox biznesdə, real olanlar yalnız real biznesdə.</summary>
+    public static readonly Error SandboxMismatch =
+        Error.Validation("sandbox_mismatch", "Sandbox (test) client-i, hədiyyəsi və biznesi yalnız bir-biri ilə işləyir; real biznesdə istifadə olunmur.");
+
+    public static readonly Error SandboxOnly = Error.Forbidden("sandbox_only", "Bu əməliyyat yalnız sandbox client-ləri üçündür.");
+
     /// <summary>Token-in client-i ləğv olunub.</summary>
     public static readonly Error ClientRevoked = Error.Unauthorized("invalid_client", "Bu client ləğv olunub.");
 }

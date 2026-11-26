@@ -36,7 +36,8 @@ public sealed record BusinessDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset? ActivatedAt,
     DateTimeOffset? SuspendedAt,
-    bool IsDeleted);
+    bool IsDeleted,
+    bool IsSandbox);
 
 public static class BusinessMapping
 {
@@ -50,7 +51,7 @@ public static class BusinessMapping
             [.. business.WorkingHours.Select(h => new DailyHoursDto(h.Day, h.Opens, h.Closes))],
             business.LogoFileId, business.CoverFileId, business.AcceptsPool, business.AcceptsNetworkVouchers,
             business.VoucherMinQepik, business.VoucherMaxQepik, business.Status, business.OwnerUserId,
-            business.CreatedAt, business.ActivatedAt, business.SuspendedAt, business.IsDeleted);
+            business.CreatedAt, business.ActivatedAt, business.SuspendedAt, business.IsDeleted, business.IsSandbox);
     }
 
     public static IReadOnlyList<DailyHours> ToDomain(this IReadOnlyList<DailyHoursDto> hours)

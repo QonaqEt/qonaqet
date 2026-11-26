@@ -66,6 +66,7 @@ public static class BusinessAuditActions
     public const string UpdateProfile = "BusinessUpdateProfile";
     public const string AddMember = "BusinessAddMember";
     public const string RemoveMember = "BusinessRemoveMember";
+    public const string SetSandbox = "BusinessSetSandbox";
 }
 
 /// <summary>Kateqoriya və təsdiq əməliyyatlarının audit adları.</summary>
