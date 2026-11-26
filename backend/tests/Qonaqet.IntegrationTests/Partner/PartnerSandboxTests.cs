@@ -26,7 +26,7 @@ public sealed class PartnerSandboxTests(PaymentsFixture fixture)
         fixture.SkipIfUnavailable();
         await using var api = await fixture.HostAsync();
         await using var partner = new PartnerTestHost(api);
-        var sandboxShop = await GiftTestData.ShopAsync(api, "psb-test");
+        var sandboxShop = await GiftTestData.ShopAsync(api, "psb-test", acceptsNetwork: true);
         var liveShop = await GiftTestData.ShopAsync(api, "psb-live");
         var scopes = new[] { PartnerScopes.CodesRead, PartnerScopes.RedemptionsWrite };
 
@@ -67,8 +67,15 @@ public sealed class PartnerSandboxTests(PaymentsFixture fixture)
             Assert.True(redeem.IsSuccessStatusCode, body.GetRawText());
         }
 
-        // Sandbox kodu real biznesin işçisində keçmir.
-        Assert.Equal("sandbox_mismatch", await GiftRedemptionTests.RedeemErrorAsync(api, liveShop, shortCode, new { amountQepik = 1_00 }));
+        // Sandbox test kodu başqa (real) biznesdə ümumiyyətlə tapılmır; real şəbəkə vauçeri isə sandbox biznesdə keçmir.
+        Assert.Equal("code_not_found", await GiftRedemptionTests.RedeemErrorAsync(api, liveShop, shortCode, new { amountQepik = 1_00 }));
+        var buyer = await api.LoginAsync("psb-buyer@example.az");
+        var (_, liveToken) = await GiftTestData.DeliveredAsync(api, buyer, new
+        {
+            kind = "Voucher", scope = "Network", amountQepik = 10_00, recipientName = "Ana", theme = "Family", senderDisplay = "Named",
+        });
+        var liveCodes = await GiftRedemptionTests.CodesAsync(api, liveToken);
+        Assert.Equal("sandbox_mismatch", await GiftRedemptionTests.RedeemErrorAsync(api, sandboxShop, liveCodes.Qr, new { amountQepik = 1_00 }));
 
         // Real client sandbox biznesə çıxa bilmir (business_ids-də olsa belə).
         var earlyAccess = await partner.AccessTokenAsync(early.GetProperty("clientId").GetString()!, earlySecret);
