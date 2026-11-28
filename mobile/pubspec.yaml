@@ -1,0 +1,21 @@
+name: qonaqet
+description: "QONAQET — hədiyyə və ısmarlama tətbiqi (istifadəçi + biznes rejimi)."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.9
+
+# Yalnız docs/dependencies/allowlist.json-dakı paketlər (CLAUDE.md → Dependency policy).
+# Öz plugin-lərimiz packages/ altındadır və path ilə qoşulur.
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
