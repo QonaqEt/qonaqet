@@ -1,5 +1,6 @@
 import '../core/di/service_locator.dart';
 import '../core/network/api_client.dart';
+import '../core/storage/secure_token_storage.dart';
 import '../core/storage/token_storage.dart';
 import 'config/app_config.dart';
 
@@ -13,8 +14,8 @@ ServiceLocator configureDependencies(
   final sl = locator ?? ServiceLocator.instance;
   sl
     ..registerSingleton<AppConfig>(config)
-    // E14-T05: real implementasiya Keychain/Keystore üzərindədir.
-    ..registerSingleton<TokenStorage>(tokenStorage ?? InMemoryTokenStorage())
+    // Token-lər yalnız Keychain/Keystore-da (E14-T05); testlər yaddaş implementasiyası verir.
+    ..registerSingleton<TokenStorage>(tokenStorage ?? const SecureTokenStorage())
     ..registerLazySingleton<ApiClient>(
       () => ApiClient(baseUrl: config.apiBaseUrl, tokens: sl.get<TokenStorage>()),
     );

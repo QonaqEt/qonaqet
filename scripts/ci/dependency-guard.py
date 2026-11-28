@@ -9,7 +9,9 @@ Nə yoxlanılır:
   1. Birbaşa asılılıqlar allowlist-dədir:
        NuGet  packages.lock.json  → "type": "Direct"
        npm    package-lock.json   → kök və workspace paketlərinin dependencies/devDependencies/...
-       pub    pubspec.lock        → "dependency: direct ..."; `source: sdk` (Flutter SDK-nın özü) platformadır
+       pub    pubspec.lock        → "dependency: direct ..."; `source: sdk` (Flutter SDK-nın özü) platformadır;
+                                     `source: path` yalnız lock faylının yanındakı `packages/` altında
+                                     (öz plugin-lərimiz, məs. mobile/packages/secure_store) bizim kodumuzdur
   2. `forbidden_packages` heç yerdə, keçid (transitive) asılılıqlarda da yoxdur.
   3. Workflow-larda `uses:` allowlist-dəki sahiblərdəndir və tam commit SHA ilə pinlənib.
 
@@ -92,6 +94,15 @@ def parse_npm(path: Path) -> list[Dep]:
     return deps
 
 
+def _own_path_package(lock: Path, fields: dict[str, str]) -> bool:
+    """Repo-daxili öz paketimiz: nisbi `path`, lock faylının qovluğundakı `packages/<ad>` altında və pubspec.yaml-ı var."""
+    if fields.get("source") != "path" or fields.get("relative") != "true":
+        return False
+    base = (lock.parent / "packages").resolve()
+    target = (lock.parent / fields.get("path", "")).resolve()
+    return target.parent == base and (target / "pubspec.yaml").is_file()
+
+
 def parse_pub(path: Path) -> list[Dep]:
     """pubspec.lock — sabit formatlı YAML; tam YAML parser lazım deyil."""
     deps, current, fields, in_packages = [], None, {}, False
@@ -99,8 +110,8 @@ def parse_pub(path: Path) -> list[Dep]:
     def flush() -> None:
         if current is not None:
             kind = fields.get("dependency", "")
-            sdk = fields.get("source") == "sdk"
-            deps.append(Dep("pub", current, kind.startswith("direct") and not sdk, str(path)))
+            platform = fields.get("source") == "sdk" or _own_path_package(path, fields)
+            deps.append(Dep("pub", current, kind.startswith("direct") and not platform, str(path)))
 
     for raw in path.read_text(encoding="utf-8").splitlines():
         if not raw.strip() or raw.lstrip().startswith("#"):
@@ -117,6 +128,10 @@ def parse_pub(path: Path) -> list[Dep]:
         elif in_packages and indent == 4 and ":" in line:
             key, _, value = line.partition(":")
             fields[key.strip()] = value.strip().strip("\"'")
+        elif in_packages and indent == 6 and ":" in line:
+            # `description:` altındakı sahələr (path paketləri üçün `path`, `relative`); 4-cü səviyyədəki adları əzmir.
+            key, _, value = line.partition(":")
+            fields.setdefault(key.strip(), value.strip().strip("\"'"))
     flush()
     return deps
 

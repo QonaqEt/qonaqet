@@ -125,6 +125,20 @@ class GuardTests(unittest.TestCase):
         }))
         self.assertEqual(self.names(), {"provider", "riverpod_lint"})
 
+    def test_pub_own_path_packages_are_not_external(self) -> None:
+        lock = pub_lock({"go_router": ("direct main", "hosted")}).replace("sdks:", "\n".join([
+            "  secure_store:", '    dependency: "direct main"', "    description:",
+            '      path: "packages/secure_store"', "      relative: true", "    source: path", '    version: "1.0.0"',
+            "  outside:", '    dependency: "direct main"', "    description:",
+            '      path: "../vendor/outside"', "      relative: true", "    source: path", '    version: "1.0.0"',
+            "  no_pubspec:", '    dependency: "direct main"', "    description:",
+            '      path: "packages/no_pubspec"', "      relative: true", "    source: path", '    version: "1.0.0"',
+            "sdks:"]))
+        self.write("mobile/pubspec.lock", lock)
+        self.write("mobile/packages/secure_store/pubspec.yaml", "name: secure_store\n")
+        self.write("vendor/outside/pubspec.yaml", "name: outside\n")
+        self.assertEqual(self.names(), {"outside", "no_pubspec"})
+
     def test_lock_files_under_build_dirs_are_ignored(self) -> None:
         self.write("web/node_modules/x/package-lock.json", npm_lock(["left-pad"]))
         self.write("backend/src/A/obj/packages.lock.json", nuget_lock(["Newtonsoft.Json"]))
