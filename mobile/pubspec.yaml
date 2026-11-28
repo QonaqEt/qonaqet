@@ -1,0 +1,32 @@
+name: qonaqet
+description: "QONAQET — hədiyyə və ısmarlama tətbiqi (istifadəçi + biznes rejimi)."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.9
+
+# Yalnız docs/dependencies/allowlist.json-dakı paketlər (CLAUDE.md → Dependency policy).
+# Öz plugin-lərimiz packages/ altındadır və path ilə qoşulur.
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+  # Şriftlər tətbiqə daxildir (şəbəkədən yüklənmir). Lisenziya: SIL OFL 1.1 — assets/fonts/*-OFL.txt.
+  # Adlar design token-lərdəki fontFamily dəyərləri ilə eynidir (QonaqetTokens.fontFamilyUi / fontFamilyDisplay).
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Variable.ttf
+    - family: Unbounded
+      fonts:
+        - asset: assets/fonts/Unbounded-Variable.ttf
