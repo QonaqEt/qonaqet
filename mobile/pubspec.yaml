@@ -19,3 +19,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Şriftlər tətbiqə daxildir (şəbəkədən yüklənmir). Lisenziya: SIL OFL 1.1 — assets/fonts/*-OFL.txt.
+  # Adlar design token-lərdəki fontFamily dəyərləri ilə eynidir (QonaqetTokens.fontFamilyUi / fontFamilyDisplay).
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Variable.ttf
+    - family: Unbounded
+      fonts:
+        - asset: assets/fonts/Unbounded-Variable.ttf
