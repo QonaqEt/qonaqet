@@ -21,7 +21,7 @@ Mənbə: `docs/epics/Exx.md`. Dəyişmək üçün: `scripts/epic.py claim|releas
 | [E11](epics/E11.md) | Leaderboard & gamification | ✅ done | @zahid2000 | 8/8 | — |
 | [E12](epics/E12.md) | QONAQET Plus | ✅ done | @zahid2000 | 4/4 | — |
 | [E13](epics/E13.md) | Integration platform | ✅ done | @zahid2000 | 12/12 | — |
-| [E14](epics/E14.md) | Mobile foundation | ⬜ todo · 🟢 götürülə bilər | — | 0/10 | — |
+| [E14](epics/E14.md) | Mobile foundation | 🔄 in-progress | @Tapdiq49 | 3/10 | — |
 | [E15](epics/E15.md) | Mobile user features | ⬜ todo | — | 0/10 | E14 |
 | [E16](epics/E16.md) | Mobile business mode | ⬜ todo | — | 0/5 | E14 |
 | [E17](epics/E17.md) | Business portal (web) | ⬜ todo · 🟢 götürülə bilər | — | 0/9 | — |
@@ -255,13 +255,13 @@ Yoxdur.
 
 ## E14 — Mobile foundation
 
-⬜ todo · 0/10 task
+🔄 in-progress · @Tapdiq49 · 3/10 task
 
 | | Task | Ad | Area | Priority | Size |
 |---|---|---|---|---|---|
-| ⬜ | E14-T01 | Layihə quraşdırması və flavor-lar `parallel-ok` | mobile | p0 | M |
-| ⬜ | E14-T02 | Feature-first arxitektura skeleti və DI `parallel-ok` | mobile | p0 | M |
-| ⬜ | E14-T03 | Design token-lərdən Dart theme `parallel-ok` | mobile | p0 | S |
+| ✅ | E14-T01 | Layihə quraşdırması və flavor-lar `parallel-ok` | mobile | p0 | M |
+| ✅ | E14-T02 | Feature-first arxitektura skeleti və DI `parallel-ok` | mobile | p0 | M |
+| ✅ | E14-T03 | Design token-lərdən Dart theme `parallel-ok` | mobile | p0 | S |
 | ⬜ | E14-T04 | Öz ApiClient-imiz `parallel-ok` | mobile | p0 | L |
 | ⬜ | E14-T05 | Plugin: secure_store `parallel-ok` | mobile | p0 | M |
 | ⬜ | E14-T06 | Plugin: code_scanner `parallel-ok` | mobile | p0 | L |
