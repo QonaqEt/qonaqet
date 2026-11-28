@@ -1,0 +1,21 @@
+name: code_scanner
+description: "QONAQET öz plugin-i: QR skaneri — Android Google Code Scanner, iOS VisionKit (E14-T06)."
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.0
+  flutter: '>=3.47.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: az.qonaqet.code_scanner
+        pluginClass: CodeScannerPlugin
+      ios:
+        pluginClass: CodeScannerPlugin
